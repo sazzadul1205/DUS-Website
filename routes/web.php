@@ -14,6 +14,7 @@ use App\Http\Controllers\JobListing\PublicJobListingController;
 
 // Controllers - Profile
 use App\Http\Controllers\Profile\ApplicantProfileController;
+use App\Http\Controllers\Profile\EmployerProfileController;
 use App\Http\Controllers\Profile\ProfileCompletionController;
 
 // Controllers
@@ -21,7 +22,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ApplyController;
 use App\Http\Controllers\JobCategoryController;
-use App\Http\Controllers\ApplicationsController; // Add this for the new Applications Controller
+use App\Http\Controllers\ApplicationsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -75,7 +76,6 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     /*
     | Backend (Admin/Employer Panel)
     */
-    // Inside your authenticated and verified routes group
     Route::prefix('backend')->name('backend.')->group(function () {
 
         /*
@@ -131,7 +131,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::delete('{jobListing}/force-delete', [JobListingController::class, 'forceDelete'])->name('force-delete');
             Route::get('{jobListing}/applications', [JobListingController::class, 'applications'])->name('applications');
 
-            // Add these routes inside your backend.listing group
+            // Bulk routes
             Route::post('/bulk-activate', [JobListingController::class, 'bulkActivate'])->name('bulk-activate');
             Route::post('/bulk-deactivate', [JobListingController::class, 'bulkDeactivate'])->name('bulk-deactivate');
             Route::delete('/bulk-delete', [JobListingController::class, 'bulkDelete'])->name('bulk-delete');
@@ -164,42 +164,30 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     */
 
         Route::prefix('apply')->name('apply.')->group(function () {
-            // Main index page (handles both active and trashed via show_trashed parameter)
             Route::get('/', [ApplyController::class, 'index'])->name('index');
-
-            // Create new application
             Route::get('/create/{slug}', [ApplyController::class, 'create'])->name('create');
             Route::post('/store/{slug}', [ApplyController::class, 'store'])->name('store');
-
-            // View, edit, update application
             Route::get('/{id}', [ApplyController::class, 'show'])->name('show');
             Route::get('/{id}/edit', [ApplyController::class, 'edit'])->name('edit');
             Route::put('/{id}', [ApplyController::class, 'update'])->name('update');
-
-            // Application actions
             Route::delete('/{id}', [ApplyController::class, 'destroy'])->name('destroy');
             Route::post('/{id}/restore', [ApplyController::class, 'restore'])->name('restore');
             Route::delete('/{id}/force-delete', [ApplyController::class, 'forceDelete'])->name('force-delete');
-
-            // ATS related routes
             Route::post('/{id}/recalculate-ats', [ApplyController::class, 'recalculateAts'])->name('recalculate-ats');
             Route::get('/{id}/ats-status', [ApplyController::class, 'getAtsStatus'])->name('ats-status');
         });
 
         /*
-    |---------------------------------------------------------------------------+
+    |--------------------------------------------------------------------------
     | Applicant Profile Routes
     |--------------------------------------------------------------------------
     */
 
         Route::prefix('applicant')->name('applicant.')->group(function () {
-
             Route::delete('/profile/{applicantProfile}', [ApplicantProfileController::class, 'destroy'])->name('profile.destroy');
             Route::get('/profile/{applicantProfile}/download-cv', [ApplicantProfileController::class, 'downloadCV'])->name('profile.download-cv');
             Route::post('/profile/{id}/restore', [ApplicantProfileController::class, 'restore'])->name('profile.restore');
             Route::get('/profile/{id?}', [ApplicantProfileController::class, 'show'])->name('profile.show');
-
-            // Additional routes for the enhanced controller
             Route::patch('/profile/{applicantProfile}/basic-info', [ApplicantProfileController::class, 'updateBasicInfo'])->name('profile.update-basic-info');
             Route::patch('/profile/{applicantProfile}/professional-info', [ApplicantProfileController::class, 'updateProfessionalInfo'])->name('profile.update-professional-info');
             Route::put('/profile/{applicantProfile}/work-experiences', [ApplicantProfileController::class, 'updateWorkExperiences'])->name('profile.update-work-experiences');
@@ -210,41 +198,47 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         });
 
         /*
-        |--------------------------------------------------------------------------
-        | Applications Management (NEW - Enhanced with Bulk Actions & CV Downloads)
-        |--------------------------------------------------------------------------
-        */
+    |--------------------------------------------------------------------------
+    | Employer Profile Routes
+    |--------------------------------------------------------------------------
+    */
 
-        // Applications Routes
+        Route::prefix('employer')->name('employer.')->group(function () {
+            // Profile routes
+            Route::get('/profile/{id?}', [EmployerProfileController::class, 'show'])->whereNumber('id')->name('profile.show');
+            Route::get('/profile/edit', [EmployerProfileController::class, 'edit'])->name('profile.edit');
+            Route::patch('/profile', [EmployerProfileController::class, 'update'])->name('profile.update');
+            Route::put('/profile/password', [EmployerProfileController::class, 'updatePassword'])->name('profile.password.update');
+        });
+
+        /*
+    |--------------------------------------------------------------------------
+    | Applications Management (Enhanced with Bulk Actions & CV Downloads)
+    |--------------------------------------------------------------------------
+    */
+
         Route::prefix('applications')->name('applications.')->group(function () {
-            // Index pages
             Route::get('/', [ApplicationsController::class, 'index'])->name('index');
             Route::get('/job/{jobId}', [ApplicationsController::class, 'jobApplications'])->name('job');
             Route::get('/{id}', [ApplicationsController::class, 'show'])->name('show');
-
-            // Status updates
             Route::put('/{id}/status', [ApplicationsController::class, 'updateStatus'])->name('update-status');
             Route::post('/bulk-status', [ApplicationsController::class, 'bulkUpdateStatus'])->name('bulk-status');
-
-            // Deletes
             Route::delete('/{id}', [ApplicationsController::class, 'destroy'])->name('destroy');
             Route::post('/bulk-delete', [ApplicationsController::class, 'bulkDelete'])->name('bulk-delete');
-
-            // Downloads
             Route::get('/{id}/download', [ApplicationsController::class, 'downloadResume'])->name('download');
             Route::post('/bulk-download', [ApplicationsController::class, 'bulkDownloadResumes'])->name('bulk-download');
-
-            // Email routes - FIXED: removed redundant '/applications/' from URL
             Route::post('/{id}/send-email', [ApplicationsController::class, 'sendEmail'])->name('send-email');
             Route::post('/bulk-send-email', [ApplicationsController::class, 'sendBulkEmail'])->name('bulk-send-email');
-
-            // ATS Score routes
             Route::post('/{id}/recalculate-ats', [ApplicationsController::class, 'recalculateAts'])->name('recalculate-ats');
-
-            // Export routes
             Route::post('export/{jobId}', [ApplicationsController::class, 'exportApplications'])->name('export');
             Route::post('export-single/{id}', [ApplicationsController::class, 'exportSingleApplication'])->name('export-single');
         });
+
+        /*
+    |--------------------------------------------------------------------------
+    | Notifications Management
+    |--------------------------------------------------------------------------
+    */
 
         Route::prefix('notifications')->name('notifications.')->group(function () {
             Route::get('/', [NotificationController::class, 'index'])->name('index');
@@ -258,7 +252,6 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     | Settings
     */
     Route::prefix('settings')->name('settings.')->group(function () {
-
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -279,13 +272,11 @@ Route::get('/email-verified', function () {
     return Inertia::render('auth/EmailVerified');
 })->name('verification.verified');
 
-// When user clicks email verification link
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     $request->fulfill();
     return redirect()->route('profile.complete');
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
-// Resend verification email
 Route::post('/email/verification-notification', function (Request $request) {
     $request->user()->sendEmailVerificationNotification();
 
