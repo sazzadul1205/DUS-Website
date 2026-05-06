@@ -1006,7 +1006,6 @@ class ApplicationsController extends Controller
         if (!$application->jobListing) {
             $message = 'Associated job listing not found';
 
-            // Inertia requests must receive an Inertia-compatible response (typically a redirect).
             if (request()->header('X-Inertia')) {
                 return redirect()->back()->with('error', $message);
             }
@@ -1017,21 +1016,17 @@ class ApplicationsController extends Controller
         }
 
         try {
-            $atsService = new ATSService();
-            $atsScore = $atsService->calculateScore($application, $application->jobListing);
+            // Use the model helper so status and metadata are updated consistently.
+            $application->recalculateAtsScoreInline();
 
-            // Update the application with the new ATS score
-            $application->ats_score = $atsScore;
-            $application->save();
-
-            // Inertia requests must receive an Inertia-compatible response (typically a redirect).
             if (request()->header('X-Inertia')) {
                 return redirect()->back()->with('success', 'ATS score recalculated successfully');
             }
 
             return response()->json([
                 'message' => 'ATS score recalculated successfully',
-                'ats_score' => $atsScore
+                'ats_score' => $application->ats_score,
+                'ats_calculation_status' => $application->ats_calculation_status,
             ]);
         } catch (\Exception $e) {
             Log::error('Error recalculating ATS score: ' . $e->getMessage(), [
@@ -1040,7 +1035,6 @@ class ApplicationsController extends Controller
 
             $message = 'Failed to recalculate ATS score: ' . $e->getMessage();
 
-            // Inertia requests must receive an Inertia-compatible response (typically a redirect).
             if (request()->header('X-Inertia')) {
                 return redirect()->back()->with('error', $message);
             }

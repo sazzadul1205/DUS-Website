@@ -30,7 +30,6 @@ import {
 } from 'react-icons/fa';
 import { FaListUl, FaListCheck } from "react-icons/fa6";
 
-
 // SweetAlert
 import Swal from 'sweetalert2';
 
@@ -89,9 +88,9 @@ export default function PublicJobListingShow({
 
   const getDeadlineColor = () => {
     const daysLeft = Math.ceil((new Date(jobListing.application_deadline) - new Date()) / (1000 * 60 * 60 * 24));
-    if (daysLeft <= 3) return 'text-red-600 bg-red-50 border-red-200';
-    if (daysLeft <= 7) return 'text-orange-600 bg-orange-50 border-orange-200';
-    return 'text-green-600 bg-green-50 border-green-200';
+    if (daysLeft <= 3) return 'from-red-50 to-red-100 border-red-200 text-red-800';
+    if (daysLeft <= 7) return 'from-orange-50 to-amber-100 border-orange-200 text-orange-800';
+    return 'from-green-50 to-emerald-100 border-green-200 text-green-800';
   };
 
   const getJobTypeLabel = (type) => {
@@ -108,14 +107,14 @@ export default function PublicJobListingShow({
 
   const getJobTypeBadge = (type) => {
     const types = {
-      'full-time': 'bg-green-100 text-green-800',
-      'part-time': 'bg-yellow-100 text-yellow-800',
-      'contract': 'bg-blue-100 text-blue-800',
-      'internship': 'bg-purple-100 text-purple-800',
-      'remote': 'bg-indigo-100 text-indigo-800',
-      'hybrid': 'bg-pink-100 text-pink-800',
+      'full-time': 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200',
+      'part-time': 'bg-amber-100 text-amber-800 ring-1 ring-amber-200',
+      'contract': 'bg-sky-100 text-sky-800 ring-1 ring-sky-200',
+      'internship': 'bg-purple-100 text-purple-800 ring-1 ring-purple-200',
+      'remote': 'bg-indigo-100 text-indigo-800 ring-1 ring-indigo-200',
+      'hybrid': 'bg-rose-100 text-rose-800 ring-1 ring-rose-200',
     };
-    return types[type] || 'bg-gray-100 text-gray-800';
+    return types[type] || 'bg-gray-100 text-gray-800 ring-1 ring-gray-200';
   };
 
   const getExperienceLabel = (level) => {
@@ -138,7 +137,7 @@ export default function PublicJobListingShow({
       return 'Negotiable';
     }
     if (jobListing.salary_min && jobListing.salary_max) {
-      return `${formatCurrency(jobListing.salary_min)} - ${formatCurrency(jobListing.salary_max)}`;
+      return `${formatCurrency(jobListing.salary_min)} — ${formatCurrency(jobListing.salary_max)}`;
     }
     if (jobListing.salary_min) {
       return `From ${formatCurrency(jobListing.salary_min)}`;
@@ -157,7 +156,7 @@ export default function PublicJobListingShow({
       return 'Negotiable';
     }
     if (jobListing.salary_min && jobListing.salary_max) {
-      return `${formatCurrency(jobListing.salary_min)} - ${formatCurrency(jobListing.salary_max)}`;
+      return `${formatCurrency(jobListing.salary_min)} — ${formatCurrency(jobListing.salary_max)}`;
     }
     if (jobListing.salary_min) {
       return `From ${formatCurrency(jobListing.salary_min)}`;
@@ -170,12 +169,13 @@ export default function PublicJobListingShow({
 
   const getAtsScoreColor = (score) => {
     if (!score) return 'bg-gray-100 text-gray-600';
-    if (score >= 80) return 'bg-green-100 text-green-800';
-    if (score >= 60) return 'bg-blue-100 text-blue-800';
-    if (score >= 40) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
+    if (score >= 80) return 'bg-emerald-100 text-emerald-800';
+    if (score >= 60) return 'bg-sky-100 text-sky-800';
+    if (score >= 40) return 'bg-amber-100 text-amber-800';
+    return 'bg-rose-100 text-rose-800';
   };
 
+  // Apply Handler
   const handleApply = () => {
     if (!userData) {
       Swal.fire({
@@ -198,6 +198,7 @@ export default function PublicJobListingShow({
     router.visit(route('backend.apply.create', jobListing.slug));
   };
 
+  // Share and Bookmark Handlers
   const handleShare = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
@@ -211,6 +212,7 @@ export default function PublicJobListingShow({
     setShowShareMenu(false);
   };
 
+  // Bookmark Handler
   const handleBookmark = () => {
     setIsBookmarked(!isBookmarked);
     Swal.fire({
@@ -222,16 +224,20 @@ export default function PublicJobListingShow({
     });
   };
 
+  // Print Handler
   const handlePrint = () => {
     window.print();
   };
 
+  // Info Section Component
   const InfoSection = ({ title, icon: Icon, children, badge }) => (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6 transition-all duration-300 hover:shadow-lg">
-      <div className="flex items-center justify-between px-6 py-4 bg-linear-to-r from-gray-50 to-white border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Icon className="text-blue-600" size={18} />
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+    <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100">
+      <div className="flex items-center justify-between px-6 py-4 bg-linear-to-r from-gray-50/50 to-white border-b border-gray-100">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 bg-blue-50 rounded-lg">
+            <Icon className="text-blue-600" size={16} />
+          </div>
+          <h2 className="font-semibold text-gray-900">{title}</h2>
         </div>
         {badge && badge}
       </div>
@@ -239,10 +245,11 @@ export default function PublicJobListingShow({
     </div>
   );
 
+  // Info Row Component
   const InfoRow = ({ label, value, isHtml = false }) => (
-    <div className="py-3 border-b border-gray-100 last:border-0">
-      <dt className="text-sm font-medium text-gray-500 mb-1">{label}</dt>
-      <dd className="text-gray-900">
+    <div className="py-3 first:pt-0 last:pb-0 border-b border-gray-100 last:border-0">
+      <dt className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1.5">{label}</dt>
+      <dd className="text-gray-800">
         {isHtml ? (
           <div dangerouslySetInnerHTML={{ __html: value }} className="prose prose-sm max-w-none" />
         ) : (
@@ -252,33 +259,51 @@ export default function PublicJobListingShow({
     </div>
   );
 
-  const TagList = ({ items, color = 'blue' }) => (
-    <div className="flex flex-wrap gap-2">
-      {items?.length > 0 ? (
-        items.map((item, index) => (
-          <span
-            key={index}
-            className={`inline-flex px-3 py-1 text-sm font-medium rounded-full bg-${color}-100 text-${color}-800`}
-          >
-            {item}
-          </span>
-        ))
-      ) : (
-        <span className="text-gray-400 italic text-sm">None provided</span>
-      )}
-    </div>
-  );
-
-  const StatCard = ({ title, value, color, icon: Icon, subtitle }) => (
-    <div className="bg-white rounded-xl shadow-md p-4 text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-      <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full bg-${color}-100 mb-2`}>
-        <Icon className={`text-${color}-600`} size={18} />
+  // Tag List Component
+  const TagList = ({ items, color = 'blue' }) => {
+    const colorClasses = {
+      blue: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
+      green: 'bg-green-50 text-green-700 ring-1 ring-green-200',
+      purple: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200',
+      amber: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+    };
+    return (
+      <div className="flex flex-wrap gap-2">
+        {items?.length > 0 ? (
+          items.map((item, index) => (
+            <span
+              key={index}
+              className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${colorClasses[color] || colorClasses.blue}`}
+            >
+              {item}
+            </span>
+          ))
+        ) : (
+          <span className="text-gray-400 italic text-sm">None provided</span>
+        )}
       </div>
-      <h3 className="text-xl font-bold text-gray-900">{value}</h3>
-      <p className="text-xs text-gray-500 mt-1">{title}</p>
-      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
-    </div>
-  );
+    );
+  };
+
+  // Stat Card Component
+  const StatCard = ({ title, value, color, icon: Icon, subtitle }) => {
+    const colorClasses = {
+      blue: 'from-blue-50 to-sky-50 ring-blue-100',
+      purple: 'from-purple-50 to-fuchsia-50 ring-purple-100',
+      indigo: 'from-indigo-50 to-blue-50 ring-indigo-100',
+      gray: 'from-gray-50 to-slate-50 ring-gray-100',
+    };
+    return (
+      <div className="bg-linear-to-br rounded-xl p-4 text-center transition-all duration-300 hover:scale-105 ring-1 ring-gray-100 shadow-sm hover:shadow-md">
+        <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full bg-linear-to-br ${colorClasses[color]} mb-2.5`}>
+          <Icon className={`text-${color === 'blue' ? 'blue' : color === 'purple' ? 'purple' : color === 'indigo' ? 'indigo' : 'gray'}-600`} size={16} />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900">{value}</h3>
+        <p className="text-xs text-gray-500 mt-1">{title}</p>
+        {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+      </div>
+    );
+  };
 
   const deadlineColor = getDeadlineColor();
   const isExpired = new Date(jobListing.application_deadline) < new Date();
@@ -287,39 +312,40 @@ export default function PublicJobListingShow({
     <AuthenticatedLayout>
       <Head title={`${jobListing.title} - Job Details`} />
 
-      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50">
         {/* Hero Section */}
-        <div className="bg-linear-to-r from-blue-600 to-indigo-700 text-white py-8">
-          <div className=" mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative bg-linear-to-br from-blue-700 via-blue-600 to-indigo-700 text-white overflow-hidden">
+          <div className="absolute inset-0 bg-black/5"></div>
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
             <button
               onClick={() => window.history.back()}
-              className="group flex items-center gap-2 text-white/80 hover:text-white mb-4 transition"
+              className="group inline-flex items-center gap-2 text-white/70 hover:text-white mb-6 transition-all duration-200 hover:-translate-x-0.5"
             >
-              <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" size={14} />
-              <span className="text-sm">Back to Jobs</span>
+              <FaArrowLeft size={14} />
+              <span className="text-sm font-medium">Back to Jobs</span>
             </button>
 
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3 flex-wrap">
-                  <h1 className="text-2xl md:text-3xl font-bold">{jobListing.title}</h1>
-                  <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${getJobTypeBadge(jobListing.job_type)}`}>
+            <div className="flex flex-wrap items-start justify-between gap-6">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-4 flex-wrap">
+                  <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">{jobListing.title}</h1>
+                  <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm bg-white/20 ring-1 ring-white/30`}>
                     {getJobTypeLabel(jobListing.job_type)}
                   </span>
                   {jobListing.experience_level && (
-                    <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-700">
+                    <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm bg-white/10 ring-1 ring-white/20">
                       {getExperienceLabel(jobListing.experience_level)}
                     </span>
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-4 text-sm text-white/80">
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/80">
                   <div className="flex items-center gap-2">
-                    <FaBuilding size={14} />
+                    <FaBuilding size={14} className="opacity-70" />
                     <span>{jobListing.employer?.name || 'Company'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <FaMapMarkerAlt size={14} />
+                    <FaMapMarkerAlt size={14} className="opacity-70" />
                     <span>
                       {jobListing.locations?.length > 0
                         ? jobListing.locations.map(l => l.name).join(', ')
@@ -327,48 +353,48 @@ export default function PublicJobListingShow({
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <FaDollarSign size={14} />
+                    <FaDollarSign size={14} className="opacity-70" />
                     <span className="font-medium">{getSalaryDisplay()}</span>
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <button
                   onClick={handleBookmark}
-                  className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition"
+                  className="p-2.5 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-200 backdrop-blur-sm hover:scale-105"
                   title="Bookmark"
                 >
-                  <FaBookmark className={isBookmarked ? 'text-yellow-400' : 'text-white'} size={18} />
+                  <FaBookmark className={isBookmarked ? 'text-amber-400' : 'text-white/80'} size={16} />
                 </button>
                 <div className="relative">
                   <button
                     onClick={() => setShowShareMenu(!showShareMenu)}
-                    className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition"
+                    className="p-2.5 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-200 backdrop-blur-sm hover:scale-105"
                     title="Share"
                   >
-                    <FaShare size={18} />
+                    <FaShare size={16} className="text-white/80" />
                   </button>
                   {showShareMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-20 overflow-hidden animate-fadeIn">
                       <button
                         onClick={handleShare}
-                        className="flex items-center gap-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 rounded-t-lg"
+                        className="flex items-center gap-3 w-full px-4 py-2.5 text-left text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                       >
-                        <FaExternalLinkAlt size={14} />
+                        <FaExternalLinkAlt size={14} className="text-gray-400" />
                         Copy Link
                       </button>
                       <button
                         onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${window.location.href}`)}
-                        className="flex items-center gap-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50"
+                        className="flex items-center gap-3 w-full px-4 py-2.5 text-left text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                       >
                         <FaFacebook size={14} className="text-blue-600" />
                         Facebook
                       </button>
                       <button
                         onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${window.location.href}`)}
-                        className="flex items-center gap-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 rounded-b-lg"
+                        className="flex items-center gap-3 w-full px-4 py-2.5 text-left text-gray-700 hover:bg-gray-50 transition-colors text-sm rounded-b-xl"
                       >
                         <FaLinkedin size={14} className="text-blue-700" />
                         LinkedIn
@@ -378,10 +404,10 @@ export default function PublicJobListingShow({
                 </div>
                 <button
                   onClick={handlePrint}
-                  className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition"
+                  className="p-2.5 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-200 backdrop-blur-sm hover:scale-105"
                   title="Print"
                 >
-                  <FaPrint size={18} />
+                  <FaPrint size={16} className="text-white/80" />
                 </button>
               </div>
             </div>
@@ -389,37 +415,46 @@ export default function PublicJobListingShow({
         </div>
 
         {/* Main Content */}
-        <div className=" mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className=" mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Main Content */}
             <div className="lg:col-span-2 space-y-6">
               {/* Deadline Alert */}
               {!isExpired && (
-                <div className={`rounded-xl border-2 p-4 flex items-center justify-between ${deadlineColor}`}>
-                  <div className="flex items-center gap-3">
-                    <FaClock size={20} />
-                    <div>
-                      <p className="font-semibold">Application Deadline</p>
-                      <p className="text-sm">{formatDate(jobListing.application_deadline)}</p>
+                <div className={`rounded-2xl bg-linear-to-r p-5 border ${deadlineColor}`}>
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-white/50 rounded-xl">
+                        <FaClock size={20} />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Application Deadline</p>
+                        <p className="text-sm opacity-80">{formatDate(jobListing.application_deadline)}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-lg font-bold">{getDaysLeft(jobListing.application_deadline)}</span>
+                    <div className="text-right">
+                      <span className="text-xl font-bold">{getDaysLeft(jobListing.application_deadline)}</span>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Apply Button */}
               {!isExpired && !hasApplied && (
-                <div className="bg-linear-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 p-4">
-                  <div className="flex items-center justify-between flex-wrap gap-3">
-                    <div>
-                      <h3 className="font-semibold text-green-800">Ready to apply?</h3>
-                      <p className="text-sm text-green-600">Submit your application before the deadline</p>
+                <div className="bg-linear-to-r from-emerald-50 to-green-50 rounded-2xl border border-emerald-200 p-5">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-100 rounded-xl">
+                        <FaRocket className="text-emerald-600" size={18} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-emerald-800">Ready to apply?</h3>
+                        <p className="text-sm text-emerald-600">Submit your application before the deadline</p>
+                      </div>
                     </div>
                     <button
                       onClick={handleApply}
-                      className="px-6 py-2 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition shadow-md font-medium"
+                      className="px-6 py-2.5 bg-linear-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium text-sm"
                     >
                       Apply Now
                     </button>
@@ -428,12 +463,14 @@ export default function PublicJobListingShow({
               )}
 
               {hasApplied && (
-                <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
-                  <div className="flex items-center gap-3">
-                    <FaCheckCircle className="text-blue-600" size={24} />
+                <div className="bg-linear-to-r from-sky-50 to-blue-50 rounded-2xl border border-sky-200 p-5">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 bg-sky-100 rounded-xl">
+                      <FaCheckCircle className="text-sky-600" size={18} />
+                    </div>
                     <div>
-                      <p className="font-semibold text-blue-800">You have already applied for this position</p>
-                      <p className="text-sm text-blue-600">Your application is being reviewed by the employer</p>
+                      <p className="font-semibold text-sky-800">You have already applied for this position</p>
+                      <p className="text-sm text-sky-600">Your application is being reviewed by the employer</p>
                     </div>
                   </div>
                 </div>
@@ -441,22 +478,22 @@ export default function PublicJobListingShow({
 
               {/* Job Description */}
               <InfoSection title="Job Description" icon={FaBriefcase}>
-                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: jobListing.description }} />
+                <div className="prose prose-sm max-w-none leading-relaxed" dangerouslySetInnerHTML={{ __html: jobListing.description }} />
               </InfoSection>
 
               {/* Requirements */}
               <InfoSection title="Requirements & Qualifications" icon={FaListCheck}>
-                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: jobListing.requirements }} />
+                <div className="prose prose-sm max-w-none leading-relaxed" dangerouslySetInnerHTML={{ __html: jobListing.requirements }} />
               </InfoSection>
 
               {/* Responsibilities */}
               {jobListing.responsibilities?.length > 0 && (
                 <InfoSection title="Key Responsibilities" icon={FaListUl}>
-                  <ul className="space-y-2">
+                  <ul className="space-y-2.5">
                     {jobListing.responsibilities.map((resp, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-gray-700">
-                        <span className="text-blue-500 mt-1">•</span>
-                        <span>{resp}</span>
+                      <li key={idx} className="flex items-start gap-3 text-gray-700">
+                        <span className="text-emerald-500 mt-0.5">▹</span>
+                        <span className="leading-relaxed">{resp}</span>
                       </li>
                     ))}
                   </ul>
@@ -483,8 +520,8 @@ export default function PublicJobListingShow({
               {/* Stats Cards */}
               <div className="grid grid-cols-2 gap-3">
                 <StatCard title="Total Views" value={jobListing.views_count?.toLocaleString() || 0} color="blue" icon={FaEye} />
-                <StatCard title="Total Applications" value={applicationStats.total || 0} color="purple" icon={FaUsers} />
-                <StatCard title="Average ATS Score" value={averageAtsScore ? `${averageAtsScore}%` : 'N/A'} color="indigo" icon={FaChartLine} />
+                <StatCard title="Applications" value={applicationStats.total || 0} color="purple" icon={FaUsers} />
+                <StatCard title="Avg. ATS Score" value={averageAtsScore ? `${averageAtsScore}%` : 'N/A'} color="indigo" icon={FaChartLine} />
                 <StatCard title="Posted" value={formatDate(jobListing.created_at)} color="gray" icon={FaCalendarAlt} subtitle="Date posted" />
               </div>
 
@@ -503,7 +540,7 @@ export default function PublicJobListingShow({
                 {jobListing.locations?.length > 0 ? (
                   <div className="space-y-3">
                     {jobListing.locations.map((location, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
+                      <div key={idx} className="flex items-start gap-3">
                         <FaMapMarkerAlt className="text-gray-400 mt-0.5 shrink-0" size={14} />
                         <div>
                           <p className="text-gray-900 font-medium">{location.name}</p>
@@ -512,7 +549,7 @@ export default function PublicJobListingShow({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 italic">Location not specified</p>
+                  <p className="text-gray-400 italic text-sm">Location not specified</p>
                 )}
               </InfoSection>
 
@@ -522,11 +559,11 @@ export default function PublicJobListingShow({
                   <InfoRow
                     label="Application Deadline"
                     value={
-                      <div className={`flex items-center gap-2 ${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
-                        <FaCalendarAlt size={14} />
+                      <div className={`flex items-center gap-2 ${isExpired ? 'text-rose-600' : 'text-gray-900'}`}>
+                        <FaCalendarAlt size={12} />
                         <span className="font-medium">{formatDate(jobListing.application_deadline)}</span>
                         {isExpired && (
-                          <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Expired</span>
+                          <span className="text-xs bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full">Expired</span>
                         )}
                       </div>
                     }
@@ -553,15 +590,17 @@ export default function PublicJobListingShow({
               {/* Employer Info Card */}
               {jobListing.employer && (
                 <InfoSection title="About the Employer" icon={FaBuilding}>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <FaBuilding className="text-gray-400" size={14} />
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-gray-100 rounded-lg">
+                        <FaBuilding className="text-gray-500" size={14} />
+                      </div>
                       <span className="text-gray-900 font-medium">{jobListing.employer.name}</span>
                     </div>
                     {jobListing.employer.email && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <FaEnvelope className="text-gray-400" size={14} />
-                        <a href={`mailto:${jobListing.employer.email}`} className="text-blue-600 hover:underline text-sm">
+                        <a href={`mailto:${jobListing.employer.email}`} className="text-blue-600 hover:text-blue-700 hover:underline text-sm">
                           {jobListing.employer.email}
                         </a>
                       </div>
@@ -574,39 +613,42 @@ export default function PublicJobListingShow({
 
           {/* Related Jobs Section */}
           {relatedJobs && relatedJobs.length > 0 && (
-            <div className="mt-8">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <FaRocket className="text-blue-600" size={20} />
+            <div className="mt-10">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2 bg-blue-100 rounded-xl">
+                  <FaRocket className="text-blue-600" size={18} />
+                </div>
+                <div>
                   <h2 className="text-xl font-bold text-gray-900">Similar Jobs You Might Like</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Explore other opportunities</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {relatedJobs.map((job) => (
                   <a
                     key={job.id}
-                    href={route('public.job-listings.show', job.slug)}
-                    className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-4 group"
+                    // href={route('public.job-listings.show', job.slug)}
+                    className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 p-5 border border-gray-100 hover:border-blue-200 block"
                   >
-                    <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition mb-2">
+                    <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-2">
                       {job.title}
                     </h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
                       <FaMapMarkerAlt size={12} />
-                      <span>{job.locations?.length > 0 ? job.locations[0].name : 'Location N/A'}</span>
+                      <span className="line-clamp-1">{job.locations?.length > 0 ? job.locations[0].name : 'Location N/A'}</span>
                     </div>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getJobTypeBadge(job.job_type)}`}>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                      <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${getJobTypeBadge(job.job_type)}`}>
                         {getJobTypeLabel(job.job_type)}
                       </span>
-                      <div className="flex gap-2 text-xs">
-                        <span className="flex items-center gap-1 text-gray-500">
-                          <FaEye size={10} />
+                      <div className="flex gap-3 text-xs text-gray-400">
+                        <span className="flex items-center gap-1.5">
+                          <FaEye size={11} />
                           {job.views_count || 0}
                         </span>
-                        <span className="flex items-center gap-1 text-gray-500">
-                          <FaUsers size={10} />
+                        <span className="flex items-center gap-1.5">
+                          <FaUsers size={11} />
                           {job.applications_count || 0}
                         </span>
                       </div>
@@ -621,16 +663,34 @@ export default function PublicJobListingShow({
 
       <style>{`
         @media print {
-          .bg-linear-to-r, .bg-blue-50, .bg-green-50, button, a {
+          .bg-linear-to-br, .bg-linear-to-r, .bg-blue-50, .bg-emerald-50, button, a {
             background: white !important;
             color: black !important;
           }
-          .shadow-md, .shadow-lg {
+          .shadow-sm, .shadow-md, .shadow-lg {
             box-shadow: none !important;
           }
-          button, .p-2, .bg-white\\/10 {
+          button, .p-2, .bg-white\\/10, .backdrop-blur-sm {
             display: none !important;
           }
+          .rounded-2xl, .rounded-xl {
+            border: 1px solid #e5e7eb !important;
+          }
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.15s ease-out;
         }
         
         .prose {
@@ -639,24 +699,37 @@ export default function PublicJobListingShow({
         }
         
         .prose p {
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.875rem;
           line-height: 1.6;
         }
         
         .prose ul, .prose ol {
           margin-top: 0.5rem;
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.875rem;
           padding-left: 1.5rem;
         }
         
         .prose li {
-          margin-bottom: 0.25rem;
+          margin-bottom: 0.375rem;
         }
         
         .prose h1, .prose h2, .prose h3 {
+          margin-top: 1.25rem;
+          margin-bottom: 0.75rem;
+          font-weight: 600;
+        }
+        
+        .prose h4, .prose h5, .prose h6 {
           margin-top: 1rem;
           margin-bottom: 0.5rem;
-          font-weight: 600;
+          font-weight: 500;
+        }
+        
+        .line-clamp-1 {
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
       `}</style>
     </AuthenticatedLayout>

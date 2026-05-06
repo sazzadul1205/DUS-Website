@@ -448,8 +448,8 @@ export default function PublicJobListingsIndex({
                     onChange={(e) => handleFilterChange('location', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   >
-                      <option value="">All Locations</option>
-                      {locations.map(loc => (
+                    <option value="">All Locations</option>
+                    {locations.map(loc => (
                       <option key={loc.id} value={loc.id}>{loc.name}</option>
                     ))}
                   </select>
@@ -532,7 +532,7 @@ export default function PublicJobListingsIndex({
                       </button>
                     </span>
                   )}
-                      {filters.location && (
+                  {filters.location && (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
                       Location: {locations.find(l => String(l.id) === String(filters.location))?.name}
                       <button onClick={() => clearFilter('location')} className="ml-1 hover:text-blue-600">
