@@ -34,9 +34,7 @@ use App\Http\Controllers\Settings\ProfileController;
 */
 
 // Home
-Route::get('/', function () {
-    return Inertia::render('welcome');
-})->name('home');
+Route::inertia('/', 'welcome')->name('home');
 
 // Public job listings (no auth) - Using PublicJobListingController
 Route::get('/jobs', [PublicJobListingController::class, 'index'])->name('public.jobs.index');
