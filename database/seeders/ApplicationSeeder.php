@@ -26,6 +26,17 @@ class ApplicationSeeder extends Seeder
         $applications = [];
         $usedCombinations = [];
 
+        // Get existing combinations to avoid duplicates
+        $existingCombinations = DB::table('applications')
+            ->select('job_listing_id', 'user_id')
+            ->get()
+            ->map(fn($item) => $item->job_listing_id . '_' . $item->user_id)
+            ->toArray();
+
+        foreach ($existingCombinations as $existing) {
+            $usedCombinations[] = $existing;
+        }
+
         foreach ($jobSeekers as $seeker) {
             // Each job seeker applies to 1-5 jobs
             $numApplications = rand(1, 5);
@@ -72,10 +83,16 @@ class ApplicationSeeder extends Seeder
                     'linkedin_link' => rand(0, 1) ? 'https://linkedin.com/in/user' . rand(1, 100) : null,
                     'created_at' => $createdAt,
                     'updated_at' => $createdAt,
+                    'deleted_at' => null,
                 ];
             }
         }
 
-        DB::table('applications')->insert($applications);
+        // Batch insert to avoid memory issues
+        if (!empty($applications)) {
+            foreach (array_chunk($applications, 100) as $chunk) {
+                DB::table('applications')->insert($chunk);
+            }
+        }
     }
 }
