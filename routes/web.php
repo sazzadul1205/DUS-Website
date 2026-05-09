@@ -4,9 +4,7 @@
 
 // Inertia
 use Inertia\Inertia;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
 // Controllers - Job Listings
 use App\Http\Controllers\JobListing\JobListingController;
@@ -18,12 +16,12 @@ use App\Http\Controllers\Profile\EmployerProfileController;
 use App\Http\Controllers\Profile\ProfileCompletionController;
 
 // Controllers
-use App\Http\Controllers\LocationController;
-use App\Http\Controllers\ApplicationController;
-use App\Http\Controllers\ApplyController;
-use App\Http\Controllers\JobCategoryController;
-use App\Http\Controllers\ApplicationsController;
-use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Backend\LocationController;
+use App\Http\Controllers\Backend\ApplyController;
+use App\Http\Controllers\Backend\JobCategoryController;
+use App\Http\Controllers\Backend\ApplicationsController;
+use App\Http\Controllers\Backend\NotificationController;
+use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 
@@ -76,6 +74,40 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     | Backend (Admin/Employer Panel)
     */
     Route::prefix('backend')->name('backend.')->group(function () {
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | Roles Management 
+    |--------------------------------------------------------------------------
+    */
+
+        Route::prefix('roles')->name('roles.')->group(function () {
+            // Main CRUD
+            Route::get('/', [RoleController::class, 'index'])->name('index');
+            Route::get('/create', [RoleController::class, 'create'])->name('create');
+            Route::post('/', [RoleController::class, 'store'])->name('store');
+            Route::get('/{id}', [RoleController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [RoleController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [RoleController::class, 'update'])->name('update');
+
+            // Soft Delete & Restore
+            Route::delete('/{id}', [RoleController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/restore', [RoleController::class, 'restore'])->name('restore');
+            Route::delete('/{id}/force', [RoleController::class, 'forceDelete'])->name('force-delete');
+
+            // Trashed listing
+            Route::get('/trashed', [RoleController::class, 'trashed'])->name('trashed');
+
+            // Bulk operations
+            Route::post('/bulk/delete', [RoleController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::post('/bulk/restore', [RoleController::class, 'bulkRestore'])->name('bulk-restore');
+
+            // Utilities
+            Route::post('/{id}/toggle-status', [RoleController::class, 'toggleStatus'])->name('toggle-status');
+            Route::post('/{id}/clone', [RoleController::class, 'clone'])->name('clone');
+            Route::get('/export', [RoleController::class, 'export'])->name('export');
+        });
 
         /*
     |--------------------------------------------------------------------------

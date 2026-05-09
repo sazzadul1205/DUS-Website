@@ -1,8 +1,8 @@
 <?php
-// app/Http/Controllers/LocationController.php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Backend;
 
+use App\Http\Controllers\Controller;
 use App\Models\Location;
 use Illuminate\Http\Request;
 use Inertia\Inertia;

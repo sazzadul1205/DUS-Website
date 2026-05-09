@@ -12,18 +12,55 @@ class ApplicationEmail extends Mailable
 {
   use Queueable, SerializesModels;
 
-  public $subject;
-  public $content;
-  public $applicantName;
-  public $jobTitle;
-  public $companyName;
-  public $applicationId;
+    /* =========================================================
+     | PUBLIC PROPERTIES
+     |========================================================= */
+
+  /**
+   * Email subject
+   */
+  public string $subject;
+
+  /**
+   * Email content/body
+   */
+  public string $content;
+
+  /**
+   * Applicant full name
+   */
+  public string $applicantName;
+
+  /**
+   * Job title
+   */
+  public ?string $jobTitle;
+
+  /**
+   * Company name
+   */
+  public ?string $companyName;
+
+  /**
+   * Application ID
+   */
+  public int|string|null $applicationId;
+
+    /* =========================================================
+     | CONSTRUCTOR
+     |========================================================= */
 
   /**
    * Create a new message instance.
    */
-  public function __construct($subject, $content, $applicantName, $jobTitle = null, $companyName = null, $applicationId = null)
-  {
+  public function __construct(
+    string $subject,
+    string $content,
+    string $applicantName,
+    ?string $jobTitle = null,
+    ?string $companyName = null,
+    int|string|null $applicationId = null
+  ) {
     $this->subject = $subject;
     $this->content = $content;
     $this->applicantName = $applicantName;
@@ -31,6 +68,10 @@ class ApplicationEmail extends Mailable
     $this->companyName = $companyName ?? config('app.name');
     $this->applicationId = $applicationId;
   }
+
+    /* =========================================================
+     | MAIL ENVELOPE
+     |========================================================= */
 
   /**
    * Get the message envelope.
@@ -42,6 +83,10 @@ class ApplicationEmail extends Mailable
     );
   }
 
+    /* =========================================================
+     | MAIL CONTENT
+     |========================================================= */
+
   /**
    * Get the message content definition.
    */
@@ -51,6 +96,10 @@ class ApplicationEmail extends Mailable
       view: 'emails.application',
     );
   }
+
+    /* =========================================================
+     | ATTACHMENTS
+     |========================================================= */
 
   /**
    * Get the attachments for the message.

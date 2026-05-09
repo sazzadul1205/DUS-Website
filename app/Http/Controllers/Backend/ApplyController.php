@@ -1,13 +1,13 @@
 <?php
-// app/Http/Controllers/ApplyController.php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Backend;
 
 // Inertia
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Controller;
 
 // Models
 use App\Models\JobListing;

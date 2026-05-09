@@ -8,23 +8,56 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 class ShortlistedMail extends Mailable
 {
   use Queueable, SerializesModels;
 
-  public $application;
-  public $customMessage;
-  public $subject;
+    /* =========================================================
+     | PUBLIC PROPERTIES
+     |========================================================= */
 
-  public function __construct(Application $application, $subject, $customMessage)
-  {
+  /**
+   * Application instance
+   */
+  public Application $application;
+
+  /**
+   * Custom email message
+   */
+  public string $customMessage;
+
+  /**
+   * Email subject
+   */
+  public string $subject;
+
+    /* =========================================================
+     | CONSTRUCTOR
+     |========================================================= */
+
+  /**
+   * Create a new mail instance.
+   */
+  public function __construct(
+    Application $application,
+    string $subject,
+    string $customMessage
+  ) {
     $this->application = $application;
     $this->subject = $subject;
     $this->customMessage = $customMessage;
   }
 
+    /* =========================================================
+     | MAIL ENVELOPE
+     |========================================================= */
+
+  /**
+   * Get the message envelope.
+   */
   public function envelope(): Envelope
   {
     return new Envelope(
@@ -32,6 +65,13 @@ class ShortlistedMail extends Mailable
     );
   }
 
+    /* =========================================================
+     | MAIL CONTENT
+     |========================================================= */
+
+  /**
+   * Get the message content definition.
+   */
   public function content(): Content
   {
     return new Content(
@@ -39,17 +79,33 @@ class ShortlistedMail extends Mailable
     );
   }
 
-  public function headers(): \Illuminate\Mail\Mailables\Headers
+    /* =========================================================
+     | MAIL HEADERS
+     |========================================================= */
+
+  /**
+   * Get custom email headers.
+   */
+  public function headers(): Headers
   {
-    return new \Illuminate\Mail\Mailables\Headers(
+    return new Headers(
       text: [
-        'X-Priority' => '1', // High priority
+        'X-Priority' => '1',
         'X-Mailer' => 'JobMatch Application System',
         'List-Unsubscribe' => '<mailto:unsubscribe@jobmatch.com>',
       ],
     );
   }
 
+    /* =========================================================
+     | ATTACHMENTS
+     |========================================================= */
+
+  /**
+   * Get mail attachments.
+   *
+   * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+   */
   public function attachments(): array
   {
     return [];
