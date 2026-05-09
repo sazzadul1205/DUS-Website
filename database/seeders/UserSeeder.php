@@ -12,22 +12,68 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        $now = now();
         $users = [];
-        $faker = \Faker\Factory::create();
 
-        // Create 1 admin
+        // ==========================================
+        // 1. SUPER ADMIN (Highest level)
+        // ==========================================
+        $users[] = [
+            'name' => 'Super Admin',
+            'email' => 'superadmin@jobportal.com',
+            'password' => Hash::make('password'),
+            'role' => 'admin',
+            'email_verified_at' => $now,
+            'remember_token' => Str::random(10),
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+
+        // ==========================================
+        // 2. ADMIN (Regular admin)
+        // ==========================================
         $users[] = [
             'name' => 'Admin User',
             'email' => 'admin@jobportal.com',
             'password' => Hash::make('password'),
             'role' => 'admin',
-            'email_verified_at' => now(),
+            'email_verified_at' => $now,
             'remember_token' => Str::random(10),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'created_at' => $now,
+            'updated_at' => $now,
         ];
 
-        // Create 30 employers
+        // ==========================================
+        // 3. EMPLOYER / HR MANAGER
+        // ==========================================
+        $users[] = [
+            'name' => 'HR Manager',
+            'email' => 'hrmanager@company.com',
+            'password' => Hash::make('password'),
+            'role' => 'employer',
+            'email_verified_at' => $now,
+            'remember_token' => Str::random(10),
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+
+        // ==========================================
+        // 4. JOB SEEKER (Regular user)
+        // ==========================================
+        $users[] = [
+            'name' => 'Job Seeker',
+            'email' => 'jobseeker@gmail.com',
+            'password' => Hash::make('password'),
+            'role' => 'job_seeker',
+            'email_verified_at' => $now,
+            'remember_token' => Str::random(10),
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+
+        // ==========================================
+        // Additional employers (for variety)
+        // ==========================================
         $employers = [
             'Tech Solutions Ltd',
             'Bengal Software',
@@ -38,27 +84,6 @@ class UserSeeder extends Seeder
             'Dutch-Bangla Bank',
             'Square Pharmaceuticals',
             'Renata Limited',
-            'Beximco Group',
-            'PRAN-RFL Group',
-            'Meghna Group',
-            'Kazi Farms',
-            'Apex Footwear',
-            'Walton',
-            'Singer Bangladesh',
-            'Transcom Group',
-            'Partex Group',
-            'Akij Group',
-            'Navana Group',
-            'Bashundhara Group',
-            'Orion Group',
-            'Summit Group',
-            'City Group',
-            'Fresh Group',
-            'Olympic Industries',
-            'Unilever Bangladesh',
-            'Marico Bangladesh',
-            'Reckitt Benckiser',
-            'British American Tobacco'
         ];
 
         foreach ($employers as $employer) {
@@ -67,18 +92,21 @@ class UserSeeder extends Seeder
                 'email' => Str::slug($employer, '.') . '@company.com',
                 'password' => Hash::make('password'),
                 'role' => 'employer',
-                'email_verified_at' => now(),
+                'email_verified_at' => $now,
                 'remember_token' => Str::random(10),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => $now,
+                'updated_at' => $now,
             ];
         }
 
-        // Create 69 job seekers (to reach ~100 total)
+        // ==========================================
+        // Additional job seekers
+        // ==========================================
         $firstNames = ['Rafiq', 'Shamim', 'Rina', 'Hasan', 'Nadia', 'Farhan', 'Tahmina', 'Rakib', 'Shanta', 'Mahmud'];
         $lastNames = ['Ahmed', 'Khan', 'Rahman', 'Islam', 'Hossain', 'Akter', 'Begum', 'Ali', 'Haque', 'Chowdhury'];
 
-        for ($i = 0; $i < 69; $i++) {
+        // Create 50 job seekers
+        for ($i = 0; $i < 50; $i++) {
             $firstName = $firstNames[array_rand($firstNames)];
             $lastName = $lastNames[array_rand($lastNames)];
             $email = strtolower($firstName . $lastName . $i . '@gmail.com');
@@ -88,13 +116,19 @@ class UserSeeder extends Seeder
                 'email' => $email,
                 'password' => Hash::make('password'),
                 'role' => 'job_seeker',
-                'email_verified_at' => now(),
+                'email_verified_at' => $now,
                 'remember_token' => Str::random(10),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => $now,
+                'updated_at' => $now,
             ];
         }
 
-        DB::table('users')->insert($users);
+        $users = collect($users)->unique('email')->values()->all();
+
+        DB::table('users')->upsert(
+            $users,
+            ['email'],
+            ['name', 'password', 'role', 'email_verified_at', 'remember_token', 'updated_at']
+        );
     }
 }

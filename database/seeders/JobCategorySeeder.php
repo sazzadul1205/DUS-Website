@@ -85,14 +85,26 @@ class JobCategorySeeder extends Seeder
             ['name' => 'Interior Design', 'is_active' => true],
         ];
 
-        foreach ($categories as $category) {
-            DB::table('job_categories')->insert([
-                'name' => $category['name'],
-                'slug' => Str::slug($category['name']),
-                'is_active' => $category['is_active'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+        $now = now();
+
+        $rows = collect($categories)
+            ->map(function (array $category) use ($now) {
+                return [
+                    'name' => $category['name'],
+                    'slug' => Str::slug($category['name']),
+                    'is_active' => (bool) $category['is_active'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            })
+            ->unique('slug')
+            ->values()
+            ->all();
+
+        DB::table('job_categories')->upsert(
+            $rows,
+            ['slug'],
+            ['name', 'is_active', 'updated_at']
+        );
     }
 }

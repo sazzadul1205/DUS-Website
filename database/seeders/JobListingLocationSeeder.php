@@ -14,6 +14,7 @@ class JobListingLocationSeeder extends Seeder
         $locations = DB::table('locations')->get();
 
         $pivotRecords = [];
+        $now = now();
 
         foreach ($jobListings as $job) {
             // Each job gets 1-3 locations
@@ -30,13 +31,22 @@ class JobListingLocationSeeder extends Seeder
                     $pivotRecords[] = [
                         'job_listing_id' => $job->id,
                         'location_id' => $location->id,
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'created_at' => $now,
+                        'updated_at' => $now,
                     ];
                 }
             }
         }
 
-        DB::table('job_listing_location')->insert($pivotRecords);
+        $pivotRecords = collect($pivotRecords)
+            ->unique(fn ($row) => $row['job_listing_id'] . '-' . $row['location_id'])
+            ->values()
+            ->all();
+
+        DB::table('job_listing_location')->upsert(
+            $pivotRecords,
+            ['job_listing_id', 'location_id'],
+            ['updated_at']
+        );
     }
 }
