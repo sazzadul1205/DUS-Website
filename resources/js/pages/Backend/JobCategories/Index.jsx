@@ -1,7 +1,7 @@
 // resources/js/pages/Backend/JobCategories/Index.jsx
 
-import { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { useState, useMemo, useEffect } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
 
 // Icons
 import {
@@ -11,7 +11,17 @@ import {
   FaTimes,
   FaSpinner,
   FaUndo,
-  FaBriefcase
+  FaBriefcase,
+  FaFilter,
+  FaSearch,
+  FaChevronDown,
+  FaChevronUp,
+  FaCheckCircle,
+  FaBan,
+  FaCheckDouble,
+  FaExclamationTriangle,
+  FaChevronLeft,
+  FaChevronRight,
 } from 'react-icons/fa';
 
 // Layout
@@ -20,123 +30,612 @@ import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 // SweetAlert2
 import Swal from 'sweetalert2';
 
-export default function JobCategoriesIndex({ categories, flash }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [editing, setEditing] = useState(null);
+export default function JobCategoriesIndex({ categories: initialCategories, filters: initialFilters = {}, stats: initialStats = {} }) {
+  const { flash } = usePage().props;
+
+  // States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [togglingId, setTogglingId] = useState(null);
+  const [restoringId, setRestoringId] = useState(null);
+  const [forceDeletingId, setForceDeletingId] = useState(null);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [categories, setCategories] = useState(initialCategories);
+  const [currentPage, setCurrentPage] = useState(initialCategories?.current_page || 1);
 
+  // Filter states
+  const [filters, setFilters] = useState({
+    search: initialFilters.search || '',
+    status: initialFilters.status || 'all',
+  });
+
+  // Form data for modal
   const [formData, setFormData] = useState({
     name: '',
     is_active: true,
   });
 
-  // Show flash messages
-  if (flash?.success) {
-    Swal.fire({
-      icon: 'success',
-      title: 'Success!',
-      text: flash.success,
-      timer: 2000,
-      showConfirmButton: false,
-    });
-  }
+  // Get categories array from paginated response
+  const categoryItems = useMemo(() => {
+    if (Array.isArray(categories)) return categories;
+    if (categories && Array.isArray(categories.data)) return categories.data;
+    return [];
+  }, [categories]);
 
-  if (flash?.error) {
+  // Pagination info
+  const pagination = useMemo(() => {
+    if (categories && typeof categories === 'object' && 'current_page' in categories) {
+      return {
+        currentPage: categories.current_page,
+        lastPage: categories.last_page,
+        perPage: categories.per_page,
+        total: categories.total,
+        from: categories.from,
+        to: categories.to,
+        links: categories.links || [],
+      };
+    }
+    return null;
+  }, [categories]);
+
+  // Apply filters
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      router.get(route('backend.categories.index'), {
+        ...filters,
+        page: 1,
+      }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        onSuccess: (page) => {
+          setCategories(page.props.categories);
+          setCurrentPage(1);
+        },
+      });
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [filters]);
+
+  // Keep local categories in sync
+  useEffect(() => {
+    setCategories(initialCategories);
+    setCurrentPage(initialCategories?.current_page || 1);
+  }, [initialCategories]);
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    if (page === pagination?.currentPage) return;
+    if (page < 1 || page > pagination?.lastPage) return;
+
+    router.get(route('backend.categories.index'), {
+      ...filters,
+      page: page,
+    }, {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+      onSuccess: (page) => {
+        setCategories(page.props.categories);
+        setCurrentPage(page);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+    });
+  };
+
+  // Filtered categories (client-side filtering)
+  const filteredCategories = useMemo(() => {
+    let filtered = [...categoryItems];
+
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(cat =>
+        cat.name.toLowerCase().includes(searchLower)
+      );
+    }
+
+    if (filters.status !== 'all') {
+      if (filters.status === 'active') {
+        filtered = filtered.filter(cat => cat.is_active && !cat.deleted_at);
+      } else if (filters.status === 'inactive') {
+        filtered = filtered.filter(cat => !cat.is_active && !cat.deleted_at);
+      } else if (filters.status === 'deleted') {
+        filtered = filtered.filter(cat => cat.deleted_at);
+      }
+    }
+
+    return filtered;
+  }, [categoryItems, filters]);
+
+  // Stats
+  const activeCount = categoryItems.filter(cat => !cat.deleted_at && cat.is_active).length;
+  const inactiveCount = categoryItems.filter(cat => !cat.deleted_at && !cat.is_active).length;
+  const deletedCount = categoryItems.filter(cat => cat.deleted_at).length;
+
+  // Handle filter change
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Reset filters
+  const resetFilters = () => {
+    setFilters({
+      search: '',
+      status: 'all',
+    });
+  };
+
+  // Check if any filter is active
+  const hasActiveFilters = () => {
+    return filters.search !== '' || filters.status !== 'all';
+  };
+
+  // Pagination component
+  const Pagination = () => {
+    if (!pagination || pagination.lastPage <= 1) return null;
+
+    const pages = [];
+    const maxVisible = 5;
+    let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+
+    if (endPage - startPage + 1 < maxVisible) {
+      startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return (
+      <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="text-sm text-gray-500">
+          Showing <span className="font-medium">{pagination.from || 0}</span> to{' '}
+          <span className="font-medium">{pagination.to || 0}</span> of{' '}
+          <span className="font-medium">{pagination.total}</span> results
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => handlePageChange(pagination.currentPage - 1)}
+            disabled={pagination.currentPage === 1}
+            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === 1
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+              }`}
+          >
+            <FaChevronLeft size={12} />
+            Previous
+          </button>
+
+          {startPage > 1 && (
+            <>
+              <button
+                onClick={() => handlePageChange(1)}
+                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
+              >
+                1
+              </button>
+              {startPage > 2 && <span className="px-2 text-gray-400">...</span>}
+            </>
+          )}
+
+          {pages.map(page => (
+            <button
+              key={page}
+              onClick={() => handlePageChange(page)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${page === pagination.currentPage
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                }`}
+            >
+              {page}
+            </button>
+          ))}
+
+          {endPage < pagination.lastPage && (
+            <>
+              {endPage < pagination.lastPage - 1 && <span className="px-2 text-gray-400">...</span>}
+              <button
+                onClick={() => handlePageChange(pagination.lastPage)}
+                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
+              >
+                {pagination.lastPage}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => handlePageChange(pagination.currentPage + 1)}
+            disabled={pagination.currentPage === pagination.lastPage}
+            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === pagination.lastPage
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+              }`}
+          >
+            Next
+            <FaChevronRight size={12} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Bulk selection handlers
+  const handleSelectAll = () => {
+    const nonDeletedCategories = filteredCategories.filter(cat => !cat.deleted_at);
+    if (selectedCategories.length === nonDeletedCategories.length) {
+      setSelectedCategories([]);
+    } else {
+      setSelectedCategories(nonDeletedCategories.map(cat => cat.id));
+    }
+  };
+
+  const handleSelectCategory = (categoryId) => {
+    setSelectedCategories(prev =>
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
+
+  // Bulk actions
+  const handleBulkActivate = () => {
+    if (selectedCategories.length === 0) {
+      Swal.fire('No Selection', 'Please select at least one category.', 'warning');
+      return;
+    }
+
     Swal.fire({
+      title: 'Activate Categories',
+      text: `Are you sure you want to activate ${selectedCategories.length} category(ies)?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, activate',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setIsBulkProcessing(true);
+
+        router.post(route('backend.categories.bulk-activate'), {
+          category_ids: selectedCategories
+        }, {
+          preserveScroll: true,
+          onSuccess: () => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Activated!',
+              text: `${selectedCategories.length} category(ies) have been activated.`,
+              timer: 1500,
+              showConfirmButton: false
+            });
+            setSelectedCategories([]);
+            setIsBulkProcessing(false);
+            router.reload();
+          },
+          onError: (error) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Failed',
+              text: error?.message || 'Failed to activate categories.',
+            });
+            setIsBulkProcessing(false);
+          }
+        });
+      }
+    });
+  };
+
+  const handleBulkDeactivate = () => {
+    if (selectedCategories.length === 0) {
+      Swal.fire('No Selection', 'Please select at least one category.', 'warning');
+      return;
+    }
+
+    Swal.fire({
+      title: 'Deactivate Categories',
+      text: `Are you sure you want to deactivate ${selectedCategories.length} category(ies)?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#f59e0b',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, deactivate',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setIsBulkProcessing(true);
+
+        router.post(route('backend.categories.bulk-deactivate'), {
+          category_ids: selectedCategories
+        }, {
+          preserveScroll: true,
+          onSuccess: () => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Deactivated!',
+              text: `${selectedCategories.length} category(ies) have been deactivated.`,
+              timer: 1500,
+              showConfirmButton: false
+            });
+            setSelectedCategories([]);
+            setIsBulkProcessing(false);
+            router.reload();
+          },
+          onError: (error) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Failed',
+              text: error?.message || 'Failed to deactivate categories.',
+            });
+            setIsBulkProcessing(false);
+          }
+        });
+      }
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedCategories.length === 0) {
+      Swal.fire('No Selection', 'Please select at least one category.', 'warning');
+      return;
+    }
+
+    Swal.fire({
+      title: 'Delete Categories',
+      text: `Are you sure you want to delete ${selectedCategories.length} category(ies)? This will move them to trash.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setIsBulkProcessing(true);
+
+        router.post(route('backend.categories.bulk-delete'), {
+          category_ids: selectedCategories
+        }, {
+          preserveScroll: true,
+          onSuccess: (page) => {
+            if (page.props.flash?.error) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Cannot Delete',
+                text: page.props.flash.error,
+                confirmButtonColor: '#2563eb',
+              });
+            } else {
+              Swal.fire({
+                icon: 'success',
+                title: 'Deleted!',
+                text: `${selectedCategories.length} category(ies) have been moved to trash.`,
+                timer: 1500,
+                showConfirmButton: false
+              });
+              setSelectedCategories([]);
+              router.reload();
+            }
+            setIsBulkProcessing(false);
+          },
+          onError: (error) => {
+            let errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete categories.';
+            Swal.fire({
+              icon: 'error',
+              title: 'Failed',
+              text: errorMessage,
+              confirmButtonColor: '#2563eb',
+            });
+            setIsBulkProcessing(false);
+          }
+        });
+      }
+    });
+  };
+
+  const handleBulkRestore = () => {
+    if (selectedCategories.length === 0) {
+      Swal.fire('No Selection', 'Please select at least one category.', 'warning');
+      return;
+    }
+
+    Swal.fire({
+      title: 'Restore Categories',
+      text: `Are you sure you want to restore ${selectedCategories.length} category(ies)?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, restore',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setIsBulkProcessing(true);
+
+        router.post(route('backend.categories.bulk-restore'), {
+          category_ids: selectedCategories
+        }, {
+          preserveScroll: true,
+          onSuccess: () => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Restored!',
+              text: `${selectedCategories.length} category(ies) have been restored.`,
+              timer: 1500,
+              showConfirmButton: false
+            });
+            setSelectedCategories([]);
+            setIsBulkProcessing(false);
+            router.reload();
+          },
+          onError: (error) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Failed',
+              text: error?.message || 'Failed to restore categories.',
+            });
+            setIsBulkProcessing(false);
+          }
+        });
+      }
+    });
+  };
+
+  const handleBulkForceDelete = () => {
+    if (selectedCategories.length === 0) {
+      Swal.fire('No Selection', 'Please select at least one category.', 'warning');
+      return;
+    }
+
+    const trashedSelected = selectedCategories.filter(id => {
+      const category = categoryItems.find(cat => cat.id === id);
+      return category && category.deleted_at;
+    });
+
+    if (trashedSelected.length === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'No Deleted Categories',
+        text: 'Please select categories that are already in trash to permanently delete them.',
+        confirmButtonColor: '#2563eb',
+      });
+      return;
+    }
+
+    Swal.fire({
+      title: 'Permanently Delete Categories',
+      html: `Are you sure you want to <strong>permanently delete</strong> ${trashedSelected.length} category(ies)?<br/><br/>This action <strong>cannot be undone</strong> and will remove these categories from the database completely.`,
       icon: 'error',
-      title: 'Error!',
-      text: flash.error,
-      confirmButtonColor: '#2563eb',
-    });
-  }
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, permanently delete',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setIsBulkProcessing(true);
 
+        router.post(route('backend.categories.bulk-force-delete'), {
+          category_ids: trashedSelected
+        }, {
+          preserveScroll: true,
+          onSuccess: () => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Deleted!',
+              text: `${trashedSelected.length} category(ies) have been permanently deleted.`,
+              timer: 1500,
+              showConfirmButton: false
+            });
+            setSelectedCategories([]);
+            setIsBulkProcessing(false);
+            router.reload();
+          },
+          onError: (error) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Failed',
+              text: error?.message || 'Failed to permanently delete categories.',
+            });
+            setIsBulkProcessing(false);
+          }
+        });
+      }
+    });
+  };
+
+  // Modal handlers
   const handleOpenCreate = () => {
-    setEditing(null);
+    setEditingCategory(null);
     setFormData({ name: '', is_active: true });
-    setIsOpen(true);
+    setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (cat) => {
-    setEditing(cat);
+  const handleOpenEdit = (category) => {
+    setEditingCategory(category);
     setFormData({
-      name: cat.name,
-      is_active: cat.is_active,
+      name: category.name,
+      is_active: category.is_active,
     });
-    setIsOpen(true);
+    setIsModalOpen(true);
   };
 
-  const handleClose = () => {
-    setIsOpen(false);
-    setEditing(null);
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingCategory(null);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (isSubmitting) return;
-
     setIsSubmitting(true);
 
-    if (editing) {
-      router.put(route('backend.categories.update', editing.id), formData, {
+    if (editingCategory) {
+      router.put(route('backend.categories.update', editingCategory.id), formData, {
         preserveScroll: true,
         onSuccess: () => {
-          setIsSubmitting(false);
-          handleClose();
           Swal.fire({
             icon: 'success',
             title: 'Updated!',
-            text: 'Category has been updated successfully.',
+            text: 'Category updated successfully.',
             timer: 1500,
             showConfirmButton: false,
           });
-        },
-        onError: (errors) => {
           setIsSubmitting(false);
+          handleCloseModal();
+          router.reload();
+        },
+        onError: (error) => {
           Swal.fire({
             icon: 'error',
-            title: 'Update Failed',
-            text: errors?.name?.[0] || 'Failed to update category. Please try again.',
-            confirmButtonColor: '#2563eb',
+            title: 'Failed',
+            text: error?.response?.data?.message || error?.message || 'Failed to update category.',
           });
+          setIsSubmitting(false);
         },
       });
     } else {
       router.post(route('backend.categories.store'), formData, {
         preserveScroll: true,
         onSuccess: () => {
-          setIsSubmitting(false);
-          handleClose();
           Swal.fire({
             icon: 'success',
             title: 'Created!',
-            text: 'Category has been created successfully.',
+            text: 'Category created successfully.',
             timer: 1500,
             showConfirmButton: false,
           });
-        },
-        onError: (errors) => {
           setIsSubmitting(false);
+          handleCloseModal();
+          router.reload();
+        },
+        onError: (error) => {
           Swal.fire({
             icon: 'error',
-            title: 'Creation Failed',
-            text: errors?.name?.[0] || 'Failed to create category. Please try again.',
-            confirmButtonColor: '#2563eb',
+            title: 'Failed',
+            text: error?.response?.data?.message || error?.message || 'Failed to create category.',
           });
+          setIsSubmitting(false);
         },
       });
     }
   };
 
-  const handleDelete = (id) => {
+  // Single category actions
+  const handleDelete = (id, name) => {
     Swal.fire({
-      title: 'Delete category?',
-      text: 'This will move it to trash.',
+      title: 'Delete Category?',
+      text: `Are you sure you want to delete "${name}"? This will move it to trash.`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#2563eb',
-      cancelButtonColor: '#d33',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
       confirmButtonText: 'Yes, delete',
       cancelButtonText: 'Cancel',
     }).then((result) => {
@@ -145,20 +644,31 @@ export default function JobCategoriesIndex({ categories, flash }) {
 
         router.delete(route('backend.categories.destroy', id), {
           preserveScroll: true,
-          onSuccess: () => {
-            Swal.fire({
-              icon: 'success',
-              title: 'Deleted!',
-              text: 'Category has been moved to trash.',
-              timer: 1500,
-              showConfirmButton: false,
-            });
+          onSuccess: (page) => {
+            if (page.props.flash?.error) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Cannot Delete',
+                text: page.props.flash.error,
+                confirmButtonColor: '#2563eb',
+              });
+            } else {
+              Swal.fire({
+                icon: 'success',
+                title: 'Deleted!',
+                text: 'Category has been moved to trash.',
+                timer: 1500,
+                showConfirmButton: false,
+              });
+              router.reload();
+            }
           },
           onError: (errors) => {
+            let errorMessage = errors?.response?.data?.message || errors?.message || 'Failed to delete category.';
             Swal.fire({
               icon: 'error',
               title: 'Delete Failed',
-              text: 'Failed to delete category. Please try again.',
+              text: errorMessage,
               confirmButtonColor: '#2563eb',
             });
           },
@@ -168,17 +678,70 @@ export default function JobCategoriesIndex({ categories, flash }) {
     });
   };
 
-  const handleRestore = (id) => {
+  const handleForceDelete = (id, name) => {
     Swal.fire({
-      title: 'Restore category?',
-      text: 'This will restore the category.',
-      icon: 'question',
+      title: 'Permanently Delete Category?',
+      html: `Are you sure you want to <strong>permanently delete</strong> "${name}"?<br/><br/>This action <strong>cannot be undone</strong> and will remove this category from the database completely.`,
+      icon: 'error',
       showCancelButton: true,
-      confirmButtonColor: '#2563eb',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, restore',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, permanently delete',
+      cancelButtonText: 'Cancel',
     }).then((result) => {
       if (result.isConfirmed) {
+        setForceDeletingId(id);
+
+        router.delete(route('backend.categories.force-delete', id), {
+          preserveScroll: true,
+          onSuccess: (page) => {
+            if (page.props.flash?.error) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Cannot Delete',
+                text: page.props.flash.error,
+                confirmButtonColor: '#2563eb',
+              });
+            } else {
+              Swal.fire({
+                icon: 'success',
+                title: 'Permanently Deleted!',
+                text: `"${name}" has been permanently deleted from the database.`,
+                timer: 1500,
+                showConfirmButton: false,
+              });
+              router.reload();
+            }
+          },
+          onError: (errors) => {
+            let errorMessage = errors?.response?.data?.message || errors?.message || 'Failed to permanently delete category.';
+            Swal.fire({
+              icon: 'error',
+              title: 'Delete Failed',
+              text: errorMessage,
+              confirmButtonColor: '#2563eb',
+            });
+          },
+          onFinish: () => setForceDeletingId(null),
+        });
+      }
+    });
+  };
+
+  const handleRestore = (id, name) => {
+    Swal.fire({
+      title: 'Restore Category?',
+      text: `Are you sure you want to restore "${name}"?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, restore',
+      cancelButtonText: 'Cancel',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setRestoringId(id);
+
         router.patch(route('backend.categories.restore', id), {}, {
           preserveScroll: true,
           onSuccess: () => {
@@ -189,26 +752,26 @@ export default function JobCategoriesIndex({ categories, flash }) {
               timer: 1500,
               showConfirmButton: false,
             });
+            router.reload();
           },
-          onError: () => {
+          onError: (errors) => {
             Swal.fire({
               icon: 'error',
               title: 'Restore Failed',
-              text: 'Failed to restore category. Please try again.',
+              text: errors?.message || 'Failed to restore category.',
               confirmButtonColor: '#2563eb',
             });
           },
+          onFinish: () => setRestoringId(null),
         });
       }
     });
   };
 
-  // resources/js/pages/Backend/JobCategories/Index.jsx
-
-  const handleToggle = (cat) => {
+  const handleToggle = (category) => {
     Swal.fire({
-      title: 'Change status?',
-      text: `This will ${cat.is_active ? 'deactivate' : 'activate'} this category.`,
+      title: category.is_active ? 'Deactivate Category?' : 'Activate Category?',
+      text: `This will ${category.is_active ? 'deactivate' : 'activate'} "${category.name}".`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#2563eb',
@@ -216,28 +779,25 @@ export default function JobCategoriesIndex({ categories, flash }) {
       confirmButtonText: 'Yes, continue',
     }).then((result) => {
       if (result.isConfirmed) {
-        setTogglingId(cat.id);
+        setTogglingId(category.id);
 
-        router.patch(route('backend.categories.toggle', cat.id), {}, {
+        router.patch(route('backend.categories.toggle', category.id), {}, {
           preserveScroll: true,
-          onSuccess: (page) => {
-            // Force a full page reload to get fresh data
+          onSuccess: () => {
             router.reload();
-
             Swal.fire({
               icon: 'success',
-              title: 'Status Updated!',
-              text: `Category has been ${!cat.is_active ? 'activated' : 'deactivated'}.`,
+              title: 'Updated!',
+              text: `Category has been ${!category.is_active ? 'activated' : 'deactivated'}.`,
               timer: 1500,
               showConfirmButton: false,
             });
           },
           onError: (error) => {
-            console.error('Toggle error:', error);
             Swal.fire({
               icon: 'error',
-              title: 'Update Failed',
-              text: 'Failed to update category status. Please try again.',
+              title: 'Failed',
+              text: error?.message || 'Failed to update category status.',
               confirmButtonColor: '#2563eb',
             });
           },
@@ -247,165 +807,430 @@ export default function JobCategoriesIndex({ categories, flash }) {
     });
   };
 
+  // Show flash messages
+  useEffect(() => {
+    if (flash?.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: flash.success,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    }
+    if (flash?.error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: flash.error,
+        confirmButtonColor: '#2563eb',
+      });
+    }
+  }, [flash]);
+
   return (
     <AuthenticatedLayout>
-      <Head title="Job categories" />
+      <Head title="Job Categories" />
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto">
           {/* HEADER */}
-          <div className="flex justify-between items-center mb-6 animate-fade-in">
+          <div className="flex justify-between items-start mb-6 animate-fade-in">
             <div>
               <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Job Categories
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Manage all job categories in one place
+                Manage job categories across the system
               </p>
+              <div className="flex gap-3 mt-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  Active: {activeCount}
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                  Inactive: {inactiveCount}
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                  Deleted: {deletedCount}
+                </span>
+                {hasActiveFilters() && (
+                  <span className="inline-flex items-center gap-1 text-xs text-blue-600">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    Filtered
+                  </span>
+                )}
+                {pagination && (
+                  <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                    <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                    Total: {pagination.total}
+                  </span>
+                )}
+              </div>
             </div>
 
-            <button
-              onClick={handleOpenCreate}
-              className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
-            >
-              <FaPlus size={16} />
-              Add Category
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 ${showFilters || hasActiveFilters()
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+              >
+                <FaFilter size={14} />
+                Filters
+                {hasActiveFilters() && (
+                  <span className="ml-1 bg-white text-blue-600 rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                    {Object.values(filters).filter(v => v !== 'all' && v !== '').length}
+                  </span>
+                )}
+                {showFilters ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+              </button>
+
+              <button
+                onClick={handleOpenCreate}
+                className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+              >
+                <FaPlus size={16} />
+                Add Category
+              </button>
+            </div>
           </div>
+
+          {/* BULK ACTIONS BAR */}
+          {selectedCategories.length > 0 && (
+            <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-4 mb-6 animate-fade-in border border-blue-200">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <FaCheckDouble className="text-blue-600" size={20} />
+                  <span className="font-semibold text-gray-900">
+                    {selectedCategories.length} category(ies) selected
+                  </span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={handleBulkActivate}
+                    disabled={isBulkProcessing}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <FaCheckCircle size={14} />
+                    Activate All
+                  </button>
+                  <button
+                    onClick={handleBulkDeactivate}
+                    disabled={isBulkProcessing}
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <FaBan size={14} />
+                    Deactivate All
+                  </button>
+                  <button
+                    onClick={handleBulkRestore}
+                    disabled={isBulkProcessing}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <FaUndo size={14} />
+                    Restore All
+                  </button>
+                  <button
+                    onClick={handleBulkForceDelete}
+                    disabled={isBulkProcessing}
+                    className="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <FaExclamationTriangle size={14} />
+                    Permanently Delete
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={isBulkProcessing}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <FaTrash size={14} />
+                    Delete All
+                  </button>
+                  <button
+                    onClick={() => setSelectedCategories([])}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200"
+                  >
+                    Clear Selection
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* FILTERS PANEL */}
+          {showFilters && (
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-6 animate-fade-in">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Filter Categories</h3>
+                <button
+                  onClick={resetFilters}
+                  className="text-sm text-red-600 hover:text-red-800 flex items-center gap-1"
+                >
+                  <FaTimes size={12} />
+                  Reset all
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                  <div className="relative">
+                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                    <input
+                      type="text"
+                      value={filters.search}
+                      onChange={(e) => handleFilterChange('search', e.target.value)}
+                      placeholder="Search by category name..."
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    value={filters.status}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="deleted">Deleted</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* TABLE CARD */}
           <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-linear-to-r from-gray-50 to-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="bg-white divide-y divide-gray-200">
-                {categories.length === 0 && (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-linear-to-r from-gray-50 to-gray-100">
                   <tr>
-                    <td colSpan="3" className="text-center py-16">
-                      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FaBriefcase className="h-10 w-10 text-gray-400" />
-                      </div>
-                      <h3 className="text-lg font-medium text-gray-900">No categories found</h3>
-                      <p className="mt-1 text-sm text-gray-500">Get started by creating a new category.</p>
-                      <div className="mt-6">
-                        <button
-                          onClick={handleOpenCreate}
-                          className="inline-flex items-center px-5 py-2.5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105"
-                        >
-                          <FaPlus className="mr-2" size={16} />
-                          Add Category
-                        </button>
-                      </div>
-                    </td>
+                    <th className="px-4 py-4 text-left">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.length === filteredCategories.filter(cat => !cat.deleted_at).length && filteredCategories.filter(cat => !cat.deleted_at).length > 0}
+                        onChange={handleSelectAll}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        disabled={filteredCategories.filter(cat => !cat.deleted_at).length === 0}
+                      />
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Category
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Slug
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                )}
+                </thead>
 
-                {categories.map((cat, index) => (
-                  <tr
-                    key={cat.id}
-                    className="hover:bg-gray-50 transition-all duration-200 animate-fade-in"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    {/* NAME */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <FaBriefcase className="text-blue-600" size={14} />
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredCategories.length === 0 && (
+                    <tr>
+                      <td colSpan="5" className="text-center py-16">
+                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <FaBriefcase className="h-10 w-10 text-gray-400" />
                         </div>
-                        <span className={`font-medium ${cat.deleted_at ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                          {cat.name}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* STATUS */}
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleToggle(cat)}
-                        disabled={togglingId === cat.id}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 transform hover:scale-105 ${cat.is_active
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-red-100 text-red-800 hover:bg-red-200'
-                          } ${togglingId === cat.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        {togglingId === cat.id ? (
-                          <FaSpinner className="inline animate-spin mr-1" size={12} />
-                        ) : null}
-                        {cat.is_active ? 'Active' : 'Inactive'}
-                      </button>
-                    </td>
-
-                    {/* ACTIONS */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <div className="flex justify-end gap-2">
-                        {cat.deleted_at ? (
-                          // RESTORE BUTTON
-                          <button
-                            onClick={() => handleRestore(cat.id)}
-                            className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200"
-                            title="Restore"
-                          >
-                            <FaUndo size={18} />
-                          </button>
-                        ) : (
-                          <>
-                            {/* EDIT BUTTON */}
+                        <h3 className="text-lg font-medium text-gray-900">No categories found</h3>
+                        <p className="mt-1 text-sm text-gray-500">
+                          {hasActiveFilters() ? 'Try adjusting your filters.' : 'Get started by adding a new category.'}
+                        </p>
+                        {hasActiveFilters() && (
+                          <div className="mt-6">
                             <button
-                              onClick={() => handleOpenEdit(cat)}
-                              className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                              title="Edit"
+                              onClick={resetFilters}
+                              className="inline-flex items-center px-5 py-2.5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700"
                             >
-                              <FaEdit size={18} />
+                              <FaTimes className="mr-2" size={16} />
+                              Clear Filters
                             </button>
-
-                            {/* DELETE BUTTON */}
-                            <button
-                              onClick={() => handleDelete(cat.id)}
-                              disabled={deletingId === cat.id}
-                              className={`p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200 ${deletingId === cat.id ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
-                              title="Delete"
-                            >
-                              {deletingId === cat.id ? (
-                                <FaSpinner className="animate-spin" size={18} />
-                              ) : (
-                                <FaTrash size={18} />
-                              )}
-                            </button>
-                          </>
+                          </div>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </td>
+                    </tr>
+                  )}
+
+                  {filteredCategories.map((category, index) => {
+                    const trashed = category.deleted_at !== null;
+
+                    return (
+                      <tr
+                        key={category.id}
+                        className={`hover:bg-gray-50 transition-all duration-200 animate-fade-in ${trashed ? 'bg-gray-50 opacity-75' : ''} ${selectedCategories.includes(category.id) ? 'bg-blue-50' : ''}`}
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <td className="px-4 py-4">
+                          {!trashed && (
+                            <input
+                              type="checkbox"
+                              checked={selectedCategories.includes(category.id)}
+                              onChange={() => handleSelectCategory(category.id)}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${trashed ? 'bg-gray-300' : category.is_active ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                              <FaBriefcase className={trashed ? 'text-gray-500' : category.is_active ? 'text-green-600' : 'text-yellow-600'} size={18} />
+                            </div>
+                            <div>
+                              <div className={`font-semibold ${trashed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                                {category.name}
+                              </div>
+                              {!trashed && (
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                  ID: #{category.id}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <div className={`text-sm font-mono ${trashed ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {category.slug || <span className="text-gray-400 italic">No slug</span>}
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4">
+                          {!trashed ? (
+                            <button
+                              onClick={() => handleToggle(category)}
+                              disabled={togglingId === category.id}
+                              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 transform hover:scale-105 flex items-center gap-2 ${category.is_active
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                } ${togglingId === category.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              {togglingId === category.id ? (
+                                <FaSpinner className="animate-spin" size={12} />
+                              ) : category.is_active ? (
+                                <FaCheckCircle size={12} />
+                              ) : (
+                                <FaBan size={12} />
+                              )}
+                              {category.is_active ? 'Active' : 'Inactive'}
+                            </button>
+                          ) : (
+                            <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-500 flex items-center gap-2">
+                              <FaTrash size={12} />
+                              Deleted
+                            </span>
+                          )}
+                          {trashed && category.deleted_at && (
+                            <div className="text-xs text-gray-400 mt-1">
+                              Deleted: {new Date(category.deleted_at).toLocaleDateString()}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="flex justify-end gap-2">
+                            {!trashed && (
+                              <>
+                                <button
+                                  onClick={() => handleOpenEdit(category)}
+                                  className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                  title="Edit Category"
+                                >
+                                  <FaEdit size={18} />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(category.id, category.name)}
+                                  disabled={deletingId === category.id}
+                                  className={`p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200 ${deletingId === category.id ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
+                                  title="Delete Category"
+                                >
+                                  {deletingId === category.id ? (
+                                    <FaSpinner className="animate-spin" size={18} />
+                                  ) : (
+                                    <FaTrash size={18} />
+                                  )}
+                                </button>
+                              </>
+                            )}
+
+                            {trashed && (
+                              <>
+                                <button
+                                  onClick={() => handleRestore(category.id, category.name)}
+                                  disabled={restoringId === category.id}
+                                  className={`p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200 ${restoringId === category.id ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
+                                  title="Restore Category"
+                                >
+                                  {restoringId === category.id ? (
+                                    <FaSpinner className="animate-spin" size={18} />
+                                  ) : (
+                                    <FaUndo size={18} />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => handleForceDelete(category.id, category.name)}
+                                  disabled={forceDeletingId === category.id}
+                                  className={`p-2 text-red-700 hover:text-red-900 hover:bg-red-100 rounded-lg transition-all duration-200 ${forceDeletingId === category.id ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
+                                  title="Permanently Delete (Cannot be undone)"
+                                >
+                                  {forceDeletingId === category.id ? (
+                                    <FaSpinner className="animate-spin" size={18} />
+                                  ) : (
+                                    <FaExclamationTriangle size={18} />
+                                  )}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* PAGINATION */}
+            <Pagination />
           </div>
         </div>
       </div>
 
-      {/* MODAL */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in text-black">
+      {/* MODAL - Create/Edit Category */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 animate-slide-up">
             <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-semibold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                {editing ? 'Edit Category' : 'Create Category'}
-              </h2>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-linear-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
+                  <FaBriefcase className="text-white" size={18} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {editingCategory ? 'Edit Category' : 'Add Category'}
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {editingCategory ? 'Update category information' : 'Create a new job category'}
+                  </p>
+                </div>
+              </div>
               <button
-                onClick={handleClose}
+                onClick={handleCloseModal}
                 className="text-gray-400 hover:text-gray-600 transition-colors duration-200 hover:rotate-90 transform"
               >
                 <FaTimes size={20} />
@@ -422,44 +1247,50 @@ export default function JobCategoriesIndex({ categories, flash }) {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     placeholder="e.g., Information Technology"
                     required
                     autoFocus
-                    disabled={isSubmitting}
                   />
+                  <p className="text-xs text-gray-400 mt-1">
+                    A unique slug will be automatically generated from the name
+                  </p>
                 </div>
 
-                <div className="flex items-center">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${formData.is_active ? 'bg-green-100' : 'bg-gray-200'}`}>
+                      {formData.is_active ? <FaCheckCircle className="text-green-600" size={14} /> : <FaBan className="text-gray-500" size={14} />}
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">Active Category</span>
+                      <p className="text-xs text-gray-500">Inactive categories won't appear in job listings</p>
+                    </div>
+                  </div>
                   <input
                     type="checkbox"
                     checked={formData.is_active}
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-all duration-200"
-                    disabled={isSubmitting}
+                    className="w-5 h-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-all duration-200"
                   />
-                  <label className="ml-2 block text-sm text-gray-900">
-                    Active
-                  </label>
                 </div>
               </div>
 
               <div className="flex justify-end gap-3 p-6 border-t bg-gray-50 rounded-b-2xl">
                 <button
                   type="button"
-                  onClick={handleClose}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all duration-200"
-                  disabled={isSubmitting}
+                  onClick={handleCloseModal}
+                  className="px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition-all duration-200 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2"
+                  className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2 font-medium shadow-md"
                 >
                   {isSubmitting && <FaSpinner className="animate-spin" size={16} />}
-                  {editing ? (isSubmitting ? 'Updating...' : 'Update') : (isSubmitting ? 'Creating...' : 'Create')}
+                  {editingCategory ? (isSubmitting ? 'Updating...' : 'Update Category') : (isSubmitting ? 'Creating...' : 'Create Category')}
                 </button>
               </div>
             </form>
@@ -467,7 +1298,7 @@ export default function JobCategoriesIndex({ categories, flash }) {
         </div>
       )}
 
-       <style>{`
+      <style>{`
         @keyframes fade-in {
           from {
             opacity: 0;

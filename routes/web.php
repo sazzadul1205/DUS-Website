@@ -152,6 +152,13 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::delete('{category}/force-delete', [JobCategoryController::class, 'forceDelete'])->name('force-delete');
             Route::get('active', [JobCategoryController::class, 'getActiveCategories'])->name('active');
 
+            // Bulk operations
+            Route::post('bulk/activate', [JobCategoryController::class, 'bulkActivate'])->name('bulk-activate');
+            Route::post('bulk/deactivate', [JobCategoryController::class, 'bulkDeactivate'])->name('bulk-deactivate');
+            Route::post('bulk/delete', [JobCategoryController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::post('bulk/restore', [JobCategoryController::class, 'bulkRestore'])->name('bulk-restore');
+            Route::post('bulk/force-delete', [JobCategoryController::class, 'bulkForceDelete'])->name('bulk-force-delete');
+
             // Resource routes
             Route::get('/', [JobCategoryController::class, 'index'])->name('index');
             Route::post('/', [JobCategoryController::class, 'store'])->name('store');
@@ -160,10 +167,10 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         });
 
         /*
-    |--------------------------------------------------------------------------
-    | Job Listings Management
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Job Listings Management
+        |--------------------------------------------------------------------------
+        */
 
         Route::prefix('listing')->name('listing.')->group(function () {
             // Custom routes first
