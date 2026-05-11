@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ApplyController extends Controller
 {
-    protected $atsService;
+    protected AtsService $atsService;
 
     public function __construct(ATSService $atsService)
     {
@@ -99,7 +99,7 @@ class ApplyController extends Controller
     /**
      * Show the application form for a specific job
      */
-    public function create($slug)
+    public function create(string $slug)
     {
         $jobListing = JobListing::where('slug', $slug)
             ->where('is_active', true)
@@ -185,7 +185,7 @@ class ApplyController extends Controller
     /**
      * Store a new application
      */
-    public function store(Request $request, $slug)
+    public function store(Request $request, string  $slug)
     {
         $jobListing = JobListing::where('slug', $slug)
             ->where('is_active', true)
@@ -400,7 +400,7 @@ class ApplyController extends Controller
     /**
      * Show a specific application (including soft-deleted ones)
      */
-    public function show($id)
+    public function show(int $id)
     {
         $application = Application::withTrashed()
             ->with(['jobListing', 'jobListing.employer', 'applicantProfile'])
@@ -544,7 +544,7 @@ class ApplyController extends Controller
     /**
      * Recalculate ATS score for an application
      */
-    public function recalculateAts($id)
+    public function recalculateAts(int $id)
     {
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
@@ -597,7 +597,7 @@ class ApplyController extends Controller
     /**
      * Show form to edit an application (only if pending)
      */
-    public function edit($id)
+    public function edit(int $id)
     {
         $application = Application::with(['jobListing', 'applicantProfile'])
             ->where('user_id', Auth::id())
@@ -690,7 +690,7 @@ class ApplyController extends Controller
     /**
      * Update an existing application
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
@@ -779,7 +779,7 @@ class ApplyController extends Controller
     /**
      * Get ATS status for an application (AJAX endpoint)
      */
-    public function getAtsStatus($id)
+    public function getAtsStatus(int $id)
     {
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
@@ -795,7 +795,7 @@ class ApplyController extends Controller
     /**
      * Withdraw/Cancel an application (Soft Delete) - Clear resume_path
      */
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
@@ -825,7 +825,7 @@ class ApplyController extends Controller
     /**
      * Restore a soft-deleted application
      */
-    public function restore($id)
+    public function restore(int $id)
     {
         $application = Application::withTrashed()
             ->where('user_id', Auth::id())
@@ -852,7 +852,7 @@ class ApplyController extends Controller
     /**
      * Permanently delete a soft-deleted application (Force Delete)
      */
-    public function forceDelete($id)
+    public function forceDelete(int $id)
     {
         $application = Application::withTrashed()
             ->where('user_id', Auth::id())

@@ -39,6 +39,22 @@ import Swal from 'sweetalert2';
 export default function RolesIndex({ roles: initialRoles, filters: initialFilters = {}, stats: initialStats = {} }) {
   const { flash } = usePage().props;
 
+  const NON_EDITABLE_ROLE_SLUGS = useMemo(() => ([
+    'super-admin',
+    'admin',
+    'employer-admin',
+    'job-seeker',
+    'employer',
+    'job_seeker',
+  ]), []);
+
+  const isRoleProtected = (role) => {
+    if (!role) return false;
+    if (role.is_default) return true;
+    if (!role.slug) return false;
+    return NON_EDITABLE_ROLE_SLUGS.includes(role.slug);
+  };
+
   // States
   const [deletingId, setDeletingId] = useState(null);
   const [togglingId, setTogglingId] = useState(null);
@@ -60,6 +76,26 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     minLevel: initialFilters.min_level || '',
     maxLevel: initialFilters.max_level || '',
   });
+
+  // Build query params for the index route (avoid sending "no-op" filters that the backend may treat as real filters)
+  const buildIndexQueryParams = (pageNumber = 1, nextFilters = filters) => {
+    const params = { page: pageNumber };
+
+    const search = (nextFilters.search || '').trim();
+    if (search) params.search = search;
+
+    if (nextFilters.status && nextFilters.status !== 'all') params.status = nextFilters.status;
+
+    if (nextFilters.minLevel !== '' && nextFilters.minLevel !== null && nextFilters.minLevel !== undefined) {
+      params.min_level = nextFilters.minLevel;
+    }
+
+    if (nextFilters.maxLevel !== '' && nextFilters.maxLevel !== null && nextFilters.maxLevel !== undefined) {
+      params.max_level = nextFilters.maxLevel;
+    }
+
+    return params;
+  };
 
   // Get roles array from paginated response
   const roleItems = useMemo(() => {
@@ -87,10 +123,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
   // Apply filters whenever filters change (with pagination)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      router.get(route('backend.roles.index'), {
-        ...filters,
-        page: 1,
-      }, {
+      router.get(route('backend.roles.index'), buildIndexQueryParams(1, filters), {
         preserveState: true,
         preserveScroll: true,
         replace: true,
@@ -113,21 +146,18 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
   }, [initialRoles, initialStats]);
 
   // Handle page change
-  const handlePageChange = (page) => {
-    if (page === pagination?.currentPage) return;
-    if (page < 1 || page > pagination?.lastPage) return;
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber === pagination?.currentPage) return;
+    if (pageNumber < 1 || pageNumber > pagination?.lastPage) return;
 
-    router.get(route('backend.roles.index'), {
-      ...filters,
-      page: page,
-    }, {
+    router.get(route('backend.roles.index'), buildIndexQueryParams(pageNumber, filters), {
       preserveState: true,
       preserveScroll: true,
       replace: true,
-      onSuccess: (page) => {
-        setRoles(page.props.roles);
-        setStats(page.props.stats);
-        setCurrentPage(page);
+      onSuccess: (inertiaPage) => {
+        setRoles(inertiaPage.props.roles);
+        setStats(inertiaPage.props.stats);
+        setCurrentPage(inertiaPage.props.roles?.current_page || inertiaPage.props.roles?.meta?.current_page || pageNumber);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       },
     });
@@ -140,8 +170,8 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
       if (a.deleted_at && !b.deleted_at) return 1;
       if (!a.deleted_at && b.deleted_at) return -1;
 
-      // Sort by level
-      return (a.level || 999) - (b.level || 999);
+      // Sort by level (highest first, e.g. 100 -> 1)
+      return (b.level ?? 0) - (a.level ?? 0);
     });
   }, [roleItems]);
 
@@ -170,7 +200,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
 
   // Bulk selection handlers
   const handleSelectAll = () => {
-    const nonDeletedRoles = sortedRoles.filter(role => !role.deleted_at);
+    const nonDeletedRoles = sortedRoles.filter(role => !role.deleted_at && !isRoleProtected(role));
     if (selectedRoles.length === nonDeletedRoles.length) {
       setSelectedRoles([]);
     } else {
@@ -190,6 +220,12 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
   const handleBulkDelete = () => {
     if (selectedRoles.length === 0) {
       Swal.fire('No Selection', 'Please select at least one role.', 'warning');
+      return;
+    }
+
+    const selectedRoleObjects = sortedRoles.filter(r => selectedRoles.includes(r.id));
+    if (selectedRoleObjects.some(isRoleProtected)) {
+      Swal.fire('Protected Role', 'One or more selected roles are protected and cannot be deleted.', 'error');
       return;
     }
 
@@ -847,8 +883,10 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                   )}
 
                   {sortedRoles.map((role, index) => {
-                    const trashed = role.deleted_at !== null;
+                    const trashed = role.deleted_at != null;
                     const isDefault = role.is_default;
+                    const isProtected = isRoleProtected(role);
+                    const showDefaultBadge = isDefault || isProtected;
 
                     return (
                       <tr
@@ -857,7 +895,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <td className="px-4 py-4">
-                          {!trashed && !isDefault && (
+                          {!trashed && !isProtected && (
                             <input
                               type="checkbox"
                               checked={selectedRoles.includes(role.id)}
@@ -870,16 +908,16 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                         {/* ROLE DETAILS */}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${trashed ? 'bg-gray-300' : isDefault ? 'bg-purple-100' : role.is_active ? 'bg-green-100' : 'bg-yellow-100'
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${trashed ? 'bg-gray-300' : showDefaultBadge ? 'bg-purple-100' : role.is_active ? 'bg-green-100' : 'bg-yellow-100'
                               }`}>
                               <FaShieldAlt className={
-                                trashed ? 'text-gray-500' : isDefault ? 'text-purple-600' : role.is_active ? 'text-green-600' : 'text-yellow-600'
+                                trashed ? 'text-gray-500' : showDefaultBadge ? 'text-purple-600' : role.is_active ? 'text-green-600' : 'text-yellow-600'
                               } size={18} />
                             </div>
                             <div>
                               <div className={`font-semibold ${trashed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                                 {role.name}
-                                {isDefault && (
+                                {showDefaultBadge && (
                                   <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">
                                     Default
                                   </span>
@@ -942,11 +980,11 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                           {!trashed ? (
                             <button
                               onClick={() => handleToggleStatus(role)}
-                              disabled={togglingId === role.id || isDefault}
+                              disabled={togglingId === role.id || isProtected}
                               className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 transform hover:scale-105 flex items-center gap-2 ${role.is_active
                                   ? 'bg-green-100 text-green-800 hover:bg-green-200'
                                   : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                } ${(togglingId === role.id || isDefault) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                } ${(togglingId === role.id || isProtected) ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                               {togglingId === role.id ? (
                                 <FaSpinner className="animate-spin" size={12} />
@@ -978,7 +1016,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                               <FaEye size={18} />
                             </a>
 
-                            {!trashed && (
+                            {!trashed && !isProtected && (
                               <a
                                 href={route('backend.roles.edit', role.id)}
                                 className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
@@ -988,7 +1026,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                               </a>
                             )}
 
-                            {!trashed && !isDefault && (
+                            {!trashed && !isProtected && (
                               <button
                                 onClick={() => handleClone(role.id, role.name)}
                                 disabled={cloningId === role.id}
@@ -1020,7 +1058,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                               </button>
                             )}
 
-                            {!trashed && !isDefault && (
+                            {!trashed && !isProtected && (
                               <button
                                 onClick={() => handleDelete(role.id, role.name)}
                                 disabled={deletingId === role.id}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,13 +47,22 @@ class RegisteredUserController extends Controller
             'name' => $name,
             'email' => $email,
             'password' => Hash::make($request->password),
-            'role' => User::ROLE_JOB_SEEKER,
         ]);
 
-        $user->sendEmailVerificationNotification(); // Send email verification notification
+        // Assign job_seeker role via RBAC
+        $jobSeekerRole = Role::where('slug', 'job-seeker')->first();
+        if ($jobSeekerRole) {
+            $user->roles()->attach($jobSeekerRole->id, [
+                'assigned_by' => $user->id,
+                'assigned_at' => now(),
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
+        $user->sendEmailVerificationNotification();
         event(new Registered($user));
-
         Auth::login($user);
 
         return to_route('profile.complete');

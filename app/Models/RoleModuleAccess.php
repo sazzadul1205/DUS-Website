@@ -12,6 +12,11 @@ class RoleModuleAccess extends Model
     use HasFactory;
 
     /**
+     * This project uses a singular table name for module access.
+     */
+    protected $table = 'role_module_access';
+
+    /**
      * Mass assignable fields
      */
     protected $fillable = [

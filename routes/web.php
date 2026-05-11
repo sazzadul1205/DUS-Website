@@ -308,7 +308,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
             // Soft delete & restore
             Route::patch('/{id}/restore', [UserController::class, 'restore'])->name('restore');
-            Route::post('/{id}/verify', [UserController::class, 'verify'])->name('users.verify');
+            Route::post('/{id}/verify', [UserController::class, 'verify'])->name('verify');
             Route::delete('/{id}/force-delete', [UserController::class, 'forceDelete'])->name('force-delete');
 
             // Bulk operations

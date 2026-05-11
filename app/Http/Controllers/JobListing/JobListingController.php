@@ -1203,9 +1203,9 @@ class JobListingController extends Controller
     }
 
     /**
-     * Get statistics from previous period
+     * Get previous period stats - FIXED method signature and implementation
      */
-    protected function getPreviousPeriodStats(?Carbon $previousStartDate, string $dateRange)
+    protected function getPreviousPeriodStats(?Carbon $previousStartDate, string $dateRange): array
     {
         if (!$previousStartDate) {
             return [
@@ -1215,7 +1215,8 @@ class JobListingController extends Controller
             ];
         }
 
-        $previousEndDate = $previousStartDate->copy()->addDays($this->getDateRangeDays($dateRange));
+        $days = $this->getDateRangeDays($dateRange);
+        $previousEndDate = $previousStartDate->copy()->addDays($days);
 
         return [
             'total_jobs' => JobListing::whereBetween('created_at', [$previousStartDate, $previousEndDate])->count(),

@@ -15,8 +15,6 @@ class EmployerProfileController extends Controller
 {
     /**
      * Show the employer profile edit form.
-     *
-     * @return \Inertia\Response
      */
     public function edit()
     {
@@ -26,26 +24,26 @@ class EmployerProfileController extends Controller
             abort(401);
         }
 
-        // Ensure the authenticated user is an employer
-        if (!$user->isEmployer()) {
+        // Ensure the authenticated user has employer role via RBAC
+        if (!$user->hasAnyRole(['employer-admin', 'hr-manager', 'recruiter'])) {
             abort(403, 'Unauthorized action.');
         }
+
+        // Get user's highest role for display
+        $primaryRole = $user->roles()->orderBy('level', 'desc')->first();
 
         return Inertia::render('Backend/Profile/Employer/Edit', [
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->role,
+                'primary_role' => $primaryRole ? $primaryRole->name : 'Employer',
             ],
         ]);
     }
 
     /**
      * Update the employer's profile information (name, email).
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request)
     {
@@ -55,7 +53,7 @@ class EmployerProfileController extends Controller
             abort(401);
         }
 
-        if (!$user->isEmployer()) {
+        if (!$user->hasAnyRole(['employer-admin', 'hr-manager', 'recruiter'])) {
             abort(403);
         }
 
@@ -75,9 +73,6 @@ class EmployerProfileController extends Controller
 
     /**
      * Update the employer's password.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function updatePassword(Request $request)
     {
@@ -87,7 +82,7 @@ class EmployerProfileController extends Controller
             abort(401);
         }
 
-        if (!$user->isEmployer()) {
+        if (!$user->hasAnyRole(['employer-admin', 'hr-manager', 'recruiter'])) {
             abort(403);
         }
 

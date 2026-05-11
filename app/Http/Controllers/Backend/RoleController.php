@@ -14,6 +14,23 @@ use Illuminate\Validation\Rule;
 class RoleController extends Controller
 {
     /**
+     * System role slugs that must never be deleted (security rule).
+     */
+    private const NON_DELETABLE_ROLE_SLUGS = [
+        'super-admin',
+        'admin',
+        'employer',
+        'employer-admin',
+        'job_seeker',
+        'job-seeker',
+    ];
+
+    private function roleIsNonDeletable(Role $role): bool
+    {
+        return $role->is_default || in_array($role->slug, self::NON_DELETABLE_ROLE_SLUGS, true);
+    }
+
+    /**
      * Display a listing of roles
      */
     public function index(Request $request)
@@ -301,11 +318,10 @@ class RoleController extends Controller
     {
         $role = Role::findOrFail($id);
 
-        // Prevent editing default system roles if needed (optional)
-        // if ($role->is_default && $role->slug === 'admin') {
-        //     return redirect()->route('backend.roles.index')
-        //         ->with('error', 'The admin role cannot be edited.');
-        // }
+        if ($this->roleIsNonDeletable($role)) {
+            return redirect()->route('backend.roles.index')
+                ->with('error', "The '{$role->name}' role cannot be edited.");
+        }
 
         // Get all permissions grouped by module
         $allPermissions = Permission::active()
@@ -383,10 +399,9 @@ class RoleController extends Controller
     {
         $role = Role::findOrFail($id);
 
-        // Prevent editing default system roles (optional)
-        // if ($role->is_default && $role->slug === 'admin') {
-        //     return back()->with('error', 'The admin role cannot be edited.');
-        // }
+        if ($this->roleIsNonDeletable($role)) {
+            return back()->with('error', "The '{$role->name}' role cannot be edited.");
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('roles')->ignore($role->id)],
@@ -463,9 +478,14 @@ class RoleController extends Controller
     {
         $role = Role::findOrFail($id);
 
-        // Prevent deleting default system roles
-        if ($role->is_default) {
-            return back()->with('error', 'Default roles cannot be deleted.');
+        // Prevent deleting system roles
+        if ($this->roleIsNonDeletable($role)) {
+            $message = "The '{$role->name}' role cannot be deleted.";
+            if (request()->header('X-Inertia')) {
+                return back()->with('error', $message);
+            }
+
+            return response()->json(['success' => false, 'message' => $message], 403);
         }
 
         // Check if role has any users assigned
@@ -586,9 +606,14 @@ class RoleController extends Controller
     {
         $role = Role::onlyTrashed()->findOrFail($id);
 
-        // Prevent force deleting default system roles
-        if ($role->is_default) {
-            return back()->with('error', 'Default roles cannot be permanently deleted.');
+        // Prevent force deleting system roles
+        if ($this->roleIsNonDeletable($role)) {
+            $message = "The '{$role->name}' role cannot be permanently deleted.";
+            if (request()->header('X-Inertia')) {
+                return back()->with('error', $message);
+            }
+
+            return response()->json(['success' => false, 'message' => $message], 403);
         }
 
         try {
@@ -638,9 +663,9 @@ class RoleController extends Controller
                 continue;
             }
 
-            // Skip default roles
-            if ($role->is_default) {
-                $failedRoles[] = $role->name . ' (default role)';
+            // Skip protected system roles
+            if ($this->roleIsNonDeletable($role)) {
+                $failedRoles[] = $role->name . ' (protected role)';
                 continue;
             }
 
@@ -702,11 +727,12 @@ class RoleController extends Controller
     {
         $role = Role::findOrFail($id);
 
-        // Prevent toggling default admin role
-        if ($role->is_default && $role->slug === 'admin') {
+        // Prevent toggling protected system roles
+        if ($this->roleIsNonDeletable($role)) {
+            $message = "The '{$role->name}' role cannot be activated/deactivated.";
             return response()->json([
                 'success' => false,
-                'message' => 'The admin role cannot be deactivated.',
+                'message' => $message,
             ], 422);
         }
 
@@ -740,6 +766,10 @@ class RoleController extends Controller
     public function clone(int $id)
     {
         $originalRole = Role::with(['grantedPermissions', 'moduleAccess'])->findOrFail($id);
+
+        if ($this->roleIsNonDeletable($originalRole)) {
+            return back()->with('error', "The '{$originalRole->name}' role cannot be cloned.");
+        }
 
         // Generate unique slug and name
         $newSlug = $originalRole->slug . '-copy';

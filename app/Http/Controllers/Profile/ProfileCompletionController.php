@@ -23,13 +23,32 @@ use App\Models\Achievement;
 use App\Models\ApplicantCv;
 use App\Models\ApplicantProfile;
 use App\Models\EducationHistory;
-
+use App\Models\User;
 
 class ProfileCompletionController extends Controller
 {
+
+    // middleware
     public function __construct()
     {
         $this->middleware('auth');
+    }
+
+    /**
+     * Helper method to check user role safely
+     */
+    private function userHasRole(?User $user, string $roleSlug): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        if (method_exists($user, 'hasRole')) {
+            return $user->hasRole($roleSlug);
+        }
+
+        // Fallback to direct relationship check
+        return $user->roles()->where('slug', $roleSlug)->exists();
     }
 
     /**
@@ -39,7 +58,8 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
-        if ($user && $user->role !== 'job_seeker') {
+        // Check if user is a job seeker via RBAC using safe method
+        if (!$this->userHasRole($user, 'job-seeker')) {
             return redirect()->route('dashboard');
         }
 
@@ -106,7 +126,7 @@ class ProfileCompletionController extends Controller
                 'social_links' => $profile->social_links ?? [],
                 'experience_years' => $profile->experience_years,
                 'current_job_title' => $profile->current_job_title,
-                'photo_path' => $validated['photo_path'] ?? null,
+                'photo_path' => $profile->photo_path ?? null, // FIXED: Changed from $validated to $profile
                 'cvs' => $profile->cvs->map(function ($cv) {
                     return [
                         'id' => $cv->id,
@@ -158,7 +178,7 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
-        if ($user && $user->role !== 'job_seeker') {
+        if (!$this->userHasRole($user, 'job-seeker')) {
             return redirect()->route('dashboard');
         }
 
@@ -568,7 +588,7 @@ class ProfileCompletionController extends Controller
     /**
      * Seed a temporary profile for early CV uploads.
      */
-    private function placeholderProfileData($user): array
+    private function placeholderProfileData(User $user): array
     {
         $name = trim((string) $user->name);
         if ($name === '') {
@@ -585,7 +605,7 @@ class ProfileCompletionController extends Controller
     }
 
     /**
-     * Handle Job Histories with max limit validation
+     * Handle Job Histories with max limit validation - FIXED
      */
     private function handleJobHistories(int $profileId, array $jobs): void
     {
@@ -624,21 +644,20 @@ class ProfileCompletionController extends Controller
                 }
             }
 
-            if (true) {
-                if (($existingCount + $newCount) >= JobHistory::MAX_ENTRIES_PER_PROFILE) {
-                    throw ValidationException::withMessages([
-                        'job_histories' => sprintf('Maximum %d job history entries allowed.', JobHistory::MAX_ENTRIES_PER_PROFILE)
-                    ]);
-                }
-                $payload['applicant_profile_id'] = $profileId;
-                JobHistory::create($payload);
-                $newCount++;
+            // Create new entry
+            if (($existingCount + $newCount) >= JobHistory::MAX_ENTRIES_PER_PROFILE) {
+                throw ValidationException::withMessages([
+                    'job_histories' => sprintf('Maximum %d job history entries allowed.', JobHistory::MAX_ENTRIES_PER_PROFILE)
+                ]);
             }
+            $payload['applicant_profile_id'] = $profileId;
+            JobHistory::create($payload);
+            $newCount++;
         }
     }
 
     /**
-     * Handle Education Histories with max limit validation
+     * Handle Education Histories with max limit validation - FIXED
      */
     private function handleEducationHistories(int $profileId, array $educations): void
     {
@@ -671,21 +690,20 @@ class ProfileCompletionController extends Controller
                 }
             }
 
-            if (true) {
-                if (($existingCount + $newCount) >= EducationHistory::MAX_ENTRIES_PER_PROFILE) {
-                    throw ValidationException::withMessages([
-                        'education_histories' => sprintf('Maximum %d education history entries allowed.', EducationHistory::MAX_ENTRIES_PER_PROFILE)
-                    ]);
-                }
-                $payload['applicant_profile_id'] = $profileId;
-                EducationHistory::create($payload);
-                $newCount++;
+            // Create new entry
+            if (($existingCount + $newCount) >= EducationHistory::MAX_ENTRIES_PER_PROFILE) {
+                throw ValidationException::withMessages([
+                    'education_histories' => sprintf('Maximum %d education history entries allowed.', EducationHistory::MAX_ENTRIES_PER_PROFILE)
+                ]);
             }
+            $payload['applicant_profile_id'] = $profileId;
+            EducationHistory::create($payload);
+            $newCount++;
         }
     }
 
     /**
-     * Handle Achievements with max limit validation
+     * Handle Achievements with max limit validation - FIXED
      */
     private function handleAchievements(int $profileId, array $achievements): void
     {
@@ -717,16 +735,15 @@ class ProfileCompletionController extends Controller
                 }
             }
 
-            if (true) {
-                if (($existingCount + $newCount) >= Achievement::MAX_ACHIEVEMENTS_PER_PROFILE) {
-                    throw ValidationException::withMessages([
-                        'achievements' => sprintf('Maximum %d achievements allowed.', Achievement::MAX_ACHIEVEMENTS_PER_PROFILE)
-                    ]);
-                }
-                $payload['applicant_profile_id'] = $profileId;
-                Achievement::create($payload);
-                $newCount++;
+            // Create new entry
+            if (($existingCount + $newCount) >= Achievement::MAX_ACHIEVEMENTS_PER_PROFILE) {
+                throw ValidationException::withMessages([
+                    'achievements' => sprintf('Maximum %d achievements allowed.', Achievement::MAX_ACHIEVEMENTS_PER_PROFILE)
+                ]);
             }
+            $payload['applicant_profile_id'] = $profileId;
+            Achievement::create($payload);
+            $newCount++;
         }
     }
 }

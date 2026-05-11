@@ -1,9 +1,7 @@
 <?php
-// app/Http/Controllers/ApplicantProfileController.php
 
 namespace App\Http\Controllers\Profile;
 
-// Inertia
 use Inertia\Inertia;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
@@ -13,15 +11,12 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
-
-// Models
 use App\Models\User;
 use App\Models\JobHistory;
 use App\Models\Achievement;
 use App\Models\ApplicantCv;
 use App\Models\ApplicantProfile;
 use App\Models\EducationHistory;
-
 
 class ApplicantProfileController extends Controller
 {
@@ -30,8 +25,10 @@ class ApplicantProfileController extends Controller
      */
     public function show(?int $id = null)
     {
-        // Check if user is a job seeker
-        if (Auth::user()->role !== 'job_seeker') {
+        $user = Auth::user();
+
+        // Check if user is a job seeker via RBAC with fallback
+        if (!$this->userHasRole($user, 'job-seeker')) {
             return redirect()->route('dashboard')
                 ->with('error', 'Only job seekers can access applicant profiles.');
         }
@@ -92,6 +89,24 @@ class ApplicantProfileController extends Controller
             'profile' => $profile,
             'auth' => ['user' => Auth::user()]
         ]);
+    }
+
+    /**
+     * Helper method to check user role safely
+     */
+    private function userHasRole( $user, string $roleSlug): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        // Try method_exists first
+        if (method_exists($user, 'hasRole')) {
+            return $user->hasRole($roleSlug);
+        }
+
+        // Fallback to direct relationship check
+        return $user->roles()->where('slug', $roleSlug)->exists();
     }
 
     /**

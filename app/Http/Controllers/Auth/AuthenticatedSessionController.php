@@ -1,16 +1,29 @@
 <?php
+// controllers/Auth/AuthenticatedSessionController.php
 
 namespace App\Http\Controllers\Auth;
 
+// Controllers
 use App\Http\Controllers\Controller;
+
+// Requests
 use App\Http\Requests\Auth\LoginRequest;
-use Illuminate\Http\RedirectResponse;
+
+// Models
+use App\Models\User;
+use App\Models\ApplicantProfile;
+
+// HTTP
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+
+// Support
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
+// Inertia
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\ApplicantProfile;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -37,9 +50,10 @@ class AuthenticatedSessionController extends Controller
 
         $user = $request->user();
 
-        if ($user && $user->role === 'job_seeker') {
+        // Check if user has job_seeker role via RBAC with fallback
+        if ($user && $this->userHasRole($user, 'job-seeker')) {
             $profile = ApplicantProfile::where('user_id', $user->id)->first();
-            if (! $profile || ! $profile->isComplete()) {
+            if (!$profile || !$profile->isComplete()) {
                 return redirect()->route('profile.complete');
             }
         }
@@ -68,5 +82,22 @@ class AuthenticatedSessionController extends Controller
         return filled(config('services.google.client_id'))
             && filled(config('services.google.client_secret'))
             && filled(config('services.google.redirect'));
+    }
+
+    /**
+     * Helper method to check user role safely
+     */
+    private function userHasRole(?User $user, string $roleSlug): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        if (method_exists($user, 'hasRole')) {
+            return $user->hasRole($roleSlug);
+        }
+
+        // Fallback for when hasRole method doesn't exist
+        return $user->roles()->where('slug', $roleSlug)->exists();
     }
 }

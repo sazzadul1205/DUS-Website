@@ -10,8 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Carbon\Carbon;
 use Inertia\Inertia;
 
 class UserController extends Controller
@@ -76,7 +74,6 @@ class UserController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->role,
                 'roles' => $user->roles->map(function ($role) {
                     return [
                         'id' => $role->id,
@@ -132,26 +129,21 @@ class UserController extends Controller
             // Get the role
             $role = Role::where('slug', $validated['role_slug'])->first();
 
-            // Map role slug to legacy role enum value
-            $legacyRole = $this->mapRoleToLegacyEnum($validated['role_slug']);
-
-            // Create user with auto-verification
+            // Create user (without role column)
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
-                'role' => $legacyRole, // Use mapped legacy role value
-                'email_verified_at' => now(), // Auto-verify users created from backend
+                'email_verified_at' => now(),
             ]);
 
             // Assign role using RBAC system
-            $user->assignRole($validated['role_slug']);
+            $user->assignRole($validated['role_slug'], Auth::id());
 
             Log::info('User created and auto-verified', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,
                 'role' => $validated['role_slug'],
-                'legacy_role' => $legacyRole,
                 'created_by' => Auth::id(),
                 'auto_verified' => true,
             ]);
@@ -165,26 +157,6 @@ class UserController extends Controller
 
             return redirect()->back()->with('error', 'Failed to create user: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * Map role slug to legacy role enum value
-     */
-    protected function mapRoleToLegacyEnum(string $roleSlug): string
-    {
-        // Map role slugs to enum values that exist in the users table 'role' column
-        $roleMapping = [
-            'super-admin' => 'admin',
-            'admin' => 'admin',
-            'employer-admin' => 'employer',
-            'hr-manager' => 'employer',
-            'recruiter' => 'employer',
-            'employer' => 'employer',
-            'job-seeker' => 'job_seeker',
-            'job_seeker' => 'job_seeker',
-        ];
-
-        return $roleMapping[$roleSlug] ?? 'job_seeker';
     }
 
     /**
@@ -202,16 +174,9 @@ class UserController extends Controller
         ]);
 
         try {
-            // Get the role
-            $role = Role::where('slug', $validated['role_slug'])->first();
-
-            // Map role slug to legacy role enum value
-            $legacyRole = $this->mapRoleToLegacyEnum($validated['role_slug']);
-
             $updateData = [
                 'name' => $validated['name'],
                 'email' => $validated['email'],
-                'role' => $legacyRole, // Use mapped legacy role value
             ];
 
             // Only update password if provided
@@ -228,7 +193,6 @@ class UserController extends Controller
                 'user_id' => $user->id,
                 'user_email' => $user->email,
                 'role' => $validated['role_slug'],
-                'legacy_role' => $legacyRole,
                 'updated_by' => Auth::id(),
             ]);
 

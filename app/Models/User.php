@@ -88,10 +88,6 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Role::class, 'user_roles')
             ->withPivot('assigned_by', 'assigned_at', 'expires_at', 'is_active')
-            ->wherePivot('is_active', true)
-            ->where(function ($q) {
-                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            })
             ->withTimestamps();
     }
 
@@ -128,7 +124,9 @@ class User extends Authenticatable
      */
     public function hasRole(string $roleSlug): bool
     {
-        return $this->roles()->where('slug', $roleSlug)->exists();
+        return $this->activeRoles()
+            ->where('slug', $roleSlug)
+            ->exists();
     }
 
     /**
@@ -269,5 +267,17 @@ class User extends Authenticatable
 
         $this->roles()->detach($role->id);
         return true;
+    }
+    /**
+     * Active roles
+     */
+    public function activeRoles()
+    {
+        return $this->roles()
+            ->wherePivot('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            });
     }
 }

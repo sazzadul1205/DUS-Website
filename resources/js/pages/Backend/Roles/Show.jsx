@@ -649,7 +649,7 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
                           </div>
                         </div>
                         <Link
-                          href={route('backend.users.show', user.id)}
+                          href={route('backend.users.index', { search: user.email })}
                           className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                           title="View User"
                         >
