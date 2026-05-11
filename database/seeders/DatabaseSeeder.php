@@ -20,8 +20,10 @@ class DatabaseSeeder extends Seeder
             LocationSeeder::class,
             JobCategorySeeder::class,
 
-            // Users and profiles
-            UserSeeder::class,           // Creates Super Admin, Admin, HR Manager, Job Seeker
+            // Users first (without role column)
+            UserSeeder::class,
+
+            // Profiles after users
             ApplicantProfileSeeder::class,
 
             // Job listings

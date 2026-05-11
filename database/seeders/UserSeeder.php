@@ -22,7 +22,6 @@ class UserSeeder extends Seeder
             'name' => 'Super Admin',
             'email' => 'superadmin@jobportal.com',
             'password' => Hash::make('password'),
-            'role' => 'admin',
             'email_verified_at' => $now,
             'remember_token' => Str::random(10),
             'created_at' => $now,
@@ -36,7 +35,6 @@ class UserSeeder extends Seeder
             'name' => 'Admin User',
             'email' => 'admin@jobportal.com',
             'password' => Hash::make('password'),
-            'role' => 'admin',
             'email_verified_at' => $now,
             'remember_token' => Str::random(10),
             'created_at' => $now,
@@ -50,7 +48,6 @@ class UserSeeder extends Seeder
             'name' => 'HR Manager',
             'email' => 'hrmanager@company.com',
             'password' => Hash::make('password'),
-            'role' => 'employer',
             'email_verified_at' => $now,
             'remember_token' => Str::random(10),
             'created_at' => $now,
@@ -64,7 +61,6 @@ class UserSeeder extends Seeder
             'name' => 'Job Seeker',
             'email' => 'jobseeker@gmail.com',
             'password' => Hash::make('password'),
-            'role' => 'job_seeker',
             'email_verified_at' => $now,
             'remember_token' => Str::random(10),
             'created_at' => $now,
@@ -91,7 +87,6 @@ class UserSeeder extends Seeder
                 'name' => $employer,
                 'email' => Str::slug($employer, '.') . '@company.com',
                 'password' => Hash::make('password'),
-                'role' => 'employer',
                 'email_verified_at' => $now,
                 'remember_token' => Str::random(10),
                 'created_at' => $now,
@@ -115,7 +110,6 @@ class UserSeeder extends Seeder
                 'name' => $firstName . ' ' . $lastName,
                 'email' => $email,
                 'password' => Hash::make('password'),
-                'role' => 'job_seeker',
                 'email_verified_at' => $now,
                 'remember_token' => Str::random(10),
                 'created_at' => $now,
@@ -128,7 +122,7 @@ class UserSeeder extends Seeder
         DB::table('users')->upsert(
             $users,
             ['email'],
-            ['name', 'password', 'role', 'email_verified_at', 'remember_token', 'updated_at']
+            ['name', 'password', 'email_verified_at', 'remember_token', 'updated_at']
         );
     }
 }

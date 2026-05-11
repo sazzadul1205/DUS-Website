@@ -10,9 +10,10 @@ class RBACSeeder extends Seeder
 {
   public function run(): void
   {
-    // Get super admin user for created_by references
-    $superAdmin = DB::table('users')->where('role', 'admin')->first();
-    $createdBy = $superAdmin?->id ?? 1;
+    // Get super admin user (first admin user created)
+    $superAdmin = DB::table('users')->where('email', 'superadmin@jobportal.com')->first();
+    $adminUser = DB::table('users')->where('email', 'admin@jobportal.com')->first();
+    $createdBy = $superAdmin?->id ?? $adminUser?->id ?? 1;
 
     // Insert Permissions
     $permissions = [
@@ -102,7 +103,7 @@ class RBACSeeder extends Seeder
       );
     }
 
-    // Insert Roles (with created_by and updated_by)
+    // Insert Roles
     $roles = [
       [
         'name' => 'Super Admin',
@@ -190,13 +191,15 @@ class RBACSeeder extends Seeder
     $superAdminRoleId = DB::table('roles')->where('slug', 'super-admin')->value('id');
     $adminRoleId = DB::table('roles')->where('slug', 'admin')->value('id');
     $employerAdminRoleId = DB::table('roles')->where('slug', 'employer-admin')->value('id');
+    $hrManagerRoleId = DB::table('roles')->where('slug', 'hr-manager')->value('id');
     $jobSeekerRoleId = DB::table('roles')->where('slug', 'job-seeker')->value('id');
 
-    // Clear existing role_permissions for these roles to avoid duplicates
+    // Clear existing role_permissions for these roles
     DB::table('role_permissions')->whereIn('role_id', [
       $superAdminRoleId,
       $adminRoleId,
       $employerAdminRoleId,
+      $hrManagerRoleId,
       $jobSeekerRoleId
     ])->delete();
 
@@ -258,6 +261,37 @@ class RBACSeeder extends Seeder
       }
     }
 
+    // HR Manager permissions
+    $hrManagerPermissions = [
+      'profile.view.own',
+      'profile.edit.own',
+      'job.create',
+      'job.view.own',
+      'job.edit.own',
+      'job.delete.own',
+      'application.view.for_own_jobs',
+      'application.shortlist',
+      'application.reject',
+      'application.hire',
+      'application.add_notes',
+      'dashboard.employer',
+      'cv.view',
+      'cv.download',
+    ];
+
+    foreach ($hrManagerPermissions as $permSlug) {
+      $permId = DB::table('permissions')->where('slug', $permSlug)->value('id');
+      if ($permId) {
+        DB::table('role_permissions')->insert([
+          'role_id' => $hrManagerRoleId,
+          'permission_id' => $permId,
+          'granted' => true,
+          'created_at' => now(),
+          'updated_at' => now(),
+        ]);
+      }
+    }
+
     // Job Seeker permissions
     $jobSeekerPermissions = [
       'profile.view.own',
@@ -292,6 +326,7 @@ class RBACSeeder extends Seeder
       $superAdminRoleId,
       $adminRoleId,
       $employerAdminRoleId,
+      $hrManagerRoleId,
       $jobSeekerRoleId
     ])->delete();
 
@@ -309,7 +344,7 @@ class RBACSeeder extends Seeder
       ['role_id' => $superAdminRoleId, 'module' => 'dashboard', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'cv', 'access_level' => 'manage'],
 
-      // Admin - Full access to everything (same as Super Admin)
+      // Admin - Full access to everything
       ['role_id' => $adminRoleId, 'module' => 'profile', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'job', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'application', 'access_level' => 'manage'],
@@ -331,6 +366,15 @@ class RBACSeeder extends Seeder
       ['role_id' => $employerAdminRoleId, 'module' => 'dashboard', 'access_level' => 'write'],
       ['role_id' => $employerAdminRoleId, 'module' => 'cv', 'access_level' => 'read'],
 
+      // HR Manager - Write access to job and application modules (limited)
+      ['role_id' => $hrManagerRoleId, 'module' => 'profile', 'access_level' => 'write'],
+      ['role_id' => $hrManagerRoleId, 'module' => 'job', 'access_level' => 'write'],
+      ['role_id' => $hrManagerRoleId, 'module' => 'application', 'access_level' => 'write'],
+      ['role_id' => $hrManagerRoleId, 'module' => 'category', 'access_level' => 'read'],
+      ['role_id' => $hrManagerRoleId, 'module' => 'location', 'access_level' => 'read'],
+      ['role_id' => $hrManagerRoleId, 'module' => 'dashboard', 'access_level' => 'write'],
+      ['role_id' => $hrManagerRoleId, 'module' => 'cv', 'access_level' => 'read'],
+
       // Job Seeker - Read/write own data only
       ['role_id' => $jobSeekerRoleId, 'module' => 'profile', 'access_level' => 'write'],
       ['role_id' => $jobSeekerRoleId, 'module' => 'job', 'access_level' => 'read'],
@@ -349,15 +393,21 @@ class RBACSeeder extends Seeder
       ]);
     }
 
-    // Assign roles to existing users based on their current role field
+    // Assign roles to existing users based on their email patterns
     $users = DB::table('users')->whereNull('deleted_at')->get();
+
     foreach ($users as $user) {
-      $roleSlug = match ($user->role) {
-        'admin' => 'admin',
-        'employer' => 'employer-admin',
-        'job_seeker' => 'job-seeker',
-        default => 'job-seeker',
-      };
+      $roleSlug = 'job-seeker'; // Default role
+
+      if ($user->email === 'superadmin@jobportal.com') {
+        $roleSlug = 'super-admin';
+      } elseif ($user->email === 'admin@jobportal.com') {
+        $roleSlug = 'admin';
+      } elseif ($user->email === 'hrmanager@company.com') {
+        $roleSlug = 'hr-manager';
+      } elseif (str_contains($user->email, '@company.com')) {
+        $roleSlug = 'employer-admin';
+      }
 
       $roleId = DB::table('roles')->where('slug', $roleSlug)->value('id');
       if ($roleId) {

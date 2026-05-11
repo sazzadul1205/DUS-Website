@@ -38,8 +38,8 @@ class JobListingSeeder extends Seeder
             'Network Engineer'
         ];
 
-        $jobTypes = ['Full-time', 'Part-time', 'Contract', 'Remote', 'Hybrid', 'Internship'];
-        $experienceLevels = ['Entry', 'Junior', 'Mid-Level', 'Senior', 'Lead', 'Manager'];
+        $jobTypes = ['full-time', 'part-time', 'contract', 'internship', 'remote', 'hybrid'];
+        $experienceLevels = ['entry', 'junior', 'mid-level', 'senior', 'lead', 'executive'];
         $educations = ['SSC', 'HSC', 'Bachelor', 'Master', 'PhD', 'Diploma'];
 
         $benefitsList = [
@@ -67,9 +67,13 @@ class JobListingSeeder extends Seeder
             ['Photoshop', 'Illustrator', 'Figma']
         ];
 
-        $employers = DB::table('users')->where('role', 'employer')->get();
+        // Get employer users - users with @company.com email or hrmanager@company.com
+        $employers = DB::table('users')
+            ->where('email', 'like', '%@company.com')
+            ->orWhere('email', 'hrmanager@company.com')
+            ->get();
+
         $categories = DB::table('job_categories')->get();
-        $locations = DB::table('locations')->get();
 
         $jobs = [];
 
@@ -97,7 +101,7 @@ class JobListingSeeder extends Seeder
 
             $jobs[] = [
                 'title' => $title,
-                'slug' => Str::slug($title . '-' . $i . '-' . Str::random(5)),
+                'slug' => Str::slug($title . '-' . $i . '-' . Str::random(8)),
                 'description' => 'We are looking for a dedicated ' . $title . ' to join our team. The ideal candidate will have experience in the field and a passion for excellence. You will be responsible for delivering high-quality work and contributing to team success.',
                 'requirements' => 'Bachelor\'s degree in relevant field. ' . rand(1, 5) . '+ years of experience. Strong communication skills. Ability to work in a team environment. Problem-solving mindset.',
                 'job_type' => $jobTypes[array_rand($jobTypes)],
