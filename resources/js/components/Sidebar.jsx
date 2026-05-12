@@ -30,6 +30,8 @@ import {
   FiShield,
   FiKey,
   FiTrash2,
+  FiUserCheck,
+  FiUserPlus,
 } from 'react-icons/fi';
 import {
   MdCategory,
@@ -79,6 +81,7 @@ const Sidebar = () => {
     adminJobs: false,
     adminApps: false,
     adminRoles: false,
+    adminApplicants: false,
   });
 
   // State for collapsed sidebar
@@ -89,6 +92,7 @@ const Sidebar = () => {
     const shouldOpenJobs = url.includes('/listing') || url.includes('/locations') || url.includes('/categories') || url.includes('/statistics');
     const shouldOpenApplications = url.includes('/applications') || url.includes('/apply');
     const shouldOpenRoles = url.includes('/roles');
+    const shouldOpenApplicants = url.includes('/applicant-profiles');
 
     // Jobs management section
     setOpenMenus((prev) => ({
@@ -100,6 +104,7 @@ const Sidebar = () => {
       employerApps: prev.employerApps || shouldOpenApplications,
       adminApps: prev.adminApps || shouldOpenApplications,
       adminRoles: prev.adminRoles || shouldOpenRoles,
+      adminApplicants: prev.adminApplicants || shouldOpenApplicants,
     }));
   }, [url]);
 
@@ -513,6 +518,16 @@ const Sidebar = () => {
       }
     }
 
+    // Applicant Profiles - Single Link (no dropdown) - UPDATED
+    if (hasPermission('profile.view.any')) {
+      items.push({
+        name: 'Applicant Profiles',
+        routeName: 'backend.applicant-profile.index',
+        icon: FiUser,
+        description: 'Manage applicant profiles',
+      });
+    }
+
     // Applications Dropdown
     if (hasPermission('application.view.any') || hasPermission('application.shortlist') || hasPermission('application.reject')) {
       const appSubItems = [];
@@ -579,7 +594,7 @@ const Sidebar = () => {
       });
     }
 
-    // Roles & Permissions Dropdown - FIXED with proper exact matching
+    // Roles & Permissions Dropdown
     if (hasPermission('role.view') || hasPermission('role.create') || hasPermission('role.edit') || hasPermission('role.delete')) {
       const roleSubItems = [];
 
@@ -588,7 +603,7 @@ const Sidebar = () => {
           name: 'All Roles',
           routeName: 'backend.roles.index',
           icon: FiKey,
-          exact: true, // Only highlight when exactly on roles index page
+          exact: true,
         });
       }
 
@@ -600,7 +615,6 @@ const Sidebar = () => {
         });
       }
 
-      // Trashed roles (if user can view deleted)
       if (hasPermission('role.view')) {
         roleSubItems.push({
           name: 'Trashed Roles',
@@ -621,8 +635,15 @@ const Sidebar = () => {
       }
     }
 
-    // REMOVED: Reports Dropdown
-    // REMOVED: Settings link
+    // Admin Profile (Edit Profile)
+    if (hasPermission('profile.edit.own')) {
+      items.push({
+        name: 'My Profile',
+        routeName: 'backend.admin-profile.edit',
+        icon: FiSettings,
+        description: 'Edit your profile',
+      });
+    }
 
     // Notifications
     items.push({
@@ -775,7 +796,7 @@ const Sidebar = () => {
       );
     }
 
-    // For non-dropdown items (like Users Management)
+    // For non-dropdown items (like Users Management, My Profile)
     const isMenuItemActive = item.routeName
       ? isRouteActive(item.routeName, item.routeParams || {}, item.activeAliases || [], {
         exact: item.exact,

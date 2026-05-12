@@ -23,6 +23,7 @@ use App\Http\Controllers\Backend\ApplicationsController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\UserController;
+use App\Http\Controllers\Profile\AdminProfileController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 
@@ -76,12 +77,11 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     */
     Route::prefix('backend')->name('backend.')->group(function () {
 
-
         /*
-    |--------------------------------------------------------------------------
-    | Roles Management 
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | Roles Management 
+        |--------------------------------------------------------------------------
+        */
 
         Route::prefix('roles')->name('roles.')->group(function () {
             // Main CRUD
@@ -239,7 +239,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Applicant Profile Routes
+        | Applicant Profile Routes (User-specific - for own profile)
         |--------------------------------------------------------------------------
         */
 
@@ -259,6 +259,34 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
         /*
         |--------------------------------------------------------------------------
+        | Applicant Profile Management (Admin - All Profiles)
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('applicant-profiles')->name('applicant-profile.')->group(function () {
+            // Main index with comprehensive filtering
+            Route::get('/', [ApplicantProfileController::class, 'index'])->name('index');
+
+            // Single profile view (admin view)
+            Route::get('/{id}', [ApplicantProfileController::class, 'show'])->name('show');
+
+            // Bulk operations
+            Route::post('/bulk/delete', [ApplicantProfileController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::post('/bulk/restore', [ApplicantProfileController::class, 'bulkRestore'])->name('bulk-restore');
+
+            // Single profile actions (soft delete & restore)
+            Route::delete('/{id}', [ApplicantProfileController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/restore', [ApplicantProfileController::class, 'restore'])->name('restore');
+
+            // Force delete (permanent)
+            Route::delete('/{id}/force', [ApplicantProfileController::class, 'forceDelete'])->name('force-delete');
+
+            // Export functionality
+            Route::post('/export', [ApplicantProfileController::class, 'export'])->name('export');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
         | Employer Profile Routes
         |--------------------------------------------------------------------------
         */
@@ -269,6 +297,18 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             Route::get('/profile/edit', [EmployerProfileController::class, 'edit'])->name('profile.edit');
             Route::patch('/profile', [EmployerProfileController::class, 'update'])->name('profile.update');
             Route::put('/profile/password', [EmployerProfileController::class, 'updatePassword'])->name('profile.password.update');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Profile Routes
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('admin-profile')->name('admin-profile.')->group(function () {
+            Route::get('/edit', [AdminProfileController::class, 'edit'])->name('edit');
+            Route::patch('/', [AdminProfileController::class, 'update'])->name('update');
+            Route::put('/password', [AdminProfileController::class, 'updatePassword'])->name('password.update');
         });
 
         /*
