@@ -56,7 +56,6 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile/cv/{cv}/primary', [ProfileCompletionController::class, 'setPrimaryCv'])->name('profile.cv.primary');
 });
 
-
 /*
 |--------------------------------------------------------------------------
 | Authenticated + VERIFIED Routes (MAIN APP AREA)
@@ -376,7 +375,6 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         });
     });
 
-
     /*
     | Settings
     */
@@ -389,17 +387,6 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::put('/password', [PasswordController::class, 'update'])->name('password.update');
     });
 });
-
-
-/*
-|--------------------------------------------------------------------------
-| EMAIL VERIFICATION ROUTES
-|--------------------------------------------------------------------------
-*/
-
-Route::get('/email-verified', function () {
-    return Inertia::render('auth/EmailVerified');
-})->name('verification.verified');
 
 /*
 |--------------------------------------------------------------------------

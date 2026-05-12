@@ -47,6 +47,7 @@ class RegisteredUserController extends Controller
             'name' => $name,
             'email' => $email,
             'password' => Hash::make($request->password),
+            'email_verified_at' => null, // Ensure email is not verified yet
         ]);
 
         // Assign job_seeker role via RBAC
@@ -61,11 +62,16 @@ class RegisteredUserController extends Controller
             ]);
         }
 
+        // Send email verification notification
         $user->sendEmailVerificationNotification();
+
         event(new Registered($user));
+
+        // Log the user in
         Auth::login($user);
 
-        return to_route('profile.complete');
+        // Redirect to email verification notice page
+        return to_route('verification.notice');
     }
 
     /**

@@ -1,11 +1,8 @@
 // pages/auth/verify-email.jsx
 
-// React
 import { useState } from 'react';
 import { Head, useForm } from '@inertiajs/react';
-
-// Icons
-import { FaSpinner, FaEnvelope, FaPaperPlane, FaSignOutAlt, FaCheckCircle, FaEnvelopeOpenText, FaClock } from 'react-icons/fa';
+import { LoaderCircle, Mail, Send, LogOut, CheckCircle, MailCheck, Clock } from 'lucide-react';
 
 export default function VerifyEmail({ status }) {
     const { post, processing } = useForm({});
@@ -26,191 +23,128 @@ export default function VerifyEmail({ status }) {
         <>
             <Head title="Email verification" />
 
-            <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-yellow-50 via-orange-50 to-amber-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-                {/* Animated background elements */}
-                <div className="absolute -top-20 -right-20 w-64 h-64 bg-linear-to-r from-yellow-400 to-orange-500 rounded-full blur-3xl opacity-20 animate-pulse"></div>
-                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-linear-to-r from-amber-400 to-red-500 rounded-full blur-3xl opacity-20 animate-pulse animation-delay-1000"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl"></div>
-
-                <div className="max-w-md w-full space-y-8 relative z-10">
-                    {/* Logo and Header */}
-                    <div className="text-center animate-fade-in-up">
-                        <div className="flex justify-center mb-4">
-                            <div className="bg-linear-to-r from-yellow-500 to-orange-600 rounded-2xl p-3 shadow-lg transform hover:scale-105 transition-transform duration-300">
-                                <FaEnvelope className="h-8 w-8 text-white" />
+            <div className="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8">
+                <div className="flex w-full items-center justify-center opacity-100 transition-opacity duration-750 lg:grow starting:opacity-0">
+                    <main className="flex w-full max-w-83.75 flex-col lg:max-w-md">
+                        {/* Logo and Header */}
+                        <div className="text-center mb-8">
+                            <div className="flex justify-center mb-6">
+                                <div className="w-16 h-16 bg-[#1b1b18] rounded-lg flex items-center justify-center">
+                                    <Mail className="h-8 w-8 text-white" />
+                                </div>
                             </div>
-                        </div>
-                        <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-                            Verify your email
-                        </h2>
-                        <p className="mt-2 text-sm text-gray-600">
-                            Please verify your email address by clicking on the link we just emailed to you.
-                        </p>
-                    </div>
-
-                    {/* Status Messages */}
-                    {status === 'verification-link-sent' && (
-                        <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-center animate-slide-in">
-                            <div className="flex items-center justify-center mb-2">
-                                <FaCheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                                <span className="text-sm font-medium text-green-700">Verification email sent!</span>
-                            </div>
-                            <p className="text-xs text-green-600">
-                                A new verification link has been sent to the email address you provided during registration.
+                            <h2 className="text-2xl font-semibold text-[#1b1b18]">
+                                Verify your email
+                            </h2>
+                            <p className="mt-2 text-sm text-[#706f6c]">
+                                Please verify your email address by clicking on the link we just emailed to you.
                             </p>
                         </div>
-                    )}
 
-                    {resendStatus === 'sent' && !status && (
-                        <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-center text-sm text-green-700 animate-slide-in">
-                            <FaCheckCircle className="inline h-4 w-4 mr-1" />
-                            Verification email resent successfully!
-                        </div>
-                    )}
-
-                    {/* Info Card */}
-                    <div className="bg-white rounded-lg shadow-lg p-6 animate-fade-in-up animation-delay-100">
-                        <div className="flex items-center justify-center mb-4">
-                            <div className="bg-yellow-100 rounded-full p-2">
-                                <FaEnvelopeOpenText className="h-5 w-5 text-yellow-600" />
+                        {/* Status Messages */}
+                        {status === 'verification-link-sent' && (
+                            <div className="mb-4 rounded-sm border border-green-200 bg-green-50 p-4 text-center">
+                                <div className="flex items-center justify-center mb-2">
+                                    <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                                    <span className="text-sm font-medium text-green-700">Verification email sent!</span>
+                                </div>
+                                <p className="text-xs text-green-600">
+                                    A new verification link has been sent to your email address.
+                                </p>
                             </div>
-                            <div className="ml-3">
-                                <h3 className="text-sm font-medium text-gray-900">Check your inbox</h3>
-                                <p className="text-xs text-gray-500">We've sent a verification link to your email</p>
+                        )}
+
+                        {resendStatus === 'sent' && !status && (
+                            <div className="mb-4 rounded-sm border border-green-200 bg-green-50 p-3 text-center text-sm text-green-700">
+                                <CheckCircle className="inline h-4 w-4 mr-1" />
+                                Verification email resent successfully!
+                            </div>
+                        )}
+
+                        {/* Info Card */}
+                        <div className="rounded-sm border border-[#e3e3e0] bg-white p-6 mb-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)]">
+                            <div className="flex items-center justify-center mb-4">
+                                <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                    <MailCheck className="h-5 w-5 text-yellow-600" />
+                                </div>
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-[#1b1b18]">Check your inbox</h3>
+                                    <p className="text-xs text-[#706f6c]">We've sent a verification link to your email</p>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-[#e3e3e0] pt-4">
+                                <div className="flex items-center justify-center text-sm text-[#706f6c]">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    <span>The link expires in 60 minutes</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="border-t border-gray-200 pt-4">
-                            <div className="flex items-center justify-center text-sm text-gray-600">
-                                <FaClock className="h-3 w-3 mr-1 text-gray-400" />
-                                <span>The link expires in 60 minutes</span>
-                            </div>
-                        </div>
-                    </div>
+                        {/* Action Buttons */}
+                        <div className="space-y-3">
+                            <form onSubmit={submit}>
+                                <button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="group relative inline-flex w-full items-center justify-center gap-2 rounded-sm border border-black bg-[#1b1b18] px-5 py-2.5 text-sm font-medium leading-normal text-white hover:border-black hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                >
+                                    {processing ? (
+                                        <>
+                                            <LoaderCircle className="h-4 w-4 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send className="h-4 w-4" />
+                                            Resend verification email
+                                        </>
+                                    )}
+                                </button>
+                            </form>
 
-                    {/* Action Buttons */}
-                    <div className="space-y-3 animate-fade-in-up animation-delay-200">
-                        <form onSubmit={submit}>
                             <button
-                                type="submit"
-                                disabled={processing}
-                                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-linear-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                onClick={handleLogout}
+                                className="group relative inline-flex w-full items-center justify-center gap-2 rounded-sm border border-[#19140035] bg-white px-5 py-2.5 text-sm font-medium leading-normal text-[#1b1b18] hover:border-[#1915014a] transition-all duration-200"
                             >
-                                {processing ? (
-                                    <FaSpinner className="animate-spin h-5 w-5" />
-                                ) : (
-                                    <>
-                                        <FaPaperPlane className="h-5 w-5 mr-2" />
-                                        Resend verification email
-                                    </>
-                                )}
+                                <LogOut className="h-4 w-4" />
+                                Log out
                             </button>
-                        </form>
+                        </div>
 
-                        <button
-                            onClick={handleLogout}
-                            className="w-full flex items-center justify-center py-2 px-4 border-2 border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all duration-300"
-                        >
-                            <FaSignOutAlt className="h-4 w-4 mr-2" />
-                            Log out
-                        </button>
-                    </div>
+                        {/* Help Section */}
+                        <div className="mt-6 rounded-sm border border-yellow-200 bg-yellow-50 p-4">
+                            <h4 className="text-sm font-medium text-yellow-800 mb-2">💡 Didn't receive the email?</h4>
+                            <ul className="space-y-1 text-xs text-yellow-700">
+                                <li className="flex items-center">
+                                    <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                    Check your spam or junk folder
+                                </li>
+                                <li className="flex items-center">
+                                    <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                    Make sure you entered the correct email address
+                                </li>
+                                <li className="flex items-center">
+                                    <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                    Click "Resend verification email" above
+                                </li>
+                                <li className="flex items-center">
+                                    <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                    Add our email to your contacts to avoid spam filtering
+                                </li>
+                            </ul>
+                        </div>
 
-                    {/* Help Section */}
-                    <div className="bg-yellow-50 rounded-lg p-4 animate-fade-in-up animation-delay-300">
-                        <h4 className="text-sm font-medium text-yellow-900 mb-2">💡 Didn't receive the email?</h4>
-                        <ul className="space-y-1 text-xs text-yellow-700">
-                            <li className="flex items-center">
-                                <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
-                                Check your spam or junk folder
-                            </li>
-                            <li className="flex items-center">
-                                <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
-                                Make sure you entered the correct email address
-                            </li>
-                            <li className="flex items-center">
-                                <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
-                                Click "Resend verification email" above
-                            </li>
-                            <li className="flex items-center">
-                                <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
-                                Add our email to your contacts to avoid spam filtering
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* Additional Info */}
-                    <div className="text-center text-xs text-gray-500 animate-fade-in-up animation-delay-400">
-                        <p>Once verified, you'll have full access to all features of your account.</p>
-                    </div>
+                        {/* Additional Info */}
+                        <div className="mt-4 text-center">
+                            <p className="text-xs text-[#706f6c]">
+                                Once verified, you'll have full access to all features of your account.
+                            </p>
+                        </div>
+                    </main>
                 </div>
+                <div className="hidden h-14.5 lg:block"></div>
             </div>
-
-            <style>{`
-                @keyframes fadeInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-                
-                @keyframes slideIn {
-                    from {
-                        opacity: 0;
-                        transform: translateX(-10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
-                }
-                
-                @keyframes pulse {
-                    0%, 100% {
-                        opacity: 0.2;
-                    }
-                    50% {
-                        opacity: 0.3;
-                    }
-                }
-                
-                .animate-fade-in-up {
-                    animation: fadeInUp 0.6s ease-out forwards;
-                    opacity: 0;
-                }
-                
-                .animate-slide-in {
-                    animation: slideIn 0.3s ease-out forwards;
-                }
-                
-                .animate-pulse {
-                    animation: pulse 3s ease-in-out infinite;
-                }
-                
-                .animation-delay-100 {
-                    animation-delay: 0.1s;
-                }
-                
-                .animation-delay-200 {
-                    animation-delay: 0.2s;
-                }
-                
-                .animation-delay-300 {
-                    animation-delay: 0.3s;
-                }
-                
-                .animation-delay-400 {
-                    animation-delay: 0.4s;
-                }
-                
-                .animation-delay-1000 {
-                    animation-delay: 1s;
-                }
-            `}</style>
         </>
     );
 }

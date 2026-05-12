@@ -50,6 +50,17 @@ class AuthenticatedSessionController extends Controller
 
         $user = $request->user();
 
+        // Check if email is verified
+        if (!$user->hasVerifiedEmail()) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return to_route('verification.notice')->withErrors([
+                'email' => 'Please verify your email address before logging in.',
+            ]);
+        }
+
         // Check if user has job_seeker role via RBAC with fallback
         if ($user && $this->userHasRole($user, 'job-seeker')) {
             $profile = ApplicantProfile::where('user_id', $user->id)->first();

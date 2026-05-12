@@ -1,22 +1,25 @@
 // pages/auth/email-verified.jsx
 
-// React
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
-
-// Icons
-import { FaCheckCircle, FaEnvelope, FaArrowRight, FaSpinner, FaRedoAlt, FaTachometerAlt, FaStar } from 'react-icons/fa';
+import { CheckCircle, Mail, ArrowRight, LoaderCircle, RotateCw, LayoutDashboard, Star, Briefcase } from 'lucide-react';
 
 export default function EmailVerified({ status }) {
     const [resending, setResending] = useState(false);
+    const [resendStatus, setResendStatus] = useState(null);
 
-    const handleGoToDashboard = () => {
-        router.get(route('dashboard'));
+    const handleGoToProfileComplete = () => {
+        router.get(route('profile.complete'));
     };
 
     const handleResendVerification = () => {
         setResending(true);
         router.post(route('verification.send'), {}, {
+            onSuccess: () => {
+                setResendStatus('sent');
+                setResending(false);
+                setTimeout(() => setResendStatus(null), 5000);
+            },
             onFinish: () => setResending(false)
         });
     };
@@ -24,193 +27,187 @@ export default function EmailVerified({ status }) {
     return (
         <>
             <Head title="Email Verified" />
-            
-            <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-green-50 via-emerald-50 to-teal-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-                {/* Animated background elements */}
-                <div className="absolute -top-20 -right-20 w-64 h-64 bg-linear-to-r from-green-400 to-emerald-500 rounded-full blur-3xl opacity-20 animate-pulse"></div>
-                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-linear-to-r from-teal-400 to-cyan-500 rounded-full blur-3xl opacity-20 animate-pulse animation-delay-1000"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl"></div>
-                
-                <div className="max-w-md w-full space-y-8 relative z-10">
-                    {/* Success Animation */}
-                    <div className="text-center animate-fade-in-up">
-                        <div className="flex justify-center mb-4">
-                            <div className="bg-linear-to-r from-green-500 to-emerald-600 rounded-full p-4 shadow-lg transform hover:scale-105 transition-transform duration-300 animate-bounce">
-                                <FaCheckCircle className="h-12 w-12 text-white" />
-                            </div>
-                        </div>
-                        <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-                            Email Verified!
-                        </h2>
-                        <p className="mt-2 text-sm text-gray-600">
-                            Your email has been successfully verified. You can now access all features of your account.
-                        </p>
-                    </div>
 
-                    {/* Success Message Card */}
-                    <div className="bg-white rounded-lg shadow-lg p-6 animate-fade-in-up animation-delay-100">
-                        <div className="flex items-center justify-center mb-4">
-                            <div className="bg-green-100 rounded-full p-2">
-                                <FaEnvelope className="h-5 w-5 text-green-600" />
+            <div className="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8">
+                <div className="flex w-full items-center justify-center opacity-100 transition-opacity duration-750 lg:grow starting:opacity-0">
+                    <main className="flex w-full max-w-83.75 flex-col lg:max-w-4xl lg:flex-row">
+                        {/* Left side - Success Content */}
+                        <div className="flex-1 rounded-br-lg rounded-bl-lg bg-white p-6 pb-12 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-tl-lg lg:rounded-br-none lg:p-20">
+                            {/* Logo */}
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="w-10 h-10 bg-[#1b1b18] rounded-lg flex items-center justify-center">
+                                    <span className="text-white font-bold text-xl">JM</span>
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-semibold leading-tight">Job Match</h1>
+                                    <p className="text-xs text-[#706f6c]">Find your perfect match</p>
+                                </div>
                             </div>
-                            <div className="ml-3">
-                                <h3 className="text-sm font-medium text-gray-900">Verification Complete</h3>
-                                <p className="text-xs text-gray-500">Your account is now fully activated</p>
-                            </div>
-                        </div>
-                        
-                        <div className="border-t border-gray-200 pt-4 mt-2">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600">Account Status:</span>
-                                <span className="font-medium text-green-600">Verified ✓</span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm mt-2">
-                                <span className="text-gray-600">Access Level:</span>
-                                <span className="font-medium text-gray-900">Full Access</span>
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Action Buttons */}
-                    <div className="space-y-3 animate-fade-in-up animation-delay-200">
-                        <button
-                            onClick={handleGoToDashboard}
-                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg"
-                        >
-                            <FaTachometerAlt className="h-5 w-5 mr-2" />
-                            Go to Dashboard
-                            <FaArrowRight className="ml-2 h-4 w-4 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1" />
-                        </button>
-
-                        {status === 'verification-link-sent' && (
-                            <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-center text-sm font-medium text-green-700 animate-slide-in">
-                                <FaCheckCircle className="inline h-4 w-4 mr-1" />
-                                A new verification link has been sent to your email address.
+                            {/* Success Icon */}
+                            <div className="flex justify-center mb-6">
+                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                                    <CheckCircle className="h-10 w-10 text-green-600" />
+                                </div>
                             </div>
-                        )}
-                    </div>
 
-                    {/* Resend Section */}
-                    <div className="text-center border-t border-gray-200 pt-6 animate-fade-in-up animation-delay-300">
-                        <p className="text-sm text-gray-600">
-                            Didn't receive the email?{' '}
+                            <h2 className="mb-2 text-2xl font-semibold text-center">Email Verified!</h2>
+                            <p className="mb-8 text-[#706f6c] text-center">
+                                Your email has been successfully verified. You can now complete your profile and start your job search journey.
+                            </p>
+
+                            {/* Success Info Card */}
+                            <div className="rounded-sm border border-[#e3e3e0] bg-[#FDFDFC] p-4 mb-6">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <Mail className="h-4 w-4 text-green-600" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-sm text-[#1b1b18]">Verification Complete</h4>
+                                        <p className="text-xs text-[#706f6c]">Your account is now fully activated</p>
+                                    </div>
+                                </div>
+                                <div className="border-t border-[#e3e3e0] pt-3">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-[#706f6c]">Account Status:</span>
+                                        <span className="font-medium text-green-600">Verified ✓</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm mt-2">
+                                        <span className="text-[#706f6c]">Access Level:</span>
+                                        <span className="font-medium text-[#1b1b18]">Full Access</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Action Button */}
                             <button
-                                onClick={handleResendVerification}
-                                disabled={resending}
-                                className="inline-flex items-center font-medium text-green-600 hover:text-green-700 transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={handleGoToProfileComplete}
+                                className="group relative inline-flex w-full items-center justify-center gap-2 rounded-sm border border-black bg-[#1b1b18] px-5 py-2.5 text-sm font-medium leading-normal text-white hover:border-black hover:bg-black transition-all duration-200"
                             >
-                                {resending ? (
-                                    <>
-                                        <FaSpinner className="animate-spin h-4 w-4 mr-1" />
-                                        Sending...
-                                    </>
-                                ) : (
-                                    <>
-                                        <FaRedoAlt className="h-3 w-3 mr-1" />
-                                        Click here to resend
-                                    </>
-                                )}
+                                <LayoutDashboard className="h-4 w-4" />
+                                Complete Your Profile
+                                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
                             </button>
-                        </p>
-                        <p className="mt-2 text-xs text-gray-500">
-                            Check your spam folder if you don't see the email in your inbox
-                        </p>
-                    </div>
 
-                    {/* Features Section */}
-                    <div className="grid grid-cols-2 gap-3 mt-8 animate-fade-in-up animation-delay-400">
-                        <div className="text-center p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
-                            <div className="text-green-600 text-xl mb-1">✓</div>
-                            <div className="text-xs font-medium text-gray-900">Full Access</div>
-                            <div className="text-xs text-gray-500">All features unlocked</div>
+                            {/* Resend Section */}
+                            <div className="text-center mt-6 pt-4 border-t border-[#e3e3e0]">
+                                <p className="text-sm text-[#706f6c]">
+                                    Didn't receive the email?{' '}
+                                    <button
+                                        onClick={handleResendVerification}
+                                        disabled={resending}
+                                        className="inline-flex items-center font-medium text-[#1b1b18] hover:underline underline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {resending ? (
+                                            <>
+                                                <LoaderCircle className="animate-spin h-3 w-3 mr-1" />
+                                                Sending...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <RotateCw className="h-3 w-3 mr-1" />
+                                                Click here to resend
+                                            </>
+                                        )}
+                                    </button>
+                                </p>
+                                <p className="mt-2 text-xs text-[#706f6c]">
+                                    Check your spam folder if you don't see the email in your inbox
+                                </p>
+                            </div>
+
+                            {/* Status Message */}
+                            {resendStatus === 'sent' && (
+                                <div className="mt-4 rounded-sm border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700 flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4" />
+                                    A new verification link has been sent to your email address.
+                                </div>
+                            )}
                         </div>
-                        <div className="text-center p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
-                            <div className="text-green-600 text-xl mb-1">🚀</div>
-                            <div className="text-xs font-medium text-gray-900">Get Started</div>
-                            <div className="text-xs text-gray-500">Explore opportunities</div>
+
+                        {/* Right side - Next Steps Card */}
+                        <div className="relative -mb-px aspect-335/376 w-full shrink-0 overflow-hidden rounded-t-lg lg:mb-0 lg:-ml-px lg:aspect-auto lg:w-96 lg:rounded-t-none lg:rounded-r-lg">
+                            <div className="absolute inset-0 bg-linear-to-br from-green-50 to-emerald-100" />
+
+                            <div className="relative p-6 lg:p-8 flex flex-col justify-center h-full">
+                                <div className="mb-6 text-center">
+                                    <div className="flex items-center justify-center gap-2 mb-3">
+                                        <Star className="h-5 w-5 text-[#F53003]" />
+                                        <h3 className="text-lg font-semibold text-[#1b1b18]">What's Next?</h3>
+                                    </div>
+                                    <p className="text-sm text-[#706f6c]">
+                                        Complete these steps to start your job search
+                                    </p>
+                                </div>
+
+                                {/* Steps List */}
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-3 p-3 rounded-lg bg-white/80 backdrop-blur-sm border border-white/50">
+                                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                            <span className="text-blue-600 font-bold text-sm">1</span>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-semibold text-sm text-[#1b1b18]">Complete Your Profile</h4>
+                                            <p className="text-xs text-[#706f6c]">Add your skills, experience, and preferences</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-3 p-3 rounded-lg bg-white/80 backdrop-blur-sm border border-white/50">
+                                        <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
+                                            <span className="text-green-600 font-bold text-sm">2</span>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-semibold text-sm text-[#1b1b18]">Browse Job Matches</h4>
+                                            <p className="text-xs text-[#706f6c]">Discover jobs tailored to your skills</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-3 p-3 rounded-lg bg-white/80 backdrop-blur-sm border border-white/50">
+                                        <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                                            <span className="text-purple-600 font-bold text-sm">3</span>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-semibold text-sm text-[#1b1b18]">Start Applying</h4>
+                                            <p className="text-xs text-[#706f6c]">Submit applications and track your progress</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Quick Stats */}
+                                <div className="mt-6 p-3 rounded-lg bg-white/50 backdrop-blur-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="text-center flex-1">
+                                            <div className="text-xl font-bold text-[#1b1b18]">500+</div>
+                                            <div className="text-xs text-[#706f6c]">Active Jobs</div>
+                                        </div>
+                                        <div className="w-px h-8 bg-gray-300"></div>
+                                        <div className="text-center flex-1">
+                                            <div className="text-xl font-bold text-[#1b1b18]">50+</div>
+                                            <div className="text-xs text-[#706f6c]">Companies</div>
+                                        </div>
+                                        <div className="w-px h-8 bg-gray-300"></div>
+                                        <div className="text-center flex-1">
+                                            <div className="text-xl font-bold text-[#1b1b18]">2K+</div>
+                                            <div className="text-xs text-[#706f6c]">Job Seekers</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Tip */}
+                                <div className="mt-4 text-center">
+                                    <p className="text-xs text-[#706f6c] flex items-center justify-center gap-1">
+                                        <Briefcase className="h-3 w-3" />
+                                        Complete your profile to get personalized job recommendations
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="absolute inset-0 rounded-t-lg shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-t-none lg:rounded-r-lg pointer-events-none" />
                         </div>
-                    </div>
+                    </main>
                 </div>
+                <div className="hidden h-14.5 lg:block"></div>
             </div>
-
-            <style>{`
-                @keyframes fadeInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-                
-                @keyframes slideIn {
-                    from {
-                        opacity: 0;
-                        transform: translateX(-10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
-                }
-                
-                @keyframes pulse {
-                    0%, 100% {
-                        opacity: 0.2;
-                    }
-                    50% {
-                        opacity: 0.3;
-                    }
-                }
-                
-                @keyframes bounce {
-                    0%, 100% {
-                        transform: translateY(0);
-                    }
-                    50% {
-                        transform: translateY(-10px);
-                    }
-                }
-                
-                .animate-fade-in-up {
-                    animation: fadeInUp 0.6s ease-out forwards;
-                    opacity: 0;
-                }
-                
-                .animate-slide-in {
-                    animation: slideIn 0.3s ease-out forwards;
-                }
-                
-                .animate-pulse {
-                    animation: pulse 3s ease-in-out infinite;
-                }
-                
-                .animate-bounce {
-                    animation: bounce 1s ease-in-out 2;
-                }
-                
-                .animation-delay-100 {
-                    animation-delay: 0.1s;
-                }
-                
-                .animation-delay-200 {
-                    animation-delay: 0.2s;
-                }
-                
-                .animation-delay-300 {
-                    animation-delay: 0.3s;
-                }
-                
-                .animation-delay-400 {
-                    animation-delay: 0.4s;
-                }
-                
-                .animation-delay-1000 {
-                    animation-delay: 1s;
-                }
-            `}</style>
         </>
     );
 }

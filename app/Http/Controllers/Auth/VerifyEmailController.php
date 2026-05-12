@@ -15,6 +15,7 @@ class VerifyEmailController extends Controller
     public function __invoke(EmailVerificationRequest $request): RedirectResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
+            // Already verified, redirect to profile completion
             return redirect()->intended(route('profile.complete', absolute: false));
         }
 
@@ -25,6 +26,7 @@ class VerifyEmailController extends Controller
             event(new Verified($user));
         }
 
-        return redirect()->intended(route('profile.complete', absolute: false));
+        // Redirect to email verified success page
+        return redirect()->route('verification.verified');
     }
 }
