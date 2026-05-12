@@ -283,8 +283,14 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 
             // Export functionality
             Route::post('/export', [ApplicantProfileController::class, 'export'])->name('export');
-        });
 
+            // ==========================================
+            // CV Management Routes (for profile management)
+            // ==========================================
+            Route::post('/cv/upload', [ApplicantProfileController::class, 'uploadCv'])->name('cv.upload');
+            Route::delete('/cv/{cv}', [ApplicantProfileController::class, 'destroyCv'])->name('cv.destroy');
+            Route::patch('/cv/{cv}/primary', [ApplicantProfileController::class, 'setPrimaryCv'])->name('cv.primary');
+        });
         /*
         |--------------------------------------------------------------------------
         | Employer Profile Routes

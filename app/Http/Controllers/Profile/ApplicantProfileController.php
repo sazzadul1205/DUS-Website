@@ -889,7 +889,6 @@ class ApplicantProfileController extends Controller
 
         return Inertia::render('Backend/ApplicantProfile/Show', [
             'profile' => $profile,
-            'auth' => ['user' => Auth::user()]
         ]);
     }
 
@@ -1404,7 +1403,7 @@ class ApplicantProfileController extends Controller
     /**
      * Force delete a profile permanently
      */
-    public function forceDelete($id)
+    public function forceDelete(int $id)
     {
         $profile = ApplicantProfile::withTrashed()->findOrFail($id);
 
@@ -1516,6 +1515,114 @@ class ApplicantProfileController extends Controller
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Pragma' => 'no-cache',
             'Expires' => '0',
+        ]);
+    }
+
+    /**
+     * Upload a new CV (for profile management page - active immediately)
+     */
+    public function uploadCv(Request $request)
+    {
+        $user = Auth::user();
+
+        // Get or create profile
+        $profile = ApplicantProfile::where('user_id', $user->id)->first();
+        if (!$profile) {
+            return response()->json([
+                'message' => 'Please complete your profile first.'
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'cv' => 'required|file|mimes:pdf,doc,docx|max:5120',
+        ]);
+
+        // Check max limit
+        $activeCount = ApplicantCv::where('applicant_profile_id', $profile->id)
+            ->where('status', 'active')
+            ->count();
+
+        if ($activeCount >= ApplicantCv::MAX_CVS_PER_PROFILE) {
+            return response()->json([
+                'message' => sprintf('Maximum %d CVs reached.', ApplicantCv::MAX_CVS_PER_PROFILE),
+            ], 422);
+        }
+
+        $path = $validated['cv']->store("cvs/{$profile->id}", 'public');
+
+        $maxPosition = ApplicantCv::where('applicant_profile_id', $profile->id)
+            ->max('order_position');
+        $nextPosition = is_null($maxPosition) ? 0 : $maxPosition + 1;
+
+        // Create CV with ACTIVE status immediately (different from ProfileCompletionController)
+        $cv = ApplicantCv::create([
+            'applicant_profile_id' => $profile->id,
+            'cv_path' => $path,
+            'original_name' => $validated['cv']->getClientOriginalName(),
+            'order_position' => $nextPosition,
+            'is_primary' => $activeCount === 0, // Make primary if first CV
+            'status' => 'active', // ✅ Active immediately for profile management
+        ]);
+
+        return response()->json([
+            'id' => $cv->id,
+            'original_name' => $cv->original_name,
+            'size' => $validated['cv']->getSize(),
+            'type' => $validated['cv']->getMimeType(),
+            'url' => asset('storage/' . $cv->cv_path),
+            'is_primary' => $cv->is_primary,
+            'status' => $cv->status,
+            'order_position' => $cv->order_position,
+            'upload_date' => $cv->created_at?->toISOString(),
+            'cv_path' => $cv->cv_path,
+        ]);
+    }
+
+    /**
+     * Delete a CV (for profile management page)
+     */
+    public function destroyCv(ApplicantCv $cv)
+    {
+        $user = Auth::user();
+
+        // Check ownership
+        if ($cv->applicantProfile->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Delete file from storage
+        if ($cv->cv_path && Storage::disk('public')->exists($cv->cv_path)) {
+            Storage::disk('public')->delete($cv->cv_path);
+        }
+
+        $cv->forceDelete();
+
+        // Reorder remaining CVs
+        ApplicantCv::reorderCvs($cv->applicant_profile_id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'CV deleted successfully.'
+        ]);
+    }
+
+    /**
+     * Set a CV as primary (for profile management page)
+     */
+    public function setPrimaryCv(ApplicantCv $cv)
+    {
+        $user = Auth::user();
+
+        // Check ownership
+        if ($cv->applicantProfile->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $cv->setAsPrimary();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Primary CV updated successfully.'
         ]);
     }
 }

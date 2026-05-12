@@ -45,6 +45,13 @@ const Sidebar = () => {
   const { auth } = props;
   const notificationMeta = props.notifications || { unread_count: 0, recent: [] };
 
+  // ADD THESE DEBUG LOGS
+  console.log('=== Sidebar Debug ===');
+  console.log('Auth object:', auth);
+  console.log('User:', auth?.user);
+  console.log('User roles:', auth?.user?.roles);
+  console.log('User permissions:', auth?.user?.permissions);
+
   // Get user and their roles/permissions
   const user = auth?.user;
   const userName = user?.name || 'User';
@@ -269,17 +276,6 @@ const Sidebar = () => {
         routeName: 'backend.apply.index',
         icon: FiFileText,
         description: 'Track applications',
-      });
-    }
-
-    // CV Management
-    if (hasAnyPermission(['cv.upload', 'cv.view'])) {
-      items.push({
-        name: 'My CVs',
-        routeName: 'backend.applicant.profile.show',
-        routeParams: { id: user?.id },
-        icon: FiDownload,
-        description: 'Manage your CVs',
       });
     }
 

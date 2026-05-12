@@ -1,19 +1,18 @@
 // resources/js/layouts/AuthenticatedLayout.jsx
 import Sidebar from '@/components/Sidebar';
-import { usePage } from '@inertiajs/react';
+import { useState } from 'react';
 
 const AuthenticatedLayout = ({ children }) => {
-  // `auth` may be missing on some Inertia responses (or during hydration),
-  // so keep this layout resilient.
-  usePage();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar onCollapseChange={setIsSidebarCollapsed} />
 
-      {/* Main Content */}
-      <main className="ml-64 p-2 mx-auto text-black">
-          {children}
+      {/* Main Content - Adjust margin based on sidebar state */}
+      <main className={`transition-all duration-300 p-2 mx-auto text-black ${isSidebarCollapsed ? 'ml-20' : 'ml-64'
+        }`}>
+        {children}
       </main>
     </div>
   );
