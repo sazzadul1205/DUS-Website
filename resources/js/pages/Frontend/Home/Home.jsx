@@ -6,6 +6,7 @@ import Banner from './Components/Banner';
 import AboutUs from './Components/AboutUs';
 import OurAction from './Components/OurAction';
 import WhereWeWork from './Components/WhereWeWork';
+import OurPrograms from './Components/OurPrograms';
 
 export default function Home() {
   return (
@@ -23,6 +24,9 @@ export default function Home() {
 
       {/* Where We Work Section */}
       <WhereWeWork />
+
+      {/* Our Programs Section */}
+      <OurPrograms />
     </PublicLayout>
   );
 }
