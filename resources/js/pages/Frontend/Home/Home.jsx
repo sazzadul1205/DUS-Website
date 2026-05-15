@@ -7,6 +7,7 @@ import AboutUs from './Components/AboutUs';
 import OurAction from './Components/OurAction';
 import WhereWeWork from './Components/WhereWeWork';
 import OurPrograms from './Components/OurPrograms';
+import Stories from './Components/Stories';
 
 export default function Home() {
   return (
@@ -27,6 +28,9 @@ export default function Home() {
 
       {/* Our Programs Section */}
       <OurPrograms />
+
+      {/* Stories Section */}
+      <Stories />
     </PublicLayout>
   );
 }

@@ -117,8 +117,8 @@ const AboutUs = () => {
                   className='w-7.5 h-7.5 group-hover:scale-110 transition-transform duration-300'
                 />
                 <div>
-                  <h3 className='font-600 text-xl text-[#080C14] mb-2'>{item.title}</h3>
-                  <p className='font-400 text-[16px] text-[#515151] leading-relaxed'>
+                  <h3 className=' bricolage-grotesque font-600 text-xl text-[#080C14] mb-2'>{item.title}</h3>
+                  <p className=' bricolage-grotesque font-400 text-[16px] text-[#515151] leading-relaxed'>
                     {item.description}
                   </p>
                 </div>
