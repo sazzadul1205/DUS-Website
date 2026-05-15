@@ -8,6 +8,8 @@ import OurAction from './Components/OurAction';
 import WhereWeWork from './Components/WhereWeWork';
 import OurPrograms from './Components/OurPrograms';
 import Stories from './Components/Stories';
+import UpcomingEvents from './Components/UpcomingEvents';
+import Jobs from './Components/Jobs';
 
 export default function Home() {
   return (
@@ -31,6 +33,12 @@ export default function Home() {
 
       {/* Stories Section */}
       <Stories />
+
+      {/* Upcoming Events Section */}
+      <UpcomingEvents />
+
+      {/* Jobs Section */}
+      <Jobs />
     </PublicLayout>
   );
 }
