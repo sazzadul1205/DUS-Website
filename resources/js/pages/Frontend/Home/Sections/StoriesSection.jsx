@@ -1,69 +1,19 @@
+// js/pages/Frontend/Home/Sections/StoriesSection.jsx
+
+// React
 import React, { useRef, useEffect, useState } from 'react';
+
+// Arrow Icon
 import ArrowIcon from './ArrowIcon';
 
-const Stories = () => {
-  // In-page JSON data
-  const storiesData = {
-    section: {
-      title: "Insights, Stories & Impact",
-      description: "Read real stories from the field, community experiences, and thought-provoking perspectives that reflect our mission and impact."
-    },
-    stories: [
-      {
-        id: 1,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
-        date: "June 6, 2023",
-        title: "Invest in Kindness, Reap a Better Future",
-        description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        link: "/stories/invest-in-kindness"
-      },
-      {
-        id: 2,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
-        date: "June 6, 2023",
-        title: "How to Design a Custom Pool That Perfectly Fits Your Charlotte Backyard",
-        description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        link: "/stories/custom-pool-design"
-      },
-      {
-        id: 3,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
-        date: "June 6, 2023",
-        title: "The Benefits of Mindfulness in Daily Life",
-        description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        link: "/stories/mindfulness-benefits"
-      },
-      {
-        id: 4,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
-        date: "July 15, 2023",
-        title: "Empowering Women Through Microfinance",
-        description: "Discover how small loans are making a big difference in the lives of women entrepreneurs in rural communities. Our microfinance program has helped thousands of women start their own businesses and achieve financial independence.",
-        link: "/stories/empowering-women"
-      },
-      {
-        id: 5,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
-        date: "August 2, 2023",
-        title: "Building Resilient Communities Against Climate Change",
-        description: "Learn about our initiatives to help coastal communities adapt to the impacts of climate change through sustainable farming practices, disaster preparedness, and ecosystem restoration.",
-        link: "/stories/climate-resilience"
-      },
-      {
-        id: 6,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
-        date: "September 10, 2023",
-        title: "Providing Clean Water to Remote Villages",
-        description: "Access to clean water is a basic human right. See how our WATSAN program is bringing safe drinking water to communities that have never had it before.",
-        link: "/stories/clean-water"
-      }
-    ]
-  };
-
+const StoriesSection = ({ storiesData }) => {
+  // State for drag scrolling
   const scrollContainerRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
+
+  // State for drag scrolling
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Mouse/Touch drag scrolling
   const handleMouseDown = (e) => {
@@ -72,6 +22,7 @@ const Stories = () => {
     setScrollLeft(scrollContainerRef.current.scrollLeft);
   };
 
+  // Mouse/Touch drag scrolling
   const handleMouseMove = (e) => {
     if (!isDragging) return;
     e.preventDefault();
@@ -80,16 +31,19 @@ const Stories = () => {
     scrollContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
+  // Mouse/Touch drag scrolling
   const handleMouseUp = () => {
     setIsDragging(false);
   };
 
+  // Touch drag scrolling
   const handleTouchStart = (e) => {
     setIsDragging(true);
     setStartX(e.touches[0].pageX - scrollContainerRef.current.offsetLeft);
     setScrollLeft(scrollContainerRef.current.scrollLeft);
   };
 
+  // Touch drag scrolling
   const handleTouchMove = (e) => {
     if (!isDragging) return;
     const x = e.touches[0].pageX - scrollContainerRef.current.offsetLeft;
@@ -97,6 +51,7 @@ const Stories = () => {
     scrollContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
+  // Drag scrolling
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (container) {
@@ -196,4 +151,4 @@ const Stories = () => {
   );
 };
 
-export default Stories;
+export default StoriesSection;

@@ -3,16 +3,18 @@
 // React
 import React from 'react';
 
+// Icons
+import { Dumbbell } from 'lucide-react';
+
 // Components
 import Navbar from '../components/Navbar';
 import TopBar from '../components/TopBar';
 import Footer from '../components/Footer';
-import { Dumbbell } from 'lucide-react';
 
-const PublicLayout = ({ children }) => {
+const PublicLayout = ({ children, auth }) => {
   return (
     <div className='bg-white' >
-      <TopBar />
+      <TopBar auth={auth} />
       <Navbar />
       <main className=" mx-auto">{children}</main>
       <Footer />

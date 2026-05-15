@@ -1,82 +1,26 @@
+// js/pages/Frontend/Home/Sections/JobsSection.jsx
+
+// React
 import React, { useState } from 'react';
-import { LuBriefcaseBusiness, LuClock4 } from "react-icons/lu";
+
+// React Icons
 import { HiOutlineLocationMarker } from "react-icons/hi";
+import { LuBriefcaseBusiness, LuClock4 } from "react-icons/lu";
+
+// Arrow Icon
 import ArrowIcon from './ArrowIcon';
 
-const Jobs = () => {
-  // In-page JSON data
-  const jobsData = {
-    section: {
-      title: "Join our big family",
-      description: "Join us on this journey of kindness, and let's make a difference, one act of charity at a time."
-    },
-    filter: {
-      placeholder: "Browse By",
-      options: [
-        { value: "", label: "Browse By" },
-        { value: "all", label: "All Jobs" },
-        { value: "full-time", label: "Full Time" },
-        { value: "part-time", label: "Part Time" },
-        { value: "contract", label: "Contract" },
-        { value: "remote", label: "Remote" },
-        { value: "internship", label: "Internship" }
-      ]
-    },
-    jobs: [
-      {
-        id: 1,
-        type: "Full time",
-        department: "Management",
-        location: "Dhaka, Bangladesh",
-        title: "Senior Program Manager - Microfinance",
-        description: "Lead and oversee microfinance program operations, manage team of field officers, and ensure sustainable financial inclusion for underserved communities.",
-        link: "/jobs/senior-program-manager"
-      },
-      {
-        id: 2,
-        type: "Part time",
-        department: "Development",
-        location: "Anywhere in Bangladesh",
-        title: "Program Coordinator - Youth Empowerment",
-        description: "Develop and deliver workshops, mentorship programs, and educational events for underprivileged youth to build essential life skills.",
-        link: "/jobs/youth-coordinator"
-      },
-      {
-        id: 3,
-        type: "Full time",
-        department: "Climate Action",
-        location: "Hatiya, Noakhali",
-        title: "Climate Change Specialist",
-        description: "Design and implement climate adaptation strategies, conduct risk assessments, and train communities on disaster preparedness.",
-        link: "/jobs/climate-specialist"
-      },
-      {
-        id: 4,
-        type: "Contract",
-        department: "Research",
-        location: "Remote",
-        title: "Research Associate - Impact Assessment",
-        description: "Conduct qualitative and quantitative research, analyze program data, and prepare impact reports for stakeholders.",
-        link: "/jobs/research-associate"
-      },
-      {
-        id: 5,
-        type: "Internship",
-        department: "Media",
-        location: "Chattogram",
-        title: "Radio Production Intern",
-        description: "Assist in content creation, audio production, and community outreach programs for our community radio station.",
-        link: "/jobs/radio-intern"
-      }
-    ]
-  };
+const JobsSection = ({ jobsData }) => {
 
+  // Filters
   const [selectedFilter, setSelectedFilter] = useState("");
 
+  // Handle Filter
   const handleFilterChange = (e) => {
     setSelectedFilter(e.target.value);
   };
 
+  // Filtered Jobs
   const filteredJobs = selectedFilter === "" || selectedFilter === "all"
     ? jobsData.jobs
     : jobsData.jobs.filter(job => job.type.toLowerCase().replace(" ", "-") === selectedFilter);
@@ -187,4 +131,4 @@ const Jobs = () => {
   );
 };
 
-export default Jobs;
+export default JobsSection;

@@ -1,4 +1,4 @@
-// js/pages/Frontend/Home/Components/Banner.jsx
+// js/pages/Frontend/Home/Sections/BannerSection.jsx
 
 // React
 import React from 'react';
@@ -6,49 +6,7 @@ import React from 'react';
 // Arrow Icon
 import ArrowIcon from './ArrowIcon';
 
-const Banner = () => {
-  // In-page JSON data
-  const bannerData = {
-    background: {
-      src: "/storage/uploads/banners/Background.jpg",
-      alt: "Background"
-    },
-    overlay: {
-      darkOverlay: "bg-black/50",
-      gradient: "bg-linear-to-r from-black/85 via-black/10 to-transparent"
-    },
-    content: {
-      tagline: {
-        text: "Together, We Create Impact",
-        className: "uppercase tracking-[4px] text-[30px] font-semibold"
-      },
-      title: {
-        text: "Be the Light for Someone in Need",
-        className: "text-[100px] font-bold leading-tight"
-      },
-      description: {
-        text: "Your kindness has the power to change lives. Join us in bringing hope, support, and brighter futures to those in need. Every donation makes a difference big or small.",
-        className: "font-normal text-[30px] leading-tight"
-      }
-    },
-    buttons: [
-      {
-        id: 1,
-        text: "Become a Volunteer",
-        variant: "primary",
-        className: "bg-[#009BE2] text-white hover:bg-[#009BE2]/90",
-        icon: true
-      },
-      {
-        id: 2,
-        text: "How can I help?",
-        variant: "secondary",
-        className: "bg-white text-black hover:bg-gray-50",
-        icon: true
-      }
-    ]
-  };
-
+const BannerSection = ({ bannerData }) => {
   return (
     <section
       id="banner"
@@ -109,4 +67,4 @@ const Banner = () => {
   );
 };
 
-export default Banner;
+export default BannerSection;
