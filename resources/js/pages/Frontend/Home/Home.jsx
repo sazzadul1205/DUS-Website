@@ -3,6 +3,9 @@
 // Inertia
 import { Head, usePage } from '@inertiajs/react';
 
+// Icons
+import { FaFacebook, FaInstagram, FaLinkedin, FaXTwitter } from 'react-icons/fa6';
+
 // Layouts
 import PublicLayout from '../../../layouts/PublicLayout';
 
@@ -16,6 +19,9 @@ import OurProgramsSection from './Sections/OurProgramsSection';
 import UpcomingEventsSection from './Sections/UpcomingEventsSection';
 import ProgramImpactSection from './Sections/ProgramImpactSection';
 import WhereWeWorkSection from './Sections/WhereWeWorkSection';
+import { Menu, X } from 'lucide-react';
+
+
 
 export default function Home() {
   // Get authentication status from Inertia page props
@@ -539,37 +545,170 @@ export default function Home() {
     ]
   };
 
+  // Top Bar Data
+  const topBarData = {
+    contactInfo: {
+      email: {
+        text: "dus.eddus@gmail.com",
+        icon: "/images/TopBar/Email.svg",
+        alt: "Email"
+      },
+      phone: {
+        text: "+880 1761-493412",
+        icon: "/images/TopBar/Phone.svg",
+        alt: "Phone"
+      },
+      hours: {
+        text: "Sun - Thu 9:00AM - 5:00PM",
+        icon: "/images/TopBar/Clock.svg",
+        alt: "Clock"
+      }
+    },
+    languages: [
+      { code: 'us', name: 'English', flag: '/images/Flags/united-states.png' },
+      { code: 'bd', name: 'Bengali', flag: '/images/Flags/bangladesh.png' },
+      { code: 'fr', name: 'French', flag: '/images/Flags/france.png' },
+    ],
+    userMenu: {
+      guest: [
+        { label: "Login", route: "login", type: "link" },
+        { label: "Register", route: "register", type: "link" }
+      ],
+      authenticated: [
+        { divider: true },
+        { label: "Dashboard", route: "dashboard", type: "link" },
+        { label: "Logout", type: "button", action: "logout" }
+      ]
+    },
+    socialLinks: [
+      { id: 1, name: "Facebook", url: "https://facebook.com", icon: FaFacebook, hoverColor: "hover:text-blue-400" },
+      { id: 2, name: "Instagram", url: "https://instagram.com", icon: FaInstagram, hoverColor: "hover:text-pink-400" },
+      { id: 3, name: "Twitter", url: "https://twitter.com", icon: FaXTwitter, hoverColor: "hover:text-gray-400" },
+      { id: 4, name: "LinkedIn", url: "https://linkedin.com", icon: FaLinkedin, hoverColor: "hover:text-blue-500" }
+    ],
+    search: {
+      placeholder: "Search...",
+      buttonText: "Search"
+    }
+  };
+
+  // Navbar Data
+  const navbarData = {
+    logo: {
+      src: "/images/Icon.svg",
+      alt: "DUS Logo",
+      className: "h-17.5 w-auto",
+      href: "/"
+    },
+    navLinks: [
+      { name: 'About', href: '/about' },
+      { name: 'Projects & Programs', href: '/projects-programs' },
+      { name: 'Workplace Area', href: '/workplace-area' },
+      { name: 'Posts', href: '/posts' },
+      { name: 'Media', href: '/media' },
+      { name: 'Get Involved', href: '/get-involved' },
+    ],
+    button: {
+      text: "Contact Us",
+      href: "/contact",
+      className: "capitalize text-white bg-[#009BE2] hover:bg-[#009BE2]/80 px-6 py-2 rounded-lg transition-colors duration-200"
+    },
+    mobileMenu: {
+      buttonOpenIcon: Menu,
+      buttonCloseIcon: X,
+      className: "md:hidden text-gray-700 hover:text-blue-600 focus:outline-none"
+    }
+  };
+
+  // Footer Data
+  const footerData = {
+    logo: {
+      src: "/images/Icon-bottom.svg",
+      alt: "DUS Logo",
+      className: "h-41.25 w-auto"
+    },
+    description: "A Community based philanthropic and development organization emergence/dedicated to sustainable poverty reduction, entrepreneur's promotion and capacity building of the underprivileged directing towards a just society",
+    socialLinks: [
+      { icon: FaFacebook, url: "#", hoverColor: "hover:text-blue-400", ariaLabel: "Facebook" },
+      { icon: FaInstagram, url: "#", hoverColor: "hover:text-pink-400", ariaLabel: "Instagram" },
+      { icon: FaXTwitter, url: "#", hoverColor: "hover:text-gray-400", ariaLabel: "Twitter" },
+      { icon: FaLinkedin, url: "#", hoverColor: "hover:text-blue-500", ariaLabel: "LinkedIn" }
+    ],
+    address: {
+      title: "Address",
+      details: "24/5 Mollika, Prominent Housing, 3 Pisciculture Road, Mohammadpur, Dhaka - 1207",
+    },
+    contact: {
+      title: "Call",
+      numbers: [
+        "+88 01761 493407",
+        "+88 01622 093793 – (In Emergency)",
+        "+88 02 48110362"
+      ]
+    },
+    email: {
+      title: "Email Us",
+      addresses: [
+        "dusdhaka@gmail.com",
+        "dus.eddus@gmail.com"
+      ]
+    },
+    quickLinks: [
+      "About Us", "Community Radio", "Evaluation", "Working Area",
+      "Publication", "Mission & Visions", "Blogs", "Contact Us"
+    ],
+    programs: [
+      "Micro-Finance Program", "Disaster Management", "Community Radio", "Education",
+      "ICT for Development", "Health Program", "Livelihood", "Member Facilities",
+      "Social Development", "Legal Support", "Agriculture", "Water and Sanitation",
+      "Research and Documentation", "Training Facilities", "Tourism"
+    ],
+    newsletter: {
+      title: "Subscribe to Our Newsletter",
+      placeholder: "Enter your email address",
+      buttonText: "Subscribe"
+    },
+    bottomFooter: {
+      copyright: "© 2026 Dwip Unnayan. All rights reserved.",
+      links: [
+        { text: "Terms of Service", url: "/terms" },
+        { text: "Privacy Policy", url: "/privacy" }
+      ]
+    }
+  };
+
+
   return (
-    <PublicLayout auth={auth} >
+    <PublicLayout topBarData={topBarData} navbarData={navbarData} footerData={footerData} >
       {/* Meta */}
       <Head title="DUS - Dwip Unnayan Society | Empowering Communities" />
 
       {/* Banner Section */}
-      <BannerSection bannerData={bannerData} />
+      {/* <BannerSection bannerData={bannerData} /> */}
 
       {/* About Us Section */}
-      <AboutUsSection aboutUsData={aboutUsData} />
+      {/* <AboutUsSection aboutUsData={aboutUsData} /> */}
 
       {/* Our Action Section */}
-      <OurActionSection actionData={ourActionData} />
+      {/* <OurActionSection actionData={ourActionData} /> */}
 
       {/* Where We Work Section */}
-      <WhereWeWorkSection workData={whereWeWorkData} />
+      {/* <WhereWeWorkSection workData={whereWeWorkData} /> */}
 
       {/* Our Programs Section */}
-      <OurProgramsSection programsData={ourProgramsData} />
+      {/* <OurProgramsSection programsData={ourProgramsData} /> */}
 
       {/* Stories Section */}
-      <StoriesSection storiesData={storiesData} />
+      {/* <StoriesSection storiesData={storiesData} /> */}
 
       {/* Upcoming Events Section */}
-      <UpcomingEventsSection eventsData={upcomingEventsData} />
+      {/* <UpcomingEventsSection eventsData={upcomingEventsData} /> */}
 
       {/* Jobs Section */}
-      <JobsSection jobsData={jobsData} />
+      {/* <JobsSection jobsData={jobsData} /> */}
 
       {/* Program Impact Section */}
-      <ProgramImpactSection impactData={programImpactData} />
+      {/* <ProgramImpactSection impactData={programImpactData} /> */}
     </PublicLayout>
   );
 }

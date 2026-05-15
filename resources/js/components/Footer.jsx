@@ -1,69 +1,22 @@
+// resources/js/components/Footer.jsx
+
+// React
 import { Link } from '@inertiajs/react';
 import React, { useState } from 'react';
+
+// Icons
 import { FaFacebook, FaInstagram, FaLinkedin, FaXTwitter } from 'react-icons/fa6';
 
-const Footer = () => {
+const Footer = ({ footerData }) => {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState({
+    quickLinks: false,
+    programs: false
+  });
 
-  // In-page JSON data
-  const footerData = {
-    logo: {
-      src: "/images/Icon-bottom.svg",
-      alt: "DUS Logo",
-      className: "h-41.25 w-auto"
-    },
-    description: "A Community based philanthropic and development organization emergence/dedicated to sustainable poverty reduction, entrepreneur's promotion and capacity building of the underprivileged directing towards a just society",
-    socialLinks: [
-      { icon: FaFacebook, url: "#", hoverColor: "hover:text-blue-400", ariaLabel: "Facebook" },
-      { icon: FaInstagram, url: "#", hoverColor: "hover:text-pink-400", ariaLabel: "Instagram" },
-      { icon: FaXTwitter, url: "#", hoverColor: "hover:text-gray-400", ariaLabel: "Twitter" },
-      { icon: FaLinkedin, url: "#", hoverColor: "hover:text-blue-500", ariaLabel: "LinkedIn" }
-    ],
-    address: {
-      title: "Address",
-      details: "24/5 Mollika, Prominent Housing, 3 Pisciculture Road, Mohammadpur, Dhaka - 1207",
-    },
-    contact: {
-      title: "Call",
-      numbers: [
-        "+88 01761 493407",
-        "+88 01622 093793 – (In Emergency)",
-        "+88 02 48110362"
-      ]
-    },
-    email: {
-      title: "Email Us",
-      addresses: [
-        "dusdhaka@gmail.com",
-        "dus.eddus@gmail.com"
-      ]
-    },
-    quickLinks: [
-      "About Us", "Community Radio", "Evaluation", "Working Area",
-      "Publication", "Mission & Visions", "Blogs", "Contact Us"
-    ],
-    programs: [
-      "Micro-Finance Program", "Disaster Management", "Community Radio", "Education",
-      "ICT for Development", "Health Program", "Livelihood", "Member Facilities",
-      "Social Development", "Legal Support", "Agriculture", "Water and Sanitation",
-      "Research and Documentation", "Training Facilities", "Tourism"
-    ],
-    newsletter: {
-      title: "Subscribe to Our Newsletter",
-      placeholder: "Enter your email address",
-      buttonText: "Subscribe"
-    },
-    bottomFooter: {
-      copyright: "© 2026 Dwip Unnayan. All rights reserved.",
-      links: [
-        { text: "Terms of Service", url: "/terms" },
-        { text: "Privacy Policy", url: "/privacy" }
-      ]
-    }
-  };
-
+  // Handle form submission
   const handleSubscribe = async (e) => {
     e.preventDefault();
     if (!email || !email.includes('@')) {
@@ -88,28 +41,37 @@ const Footer = () => {
   const firstProgramColumn = footerData.programs.slice(0, itemsPerColumn);
   const secondProgramColumn = footerData.programs.slice(itemsPerColumn);
 
+  const toggleMobileSection = (section) => {
+    setIsMobileMenuOpen(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   return (
     <div>
-      <footer className='bg-[#080C14] rounded-t-4xl pb-25' role="contentinfo">
-        <div className='mx-auto flex flex-col lg:flex-row px-50 pt-37.5 gap-50'>
+      <footer className='bg-[#080C14] rounded-t-2xl lg:rounded-t-4xl pb-25' role="contentinfo">
+        <div className='mx-auto flex flex-col lg:flex-row px-5 lg:px-50 pt-10 lg:pt-37.5 gap-8 lg:gap-50'>
 
           {/* Left Section */}
           <div className='w-full lg:w-1/3'>
             {/* Footer Logo */}
-            <img
-              src={footerData.logo.src}
-              alt={footerData.logo.alt}
-              className={footerData.logo.className}
-              loading="lazy"
-            />
+            <div className="flex justify-center lg:justify-start">
+              <img
+                src={footerData.logo.src}
+                alt={footerData.logo.alt}
+                className="h-20 lg:h-41.25 w-auto"
+                loading="lazy"
+              />
+            </div>
 
             {/* Footer Description */}
-            <p className='pt-5 max-w-92.5 text-sm leading-relaxed text-gray-300'>
+            <p className='pt-5 text-center lg:text-left text-xs lg:text-sm leading-relaxed text-gray-300 px-4 lg:px-0'>
               {footerData.description}
             </p>
 
             {/* Social Media Icons */}
-            <div className='pt-5 flex gap-3 lg:gap-5' aria-label="Social media links">
+            <div className='pt-5 flex justify-center lg:justify-start gap-3 lg:gap-5' aria-label="Social media links">
               {footerData.socialLinks.map((social, index) => {
                 const IconComponent = social.icon;
                 return (
@@ -119,7 +81,7 @@ const Footer = () => {
                   >
                     <a
                       href={social.url}
-                      className={`text-2xl text-white ${social.hoverColor} transition-colors duration-200`}
+                      className={`text-xl lg:text-2xl text-white ${social.hoverColor} transition-colors duration-200`}
                       aria-label={social.ariaLabel}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -132,25 +94,25 @@ const Footer = () => {
             </div>
 
             {/* Address & Contact Info */}
-            <div className='max-w-125 pt-5 space-y-4'>
+            <div className='max-w-full lg:max-w-125 pt-5 space-y-4 text-center lg:text-left'>
               <div>
-                <h2 className='text-gray-400 font-semibold mb-2 text-sm uppercase tracking-wide'>
+                <h2 className='text-gray-400 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
                   {footerData.address.title}
                 </h2>
-                <address className="not-italic text-gray-300 text-sm leading-relaxed">
+                <address className="not-italic text-gray-300 text-xs lg:text-sm leading-relaxed">
                   {footerData.address.details}
                 </address>
               </div>
 
               <div>
-                <h2 className='text-gray-400 font-semibold mb-2 text-sm uppercase tracking-wide'>
+                <h2 className='text-gray-400 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
                   {footerData.contact.title}
                 </h2>
                 {footerData.contact.numbers.map((number, index) => (
                   <a
                     key={index}
                     href={`tel:${number.replace(/\D/g, '')}`}
-                    className="block text-gray-300 hover:text-white transition-colors text-sm mb-1"
+                    className="block text-gray-300 hover:text-white transition-colors text-xs lg:text-sm mb-1"
                   >
                     {number}
                   </a>
@@ -158,14 +120,14 @@ const Footer = () => {
               </div>
 
               <div>
-                <h2 className='text-gray-400 font-semibold mb-2 text-sm uppercase tracking-wide'>
+                <h2 className='text-gray-400 font-semibold mb-2 text-xs lg:text-sm uppercase tracking-wide'>
                   {footerData.email.title}
                 </h2>
                 {footerData.email.addresses.map((emailAddr, index) => (
                   <a
                     key={index}
                     href={`mailto:${emailAddr}`}
-                    className="block text-gray-300 hover:text-white transition-colors break-all text-sm mb-1"
+                    className="block text-gray-300 hover:text-white transition-colors break-all text-xs lg:text-sm mb-1"
                   >
                     {emailAddr}
                   </a>
@@ -176,7 +138,8 @@ const Footer = () => {
 
           {/* Right Section */}
           <div className='w-full lg:w-2/3'>
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
+            {/* Desktop Grid - Hidden on mobile */}
+            <div className='hidden md:grid md:grid-cols-3 gap-8'>
               {/* Quick Links */}
               <div>
                 <h2 className='text-white text-xl lg:text-[22px] font-bold mb-5'>Quick Links</h2>
@@ -249,12 +212,95 @@ const Footer = () => {
               </div>
             </div>
 
+            {/* Mobile Accordion Menu - Visible only on mobile */}
+            <div className='md:hidden space-y-4'>
+              {/* Quick Links Accordion */}
+              <div className="border-b border-gray-700">
+                <button
+                  onClick={() => toggleMobileSection('quickLinks')}
+                  className="flex justify-between items-center w-full py-4 text-white font-bold text-lg"
+                >
+                  Quick Links
+                  <svg
+                    className={`w-5 h-5 transition-transform duration-200 ${isMobileMenuOpen.quickLinks ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ${isMobileMenuOpen.quickLinks ? 'max-h-96 mb-4' : 'max-h-0'}`}>
+                  <ul className='space-y-3'>
+                    {footerData.quickLinks.map((link, index) => (
+                      <li key={index} className='flex items-center group'>
+                        <img
+                          src="/images/link.svg"
+                          alt=""
+                          className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
+                          aria-hidden="true"
+                        />
+                        <Link
+                          href={`/${link.toLowerCase().replace(/\s+/g, '-')}`}
+                          className="hover:text-[#009BE2] transition-colors cursor-pointer text-white font-400 text-[14px]"
+                        >
+                          {link}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Programs Accordion */}
+              <div className="border-b border-gray-700">
+                <button
+                  onClick={() => toggleMobileSection('programs')}
+                  className="flex justify-between items-center w-full py-4 text-white font-bold text-lg"
+                >
+                  Our Programs
+                  <svg
+                    className={`w-5 h-5 transition-transform duration-200 ${isMobileMenuOpen.programs ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ${isMobileMenuOpen.programs ? 'max-h-96 mb-4' : 'max-h-0'}`}>
+                  <ul className='space-y-3'>
+                    {footerData.programs.map((program, index) => (
+                      <li key={index} className='flex items-center group'>
+                        <img
+                          src="/images/link.svg"
+                          alt=""
+                          className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
+                          aria-hidden="true"
+                        />
+                        <Link
+                          href={`/programs/${program.toLowerCase().replace(/\s+/g, '-')}`}
+                          className="hover:text-[#009BE2] transition-colors cursor-pointer text-white font-400 text-[14px]"
+                        >
+                          {program}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             {/* Newsletter Section */}
             <div className='pt-10 mt-5 border-t border-gray-700'>
-              <h2 className='text-2xl lg:text-[28px] font-bold text-white'>{footerData.newsletter.title}</h2>
+              <h2 className='text-xl lg:text-[28px] font-bold text-white text-center lg:text-left'>
+                {footerData.newsletter.title}
+              </h2>
 
               <form onSubmit={handleSubscribe} className='space-y-3 pt-5'>
-                <label htmlFor="email" className="text-gray-300 text-sm">Email Address</label>
+                <label htmlFor="email" className="text-gray-300 text-sm block text-center lg:text-left">
+                  Email Address
+                </label>
                 <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-2'>
                   <input
                     type="email"
@@ -263,20 +309,20 @@ const Footer = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={footerData.newsletter.placeholder}
-                    className="flex-1 py-3 px-4 bg-[#080C14] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#009BE2] focus:border-transparent transition-all text-white placeholder:text-gray-500"
+                    className="flex-1 py-3 px-4 bg-[#080C14] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#009BE2] focus:border-transparent transition-all text-white placeholder:text-gray-500 text-sm lg:text-base"
                     required
                     aria-label="Email address for newsletter"
                   />
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className='bg-[#009BE2] hover:bg-[#009BE2]/80 disabled:bg-[#009BE2]/50 disabled:cursor-not-allowed px-6 py-3 rounded-md font-semibold text-white transition-all duration-200'
+                    className='bg-[#009BE2] hover:bg-[#009BE2]/80 disabled:bg-[#009BE2]/50 disabled:cursor-not-allowed px-6 py-3 rounded-md font-semibold text-white transition-all duration-200 text-sm lg:text-base'
                   >
                     {isSubmitting ? 'Subscribing...' : footerData.newsletter.buttonText}
                   </button>
                 </div>
                 {submitMessage && (
-                  <p className={`text-sm mt-2 ${submitMessage.includes('Successfully') ? 'text-green-400' : 'text-red-400'}`}>
+                  <p className={`text-sm mt-2 text-center lg:text-left ${submitMessage.includes('Successfully') ? 'text-green-400' : 'text-red-400'}`}>
                     {submitMessage}
                   </p>
                 )}
@@ -287,11 +333,11 @@ const Footer = () => {
       </footer>
 
       {/* Bottom Footer */}
-      <footer className='flex flex-col sm:flex-row justify-between items-center gap-4 bg-[#080C14] border-t border-[#090C40] px-50 py-6'>
-        <p className='text-white text-[14px] font-400 text-center sm:text-left'>
+      <footer className='flex flex-col sm:flex-row justify-between items-center gap-4 bg-[#080C14] border-t border-[#090C40] px-5 lg:px-50 py-6'>
+        <p className='text-white text-[12px] lg:text-[14px] font-400 text-center sm:text-left'>
           {footerData.bottomFooter.copyright}
         </p>
-        <ul className='flex gap-8 text-white text-[14px] font-400'>
+        <ul className='flex flex-wrap justify-center gap-4 lg:gap-8 text-white text-[12px] lg:text-[14px] font-400'>
           {footerData.bottomFooter.links.map((link, index) => (
             <li
               key={index}

@@ -11,13 +11,13 @@ import Navbar from '../components/Navbar';
 import TopBar from '../components/TopBar';
 import Footer from '../components/Footer';
 
-const PublicLayout = ({ children, auth }) => {
+const PublicLayout = ({ children, topBarData, navbarData, footerData }) => {
   return (
     <div className='bg-white' >
-      <TopBar auth={auth} />
-      <Navbar />
+      <TopBar topBarData={topBarData} />
+      <Navbar navbarData={navbarData} />
       <main className=" mx-auto">{children}</main>
-      <Footer />
+      <Footer footerData={footerData} />
     </div>
   );
 };

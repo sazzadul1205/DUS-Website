@@ -10,51 +10,54 @@ const BannerSection = ({ bannerData }) => {
   return (
     <section
       id="banner"
-      className="relative w-full h-250 overflow-hidden"
+      className="relative w-full h-125 md:h-250 overflow-hidden"
     >
 
       {/* Background Image */}
       <img
         src={bannerData.background.src}
         alt={bannerData.background.alt}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover object-center md:object-cover"
       />
 
       {/* Dark Overlay */}
       <div className={`absolute inset-0 ${bannerData.overlay.darkOverlay}`}></div>
 
-      {/* Left Dark Gradient */}
+      {/* Left Dark Gradient - Responsive gradient strength */}
       <div className={`absolute inset-0 ${bannerData.overlay.gradient}`}></div>
 
-      {/* Content */}
-      <div className="absolute left-24 inset-0 flex items-center p-12.5">
-        <div className="max-w-215.75 px-20 md:px-20 text-white space-y-5">
+      {/* Additional overlay for mobile to ensure text readability */}
+      <div className="absolute inset-0 bg-black/40 md:hidden"></div>
 
-          {/* Tagline */}
-          <p className={`bricolage-grotesque ${bannerData.content.tagline.className} text-white`}>
+      {/* Content */}
+      <div className="absolute left-0 md:left-5 inset-0 flex items-center p-5 md:p-12.5">
+        <div className="w-full px-4 md:px-20 text-white space-y-3 md:space-y-5">
+
+          {/* Tagline - Responsive text sizes */}
+          <p className={`bricolage-grotesque ${bannerData.content.tagline.className} text-white text-sm md:text-[30px] tracking-[2px] md:tracking-[4px]`}>
             {bannerData.content.tagline.text}
           </p>
 
-          {/* Title */}
-          <h1 className={`bricolage-grotesque ${bannerData.content.title.className} w-215.75`}>
+          {/* Title - Responsive text sizes */}
+          <h1 className={`bricolage-grotesque font-bold leading-tight text-[32px] md:text-[100px] w-full md:w-215.75`}>
             {bannerData.content.title.text}
           </h1>
 
-          {/* Description */}
-          <p className={`bricolage-grotesque ${bannerData.content.description.className} text-white w-215.75`}>
+          {/* Description - Responsive text sizes and width */}
+          <p className={`bricolage-grotesque font-normal text-[14px] md:text-[30px] leading-tight text-white w-full md:w-215.75 line-clamp-3 md:line-clamp-none`}>
             {bannerData.content.description.text}
           </p>
 
-          {/* Buttons */}
-          <div className='flex items-center gap-6 pt-7.5'>
+          {/* Buttons - Responsive layout and sizing */}
+          <div className='flex flex-col sm:flex-row items-center gap-3 md:gap-6 pt-5 md:pt-7.5'>
             {bannerData.buttons.map((button) => (
               <button
                 key={button.id}
-                className={`capitalize font-600 text-[18px] px-7.5 py-5 bricolage-grotesque rounded-md inline-flex items-center gap-3 group transition-all duration-300 ${button.className}`}
+                className={`capitalize font-600 text-[14px] md:text-[18px] px-5 md:px-7.5 py-3 md:py-5 bricolage-grotesque rounded-md inline-flex items-center justify-center gap-2 md:gap-3 group transition-all duration-300 w-full sm:w-auto ${button.className}`}
               >
                 <span>{button.text}</span>
                 {button.icon && (
-                  <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
+                  <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300 w-4 h-4 md:w-5 md:h-5" />
                 )}
               </button>
             ))}
