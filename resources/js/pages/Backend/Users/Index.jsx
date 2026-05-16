@@ -24,15 +24,22 @@ import {
   FaExclamationTriangle,
   FaEnvelope,
   FaUserTag,
-  FaCopy,
-  FaSyncAlt,
-  FaEye,
-  FaEyeSlash,
   FaEnvelopeOpen,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
 // Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Components
+import UserModal from './Modals/UserModal';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+import { Can } from '../../../components/Auth/Can';
+import { CanAny } from '../../../components/Auth/CanAny';
+import { CanRole } from '../../../components/Auth/CanRole';
+import { CanAnyRole } from '../../../components/Auth/CanAnyRole';
 
 // SweetAlert2
 import Swal from 'sweetalert2';
@@ -40,24 +47,39 @@ import Swal from 'sweetalert2';
 export default function UsersIndex({ users: initialUsers, filters: initialFilters = {}, stats: initialStats = {}, roles }) {
   const { flash } = usePage().props;
 
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    roles: currentUserRoles,
+    permissions: currentUserPermissions,
+    hasRole,
+    hasPermission,
+    hasAnyPermission,
+    isOwner
+  } = useAuth();
+
+  // Permission helper functions using the centralized hook
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewUsers = hasAnyPermission(['users.view', 'users.manage']);
+  const canEditUser = hasAnyPermission(['users.update', 'users.manage']);
+  const canCreateUser = hasAnyPermission(['users.create', 'users.manage']);
+  const canVerifyUser = hasAnyPermission(['users.verify', 'users.manage']);
+  const canDeleteUser = hasAnyPermission(['users.destroy', 'users.manage']);
+  const canRestoreUser = hasAnyPermission(['users.restore', 'users.manage']);
+  const canBulkDeleteUser = hasAnyPermission(['users.bulk_delete', 'users.manage']);
+  const canBulkRestoreUser = hasAnyPermission(['users.bulk_restore', 'users.manage']);
+  const canForceDeleteUser = hasAnyPermission(['users.force_delete', 'users.manage']);
+
   // States
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
   const [restoringId, setRestoringId] = useState(null);
-  const [forceDeletingId, setForceDeletingId] = useState(null);
   const [verifyingId, setVerifyingId] = useState(null);
-  const [selectedUsers, setSelectedUsers] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [forceDeletingId, setForceDeletingId] = useState(null);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
-
-  // Password visibility states
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Password copy confirmation
-  const [passwordCopied, setPasswordCopied] = useState(false);
 
   // Pagination state
   const [users, setUsers] = useState(initialUsers);
@@ -71,14 +93,23 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
     role: initialFilters.role || '',
   });
 
-  // Form data for modal
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    password_confirmation: '',
-    role_slug: '',
-  });
+  // If user doesn't have permission to view users, show access denied
+  if (!canViewUsers) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view users.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
 
   // Get users array from paginated response
   const userItems = useMemo(() => {
@@ -103,68 +134,6 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
     return null;
   }, [users]);
 
-  // Generate random password
-  const generatePassword = () => {
-    const length = 12;
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const numbers = '0123456789';
-    const symbols = '!@#$%^&*';
-
-    let password = '';
-    password += uppercase[Math.floor(Math.random() * uppercase.length)];
-    password += lowercase[Math.floor(Math.random() * lowercase.length)];
-    password += numbers[Math.floor(Math.random() * numbers.length)];
-    password += symbols[Math.floor(Math.random() * symbols.length)];
-
-    const allChars = uppercase + lowercase + numbers + symbols;
-    for (let i = password.length; i < length; i++) {
-      password += allChars[Math.floor(Math.random() * allChars.length)];
-    }
-
-    // Shuffle the password
-    password = password.split('').sort(() => Math.random() - 0.5).join('');
-
-    setFormData(prev => ({
-      ...prev,
-      password: password,
-      password_confirmation: password
-    }));
-    setPasswordCopied(false);
-  };
-
-  // Copy password to clipboard
-  const copyPassword = async () => {
-    if (!formData.password) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'No Password',
-        text: 'Please generate a password first.',
-        confirmButtonColor: '#2563eb',
-      });
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(formData.password);
-      setPasswordCopied(true);
-      Swal.fire({
-        icon: 'success',
-        title: 'Copied!',
-        text: 'Password copied to clipboard.',
-        timer: 1500,
-        showConfirmButton: false,
-      });
-    } catch (err) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Failed to Copy',
-        text: 'Please copy the password manually.',
-        confirmButtonColor: '#2563eb',
-      });
-    }
-  };
-
   // Apply filters
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -181,7 +150,6 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
         },
       });
     }, 300);
-
     return () => clearTimeout(timeoutId);
   }, [filters]);
 
@@ -284,6 +252,7 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
     }
   };
 
+  // Select single user
   const handleSelectUser = (userId) => {
     setSelectedUsers(prev =>
       prev.includes(userId)
@@ -294,6 +263,11 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
 
   // Bulk delete
   const handleBulkDelete = () => {
+    if (!canBulkDeleteUser) {
+      Swal.fire('Permission Denied', 'You do not have permission to delete users.', 'error');
+      return;
+    }
+
     if (selectedUsers.length === 0) {
       Swal.fire('No Selection', 'Please select at least one user.', 'warning');
       return;
@@ -354,6 +328,11 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
 
   // Bulk restore
   const handleBulkRestore = () => {
+    if (!canBulkRestoreUser) {
+      Swal.fire('Permission Denied', 'You do not have permission to restore users.', 'error');
+      return;
+    }
+
     if (selectedUsers.length === 0) {
       Swal.fire('No Selection', 'Please select at least one user.', 'warning');
       return;
@@ -403,165 +382,42 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
 
   // Modal handlers
   const handleOpenCreate = () => {
+    if (!canCreateUser) {
+      Swal.fire('Permission Denied', 'You do not have permission to create users.', 'error');
+      return;
+    }
     setEditingUser(null);
-    const defaultRole = roles.find(r => r.slug === 'job_seeker') || roles[0];
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-      password_confirmation: '',
-      role_slug: defaultRole?.slug || ''
-    });
-    setShowPassword(false);
-    setShowConfirmPassword(false);
-    setPasswordCopied(false);
     setIsModalOpen(true);
   };
 
+  // Modal handlers for edit
   const handleOpenEdit = (user) => {
+    if (!canEditUser) {
+      Swal.fire('Permission Denied', 'You do not have permission to edit users.', 'error');
+      return;
+    }
     setEditingUser(user);
-    const userRole = user.roles?.[0]?.slug || '';
-    setFormData({
-      name: user.name,
-      email: user.email,
-      password: '',
-      password_confirmation: '',
-      role_slug: userRole,
-    });
-    setShowPassword(false);
-    setShowConfirmPassword(false);
-    setPasswordCopied(false); // Reset password copied state for edit mode
     setIsModalOpen(true);
   };
 
+  // Modal Close handlers
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingUser(null);
-    setFormData({ name: '', email: '', password: '', password_confirmation: '', role_slug: '' });
-    setShowPassword(false);
-    setShowConfirmPassword(false);
-    setPasswordCopied(false);
-  };
-
-  // Validate form before submission
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      Swal.fire('Validation Error', 'Please enter full name.', 'error');
-      return false;
-    }
-    if (!formData.email.trim()) {
-      Swal.fire('Validation Error', 'Please enter email address.', 'error');
-      return false;
-    }
-    if (!formData.role_slug) {
-      Swal.fire('Validation Error', 'Please select a role.', 'error');
-      return false;
-    }
-
-    // For new user, password is required
-    if (!editingUser && !formData.password) {
-      Swal.fire('Validation Error', 'Please enter a password or generate one.', 'error');
-      return false;
-    }
-
-    // If password is provided (for edit mode) or for new user
-    if (formData.password) {
-      if (formData.password !== formData.password_confirmation) {
-        Swal.fire('Validation Error', 'Password and confirm password do not match.', 'error');
-        return false;
-      }
-
-      if (formData.password.length < 8) {
-        Swal.fire('Validation Error', 'Password must be at least 8 characters.', 'error');
-        return false;
-      }
-
-      // Check if password was copied (for new users always, for edit users only if password is changed)
-      if (!editingUser && !passwordCopied) {
-        Swal.fire({
-          title: 'Password Not Copied',
-          html: 'Please copy the generated password before creating the user.<br/><small>This ensures you have saved the password securely.</small>',
-          icon: 'warning',
-          confirmButtonColor: '#2563eb',
-        });
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    const submitData = {
-      name: formData.name,
-      email: formData.email,
-      role_slug: formData.role_slug,
-    };
-
-    // Only include password if it's provided
-    if (formData.password) {
-      submitData.password = formData.password;
-    }
-
-    if (editingUser) {
-      router.put(route('backend.users.update', editingUser.id), submitData, {
-        onSuccess: () => {
-          Swal.fire({
-            icon: 'success',
-            title: 'Updated!',
-            text: 'User updated successfully.',
-            timer: 1500,
-            showConfirmButton: false,
-          });
-          setIsSubmitting(false);
-          handleCloseModal();
-          router.reload();
-        },
-        onError: (error) => {
-          Swal.fire({
-            icon: 'error',
-            title: 'Failed',
-            text: error?.response?.data?.message || error?.message || 'Failed to update user.',
-          });
-          setIsSubmitting(false);
-        },
-      });
-    } else {
-      router.post(route('backend.users.store'), submitData, {
-        onSuccess: () => {
-          Swal.fire({
-            icon: 'success',
-            title: 'Created!',
-            text: 'User created and verified successfully.',
-            timer: 1500,
-            showConfirmButton: false,
-          });
-          setIsSubmitting(false);
-          handleCloseModal();
-          router.reload();
-        },
-        onError: (error) => {
-          Swal.fire({
-            icon: 'error',
-            title: 'Failed',
-            text: error?.response?.data?.message || error?.message || 'Failed to create user.',
-          });
-          setIsSubmitting(false);
-        },
-      });
-    }
   };
 
   // Single user actions
   const handleDelete = (id, name) => {
+    if (!canDeleteUser) {
+      Swal.fire('Permission Denied', 'You do not have permission to delete users.', 'error');
+      return;
+    }
+
+    if (id === currentUser?.id) {
+      Swal.fire('Cannot Delete', 'You cannot delete your own account.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Delete User?',
       text: `Are you sure you want to delete "${name}"? This will move them to trash.`,
@@ -611,7 +467,13 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
     });
   };
 
+  // Force delete Handler
   const handleForceDelete = (id, name) => {
+    if (!canForceDeleteUser) {
+      Swal.fire('Permission Denied', 'You do not have permission to permanently delete users.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Permanently Delete User?',
       html: `Are you sure you want to <strong>permanently delete</strong> "${name}"?<br/><br/>This action <strong>cannot be undone</strong> and will remove this user from the database completely.`,
@@ -661,7 +523,13 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
     });
   };
 
+  // Restore Handler
   const handleRestore = (id, name) => {
+    if (!canRestoreUser) {
+      Swal.fire('Permission Denied', 'You do not have permission to restore users.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Restore User?',
       text: `Are you sure you want to restore "${name}"?`,
@@ -701,7 +569,13 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
     });
   };
 
+  // Verify Handler
   const handleVerify = (id, name) => {
+    if (!canVerifyUser) {
+      Swal.fire('Permission Denied', 'You do not have permission to verify users.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Verify User?',
       text: `Are you sure you want to verify "${name}"?`,
@@ -874,8 +748,11 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
 
   return (
     <AuthenticatedLayout>
+
+      {/* Head */}
       <Head title="Users" />
 
+      {/* Content */}
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6">
         <div className="mx-auto">
           {/* HEADER */}
@@ -937,13 +814,16 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                 {showFilters ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
               </button>
 
-              <button
-                onClick={handleOpenCreate}
-                className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
-              >
-                <FaPlus size={16} />
-                Add User
-              </button>
+              {/* Use Can component for conditional rendering */}
+              <Can permission="users.create" fallback={null}>
+                <button
+                  onClick={handleOpenCreate}
+                  className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+                >
+                  <FaPlus size={16} />
+                  Add User
+                </button>
+              </Can>
             </div>
           </div>
 
@@ -958,22 +838,26 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                   </span>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={handleBulkRestore}
-                    disabled={isBulkProcessing}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <FaUndo size={14} />
-                    Restore All
-                  </button>
-                  <button
-                    onClick={handleBulkDelete}
-                    disabled={isBulkProcessing}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <FaTrash size={14} />
-                    Delete All
-                  </button>
+                  <Can permission="users.bulk_restore" fallback={null}>
+                    <button
+                      onClick={handleBulkRestore}
+                      disabled={isBulkProcessing}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <FaUndo size={14} />
+                      Restore All
+                    </button>
+                  </Can>
+                  <Can permission="users.bulk_delete" fallback={null}>
+                    <button
+                      onClick={handleBulkDelete}
+                      disabled={isBulkProcessing}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <FaTrash size={14} />
+                      Delete All
+                    </button>
+                  </Can>
                   <button
                     onClick={() => setSelectedUsers([])}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200"
@@ -1000,7 +884,6 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Search */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
                   <div className="relative">
@@ -1015,7 +898,6 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                   </div>
                 </div>
 
-                {/* Status */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                   <select
@@ -1029,7 +911,6 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                   </select>
                 </div>
 
-                {/* Email Verification */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Verification</label>
                   <select
@@ -1043,7 +924,6 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                   </select>
                 </div>
 
-                {/* Role */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
                   <select
@@ -1126,6 +1006,7 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                     const trashed = user.deleted_at !== null;
                     const userRole = user.roles?.[0]?.slug || '';
                     const isVerified = user.is_verified === true;
+                    const isCurrentUser = user.id === currentUser?.id;
 
                     return (
                       <tr
@@ -1134,7 +1015,7 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <td className="px-4 py-4">
-                          {!trashed && (
+                          {!trashed && canDeleteUser && !isCurrentUser && (
                             <input
                               type="checkbox"
                               checked={selectedUsers.includes(user.id)}
@@ -1144,7 +1025,6 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                           )}
                         </td>
 
-                        {/* USER DETAILS */}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${trashed ? 'bg-gray-300' : 'bg-blue-100'}`}>
@@ -1153,6 +1033,9 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                             <div>
                               <div className={`font-semibold ${trashed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                                 {user.name}
+                                {isCurrentUser && (
+                                  <span className="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">You</span>
+                                )}
                               </div>
                               <div className="flex items-center gap-1 mt-0.5">
                                 <FaEnvelope className="text-gray-400 text-xs" />
@@ -1169,7 +1052,6 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                           </div>
                         </td>
 
-                        {/* ROLE */}
                         <td className="px-6 py-4">
                           {!trashed && userRole ? (
                             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(userRole)}`}>
@@ -1181,7 +1063,6 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                           )}
                         </td>
 
-                        {/* VERIFICATION */}
                         <td className="px-6 py-4">
                           {!trashed ? (
                             isVerified ? (
@@ -1200,7 +1081,6 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                           )}
                         </td>
 
-                        {/* STATUS */}
                         <td className="px-6 py-4">
                           {!trashed ? (
                             <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 flex items-center gap-2 w-fit">
@@ -1220,76 +1100,86 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
                           )}
                         </td>
 
-                        {/* ACTIONS */}
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex justify-end gap-2">
                             {!trashed && (
                               <>
-                                <button
-                                  onClick={() => handleOpenEdit(user)}
-                                  className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                                  title="Edit User"
-                                >
-                                  <FaEdit size={18} />
-                                </button>
-
-                                {/* Verify button - only show for unverified users */}
-                                {!isVerified && (
+                                <Can permission="users.update">
                                   <button
-                                    onClick={() => handleVerify(user.id, user.name)}
-                                    disabled={verifyingId === user.id}
-                                    className={`p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200 ${verifyingId === user.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    title="Verify User"
+                                    onClick={() => handleOpenEdit(user)}
+                                    className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                    title="Edit User"
                                   >
-                                    {verifyingId === user.id ? (
-                                      <FaSpinner className="animate-spin" size={18} />
-                                    ) : (
-                                      <FaEnvelopeOpen size={18} />
-                                    )}
+                                    <FaEdit size={18} />
                                   </button>
+                                </Can>
+
+                                {!isVerified && (
+                                  <Can permission="users.verify">
+                                    <button
+                                      onClick={() => handleVerify(user.id, user.name)}
+                                      disabled={verifyingId === user.id}
+                                      className={`p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200 ${verifyingId === user.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                      title="Verify User"
+                                    >
+                                      {verifyingId === user.id ? (
+                                        <FaSpinner className="animate-spin" size={18} />
+                                      ) : (
+                                        <FaEnvelopeOpen size={18} />
+                                      )}
+                                    </button>
+                                  </Can>
                                 )}
 
-                                <button
-                                  onClick={() => handleDelete(user.id, user.name)}
-                                  disabled={deletingId === user.id}
-                                  className={`p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200 ${deletingId === user.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                  title="Delete User"
-                                >
-                                  {deletingId === user.id ? (
-                                    <FaSpinner className="animate-spin" size={18} />
-                                  ) : (
-                                    <FaTrash size={18} />
-                                  )}
-                                </button>
+                                {!isCurrentUser && (
+                                  <Can permission="users.destroy">
+                                    <button
+                                      onClick={() => handleDelete(user.id, user.name)}
+                                      disabled={deletingId === user.id}
+                                      className={`p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200 ${deletingId === user.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                      title="Delete User"
+                                    >
+                                      {deletingId === user.id ? (
+                                        <FaSpinner className="animate-spin" size={18} />
+                                      ) : (
+                                        <FaTrash size={18} />
+                                      )}
+                                    </button>
+                                  </Can>
+                                )}
                               </>
                             )}
 
                             {trashed && (
                               <>
-                                <button
-                                  onClick={() => handleRestore(user.id, user.name)}
-                                  disabled={restoringId === user.id}
-                                  className={`p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200 ${restoringId === user.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                  title="Restore User"
-                                >
-                                  {restoringId === user.id ? (
-                                    <FaSpinner className="animate-spin" size={18} />
-                                  ) : (
-                                    <FaUndo size={18} />
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => handleForceDelete(user.id, user.name)}
-                                  disabled={forceDeletingId === user.id}
-                                  className={`p-2 text-red-700 hover:text-red-900 hover:bg-red-100 rounded-lg transition-all duration-200 ${forceDeletingId === user.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                  title="Permanently Delete (Cannot be undone)"
-                                >
-                                  {forceDeletingId === user.id ? (
-                                    <FaSpinner className="animate-spin" size={18} />
-                                  ) : (
-                                    <FaExclamationTriangle size={18} />
-                                  )}
-                                </button>
+                                <Can permission="users.restore">
+                                  <button
+                                    onClick={() => handleRestore(user.id, user.name)}
+                                    disabled={restoringId === user.id}
+                                    className={`p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200 ${restoringId === user.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    title="Restore User"
+                                  >
+                                    {restoringId === user.id ? (
+                                      <FaSpinner className="animate-spin" size={18} />
+                                    ) : (
+                                      <FaUndo size={18} />
+                                    )}
+                                  </button>
+                                </Can>
+                                <Can permission="users.force_delete">
+                                  <button
+                                    onClick={() => handleForceDelete(user.id, user.name)}
+                                    disabled={forceDeletingId === user.id}
+                                    className={`p-2 text-red-700 hover:text-red-900 hover:bg-red-100 rounded-lg transition-all duration-200 ${forceDeletingId === user.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    title="Permanently Delete"
+                                  >
+                                    {forceDeletingId === user.id ? (
+                                      <FaSpinner className="animate-spin" size={18} />
+                                    ) : (
+                                      <FaExclamationTriangle size={18} />
+                                    )}
+                                  </button>
+                                </Can>
                               </>
                             )}
                           </div>
@@ -1301,269 +1191,28 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
               </table>
             </div>
 
-            {/* PAGINATION */}
             <Pagination />
           </div>
         </div>
       </div>
 
-      {/* MODAL - Create/Edit User */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 animate-slide-up">
-            <div className="flex justify-between items-center p-6 border-b">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-linear-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-                  <FaUsers className="text-white" size={18} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    {editingUser ? 'Edit User' : 'Add User'}
-                  </h2>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {editingUser ? 'Update user information' : 'Create a new system user'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors duration-200 hover:rotate-90 transform"
-              >
-                <FaTimes size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              <div className="p-6 space-y-5">
-                {/* Name Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="John Doe"
-                    required
-                    autoFocus
-                  />
-                </div>
-
-                {/* Email Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="john@example.com"
-                    required
-                  />
-                </div>
-
-                {/* Password Field with Generate Button - Show for both Create and Edit */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Password {!editingUser && <span className="text-red-500">*</span>}
-                    {editingUser && <span className="text-gray-400 text-xs"> (Optional - leave empty to keep current)</span>}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      value={formData.password}
-                      onChange={(e) => {
-                        setFormData({ ...formData, password: e.target.value });
-                        setPasswordCopied(false);
-                      }}
-                      className="w-full px-4 py-2.5 pr-24 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      placeholder={editingUser ? 'Leave empty to keep current password' : 'Enter password'}
-                      minLength={8}
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="p-1.5 text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
-                        title={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-                      </button>
-                      {/* Show generate button for both create and edit modes */}
-                      <button
-                        type="button"
-                        onClick={generatePassword}
-                        className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Generate strong password"
-                      >
-                        <FaSyncAlt size={14} />
-                      </button>
-                    </div>
-                  </div>
-                  {formData.password && (
-                    <div className="mt-2 flex items-center justify-between bg-gray-50 p-2 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <code className="text-xs font-mono text-gray-700">{formData.password}</code>
-                        <button
-                          type="button"
-                          onClick={copyPassword}
-                          className={`p-1 rounded transition-colors ${passwordCopied ? 'text-green-600' : 'text-gray-500 hover:text-gray-700'}`}
-                          title="Copy password"
-                        >
-                          <FaCopy size={14} />
-                        </button>
-                      </div>
-                      {passwordCopied && (
-                        <span className="text-xs text-green-600 flex items-center gap-1">
-                          <FaCheckCircle size={12} />
-                          Copied!
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Confirm Password Field - Only show when password is entered */}
-                {formData.password && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Confirm Password <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        name="password_confirmation"
-                        value={formData.password_confirmation}
-                        onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
-                        className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                        placeholder="Confirm password"
-                        required={!!formData.password}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
-                      >
-                        {showConfirmPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-                      </button>
-                    </div>
-                    {formData.password && formData.password_confirmation && formData.password !== formData.password_confirmation && (
-                      <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-                        <FaExclamationTriangle size={10} />
-                        Passwords do not match
-                      </p>
-                    )}
-                    {formData.password && formData.password === formData.password_confirmation && formData.password_confirmation && (
-                      <p className="text-xs text-green-500 mt-1 flex items-center gap-1">
-                        <FaCheckCircle size={10} />
-                        Passwords match
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Password Copy Confirmation - Only for new users when password is generated */}
-                {!editingUser && formData.password && !passwordCopied && (
-                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <input
-                      type="checkbox"
-                      id="passwordCopied"
-                      checked={passwordCopied}
-                      onChange={(e) => setPasswordCopied(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <label htmlFor="passwordCopied" className="text-sm text-gray-700 cursor-pointer">
-                      I have copied the password to a secure location
-                    </label>
-                  </div>
-                )}
-
-                {/* Role Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Role <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="role_slug"
-                    value={formData.role_slug}
-                    onChange={(e) => setFormData({ ...formData, role_slug: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    required
-                  >
-                    <option value="">Select a role</option>
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.slug}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </select>
-                  {formData.role_slug && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      {roles.find(r => r.slug === formData.role_slug)?.description || ''}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 p-6 border-t bg-gray-50 rounded-b-2xl">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition-all duration-200 font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || (!editingUser && !passwordCopied && !!formData.password)}
-                  className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2 font-medium shadow-md"
-                >
-                  {isSubmitting && <FaSpinner className="animate-spin" size={16} />}
-                  {editingUser ? (isSubmitting ? 'Updating...' : 'Update User') : (isSubmitting ? 'Creating...' : 'Create User')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* User Modal */}
+      <UserModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        editingUser={editingUser}
+        roles={roles}
+        onSuccess={() => {
+          router.reload();
+        }}
+      />
 
       <style>{`
         @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-        
-        @keyframes slide-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
-        
-        .animate-slide-up {
-          animation: slide-up 0.3s ease-out;
-        }
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
       `}</style>
     </AuthenticatedLayout>
   );

@@ -20,7 +20,8 @@ import {
   FiActivity,
   FiSmile,
   FiTarget,
-  FiThumbsUp
+  FiThumbsUp,
+  FiShield,
 } from 'react-icons/fi';
 
 // Layout
@@ -28,7 +29,26 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
 const Dashboard = () => {
   const { auth, notifications } = usePage().props;
-  const userRole = auth.user?.role;
+  const user = auth?.user;
+  const userRoles = user?.roles || [];
+  const userPermissions = user?.permissions || [];
+
+  // Helper functions for permission checks
+  const hasRole = (roleSlug) => userRoles.some(role => role.slug === roleSlug);
+  const hasPermission = (permissionSlug) => userPermissions?.includes(permissionSlug) || false;
+  const hasAnyPermission = (permissionSlugs) => {
+    if (!permissionSlugs || permissionSlugs.length === 0) return false;
+    return permissionSlugs.some(slug => hasPermission(slug));
+  };
+
+  // Determine primary role for UI
+  const primaryRole = (() => {
+    if (hasRole('super-admin') || hasRole('admin')) return 'admin';
+    if (hasRole('employer-admin') || hasRole('hr-manager') || hasRole('recruiter')) return 'employer';
+    if (hasRole('job-seeker')) return 'job_seeker';
+    return 'job_seeker';
+  })();
+
   const [greeting, setGreeting] = useState('');
   const [animateStats, setAnimateStats] = useState(false);
   const recentNotifications = notifications?.recent || [];
@@ -99,8 +119,8 @@ const Dashboard = () => {
           <p className="text-sm font-medium text-gray-900 dark:text-white">{title}</p>
           {status && (
             <span className={`text-xs px-2 py-1 rounded-full ${status === 'success' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                status === 'warning' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                  'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+              status === 'warning' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
               }`}>
               {status === 'success' ? 'Completed' : status === 'warning' ? 'Pending' : 'New'}
             </span>
@@ -124,35 +144,36 @@ const Dashboard = () => {
     </button>
   );
 
-  // Job Seeker Stats
-  const jobSeekerStats = [
+  // Job Seeker Stats - Only show if user has job-seeker role or relevant permissions
+  const jobSeekerStats = (hasRole('job-seeker') || hasPermission('dashboard.job_seeker')) ? [
     { title: 'Applications Sent', value: 12, icon: FiFileText, color: 'from-blue-500 to-blue-600', suffix: '' },
     { title: 'Shortlisted', value: 3, icon: FiStar, color: 'from-green-500 to-emerald-600', suffix: '' },
     { title: 'Interviews', value: 2, icon: FiClock, color: 'from-purple-500 to-purple-600', suffix: '' },
     { title: 'Success Rate', value: 25, icon: FiTrendingUp, color: 'from-yellow-500 to-orange-600', suffix: '%' }
-  ];
+  ] : [];
 
-  // Employer Stats
-  const employerStats = [
+  // Employer Stats - Only show if user has employer role or relevant permissions
+  const employerStats = (hasRole('employer-admin') || hasRole('hr-manager') || hasRole('recruiter') || hasPermission('dashboard.employer')) ? [
     { title: 'Active Jobs', value: 8, icon: FiBriefcase, color: 'from-blue-500 to-blue-600', suffix: '' },
     { title: 'Total Applications', value: 156, icon: FiFileText, color: 'from-green-500 to-emerald-600', suffix: '' },
     { title: 'Shortlisted', value: 24, icon: FiStar, color: 'from-purple-500 to-purple-600', suffix: '' },
-    { title: 'Hired', value: 6, icon: FiAward, color: 'from-yellow-500 to-orange-600', suffix: '' }
-  ];
+    { title: 'Hired', value: 6, icon: FiAward, color: 'from-yellow-500 to-orange-600', suffix: '%' }
+  ] : [];
 
-  // Admin Stats
-  const adminStats = [
+  // Admin Stats - Only show if user has admin role or relevant permissions
+  const adminStats = (hasRole('super-admin') || hasRole('admin') || hasPermission('dashboard.admin')) ? [
     { title: 'Total Users', value: 1234, icon: FiUsers, color: 'from-blue-500 to-blue-600', suffix: '' },
     { title: 'Total Jobs', value: 567, icon: FiBriefcase, color: 'from-green-500 to-emerald-600', suffix: '' },
     { title: 'Applications', value: 3891, icon: FiFileText, color: 'from-purple-500 to-purple-600', suffix: '' },
     { title: 'Hiring Rate', value: 18, icon: FiTrendingUp, color: 'from-yellow-500 to-orange-600', suffix: '%' }
-  ];
+  ] : [];
 
-  // Recent Activities based on role
+  // Recent Activities based on role and permissions
   const getActivities = () => {
-    if (userRole === 'job_seeker') {
+    // Job Seeker activities
+    if (hasRole('job-seeker') || hasPermission('dashboard.job_seeker')) {
       if (recentNotifications.length > 0) {
-        return recentNotifications.map((notification) => ({
+        return recentNotifications.slice(0, 4).map((notification) => ({
           icon: notification.read_at ? FiBell : FiCheckCircle,
           title: notification.data?.title || 'Application updated',
           time: new Date(notification.created_at).toLocaleString(),
@@ -167,14 +188,20 @@ const Dashboard = () => {
         { icon: FiCalendar, title: 'Interview scheduled with Tech Corp', time: '2 days ago', color: 'from-purple-500 to-purple-600', status: 'warning' },
         { icon: FiBriefcase, title: 'New job match: Frontend Developer', time: '3 days ago', color: 'from-orange-500 to-red-600', status: 'new' }
       ];
-    } else if (userRole === 'employer') {
+    }
+
+    // Employer activities
+    if (hasRole('employer-admin') || hasRole('hr-manager') || hasRole('recruiter') || hasPermission('dashboard.employer')) {
       return [
         { icon: FiUsers, title: 'New application for Senior Developer', time: '1 hour ago', color: 'from-blue-500 to-cyan-600', status: 'new' },
         { icon: FiStar, title: '3 candidates shortlisted for UI Designer', time: '3 hours ago', color: 'from-green-500 to-emerald-600', status: 'success' },
         { icon: FiCalendar, title: 'Interview scheduled with John Doe', time: 'Yesterday', color: 'from-purple-500 to-purple-600', status: 'warning' },
         { icon: FiBriefcase, title: 'Job posted: Backend Engineer', time: '2 days ago', color: 'from-orange-500 to-red-600', status: 'success' }
       ];
-    } else {
+    }
+
+    // Admin activities
+    if (hasRole('super-admin') || hasRole('admin') || hasPermission('dashboard.admin')) {
       return [
         { icon: FiUsers, title: '50 new users registered today', time: '1 hour ago', color: 'from-blue-500 to-cyan-600', status: 'new' },
         { icon: FiBriefcase, title: '25 new jobs posted', time: '3 hours ago', color: 'from-green-500 to-emerald-600', status: 'success' },
@@ -182,33 +209,110 @@ const Dashboard = () => {
         { icon: FiTrendingUp, title: 'Platform usage up by 15%', time: '2 days ago', color: 'from-orange-500 to-red-600', status: 'success' }
       ];
     }
+
+    // Default empty activities
+    return [];
   };
 
-  // Quick Actions based on role
+  // Quick Actions based on role and permissions
   const getQuickActions = () => {
-    if (userRole === 'job_seeker') {
-      return [
+    const actions = [];
+
+    // Job Seeker actions
+    if (hasRole('job-seeker') || hasPermission('dashboard.job_seeker')) {
+      actions.push(
         { icon: FiFileText, label: 'Browse Jobs', color: 'from-blue-500 to-blue-600', onClick: () => window.location.href = '/jobs' },
         { icon: FiTarget, label: 'Upload Resume', color: 'from-green-500 to-emerald-600', onClick: () => window.location.href = '/profile' },
         { icon: FiActivity, label: 'Track Applications', color: 'from-purple-500 to-purple-600', onClick: () => window.location.href = '/applications' },
         { icon: FiBell, label: 'Notifications', color: 'from-orange-500 to-red-600', onClick: () => window.location.href = '/backend/notifications' }
-      ];
-    } else if (userRole === 'employer') {
-      return [
+      );
+    }
+
+    // Employer actions
+    if (hasRole('employer-admin') || hasRole('hr-manager') || hasRole('recruiter') || hasPermission('dashboard.employer')) {
+      actions.push(
         { icon: FiBriefcase, label: 'Post Job', color: 'from-blue-500 to-blue-600', onClick: () => window.location.href = '/jobs/create' },
         { icon: FiUsers, label: 'Find Talent', color: 'from-green-500 to-emerald-600', onClick: () => window.location.href = '/candidates' },
         { icon: FiFileText, label: 'View Applications', color: 'from-purple-500 to-purple-600', onClick: () => window.location.href = '/applications' },
         { icon: FiBarChart2, label: 'Analytics', color: 'from-orange-500 to-red-600', onClick: () => window.location.href = '/analytics' }
-      ];
-    } else {
-      return [
+      );
+    }
+
+    // Admin actions
+    if (hasRole('super-admin') || hasRole('admin') || hasPermission('dashboard.admin')) {
+      actions.push(
         { icon: FiUsers, label: 'Manage Users', color: 'from-blue-500 to-blue-600', onClick: () => window.location.href = '/admin/users' },
         { icon: FiBriefcase, label: 'Manage Jobs', color: 'from-green-500 to-emerald-600', onClick: () => window.location.href = '/admin/jobs' },
         { icon: FiBarChart2, label: 'Analytics', color: 'from-purple-500 to-purple-600', onClick: () => window.location.href = '/admin/analytics' },
-        { icon: FiBell, label: 'Reports', color: 'from-orange-500 to-red-600', onClick: () => window.location.href = '/admin/reports' }
-      ];
+        { icon: FiShield, label: 'Permissions', color: 'from-orange-500 to-red-600', onClick: () => window.location.href = '/admin/roles' }
+      );
     }
+
+    return actions.slice(0, 4);
   };
+
+  // Determine which stats to show
+  const getStatsToShow = () => {
+    if (hasRole('super-admin') || hasRole('admin') || hasPermission('dashboard.admin')) {
+      return adminStats;
+    }
+    if (hasRole('employer-admin') || hasRole('hr-manager') || hasRole('recruiter') || hasPermission('dashboard.employer')) {
+      return employerStats;
+    }
+    if (hasRole('job-seeker') || hasPermission('dashboard.job_seeker')) {
+      return jobSeekerStats;
+    }
+    return [];
+  };
+
+  // Get progress message based on role
+  const getProgressMessage = () => {
+    if (hasRole('super-admin') || hasRole('admin') || hasPermission('dashboard.admin')) {
+      return {
+        label: 'Platform Growth',
+        value: 23,
+        unit: '%',
+        message: 'Platform usage is up 23% this month. Great job! Keep monitoring the growth metrics.'
+      };
+    }
+    if (hasRole('employer-admin') || hasRole('hr-manager') || hasRole('recruiter') || hasPermission('dashboard.employer')) {
+      return {
+        label: 'Job Posting Limit',
+        value: 80,
+        unit: '%',
+        message: "You've posted 8 jobs this month. Upgrade your plan to post more and reach more candidates."
+      };
+    }
+    return {
+      label: 'Profile Completion',
+      value: 75,
+      unit: '%',
+      message: 'Complete your profile to increase your chances of getting hired! Add your skills and experience.'
+    };
+  };
+
+  const statsToShow = getStatsToShow();
+  const activities = getActivities();
+  const quickActions = getQuickActions();
+  const progress = getProgressMessage();
+
+  // If user has no permission to see dashboard, show nothing
+  if (statsToShow.length === 0 && activities.length === 0 && quickActions.length === 0) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Dashboard" />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FiShield className="w-10 h-10 text-gray-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Restricted</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view the dashboard.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
 
   return (
     <AuthenticatedLayout>
@@ -220,10 +324,10 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">
-                {greeting}, {auth.user?.name}! 👋
+                {greeting}, {user?.name}! 👋
               </h1>
               <p className="text-blue-100">
-                Here's what's happening with your {userRole === 'job_seeker' ? 'job search' : userRole === 'employer' ? 'job postings' : 'platform'} today.
+                Here's what's happening with your {primaryRole === 'admin' ? 'platform' : primaryRole === 'employer' ? 'job postings' : 'job search'} today.
               </p>
             </div>
             <div className="hidden md:block">
@@ -236,54 +340,42 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Section */}
-      {userRole === 'job_seeker' && (
+      {statsToShow.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {jobSeekerStats.map((stat, index) => (
-            <StatCard key={index} {...stat} delay={index * 100} />
-          ))}
-        </div>
-      )}
-
-      {userRole === 'employer' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {employerStats.map((stat, index) => (
-            <StatCard key={index} {...stat} delay={index * 100} />
-          ))}
-        </div>
-      )}
-
-      {userRole === 'admin' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {adminStats.map((stat, index) => (
+          {statsToShow.map((stat, index) => (
             <StatCard key={index} {...stat} delay={index * 100} />
           ))}
         </div>
       )}
 
       {/* Quick Actions Section */}
-      <div className="mb-8 animate-fade-in-up animation-delay-400">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {getQuickActions().map((action, index) => (
-            <QuickAction key={index} {...action} />
-          ))}
+      {quickActions.length > 0 && (
+        <div className="mb-8 animate-fade-in-up animation-delay-400">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {quickActions.map((action, index) => (
+              <QuickAction key={index} {...action} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Recent Activity Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Activity Feed */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 animate-fade-in-up animation-delay-500">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
-            <FiActivity className="w-5 h-5 text-gray-400" />
+        {activities.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 animate-fade-in-up animation-delay-500">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
+              <FiActivity className="w-5 h-5 text-gray-400" />
+            </div>
+            <div className="space-y-3">
+              {activities.map((activity, index) => (
+                <ActivityItem key={index} {...activity} />
+              ))}
+            </div>
           </div>
-          <div className="space-y-3">
-            {getActivities().map((activity, index) => (
-              <ActivityItem key={index} {...activity} />
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Achievement/Motivation Card */}
         <div className="bg-linear-to-br from-purple-500 to-pink-600 rounded-2xl shadow-lg p-6 animate-fade-in-up animation-delay-600">
@@ -292,54 +384,18 @@ const Dashboard = () => {
               <h2 className="text-lg font-semibold">Your Progress</h2>
               <FiThumbsUp className="w-6 h-6" />
             </div>
-            {userRole === 'job_seeker' && (
-              <>
-                <div className="mb-4">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Profile Completion</span>
-                    <span>75%</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-2">
-                    <div className="bg-white rounded-full h-2" style={{ width: '75%' }}></div>
-                  </div>
-                </div>
-                <p className="text-sm opacity-90">
-                  Complete your profile to increase your chances of getting hired! Add your skills and experience.
-                </p>
-              </>
-            )}
-            {userRole === 'employer' && (
-              <>
-                <div className="mb-4">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Job Posting Limit</span>
-                    <span>8/10</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-2">
-                    <div className="bg-white rounded-full h-2" style={{ width: '80%' }}></div>
-                  </div>
-                </div>
-                <p className="text-sm opacity-90">
-                  You've posted 8 jobs this month. Upgrade your plan to post more and reach more candidates.
-                </p>
-              </>
-            )}
-            {userRole === 'admin' && (
-              <>
-                <div className="mb-4">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Platform Growth</span>
-                    <span>+23%</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-2">
-                    <div className="bg-white rounded-full h-2" style={{ width: '23%' }}></div>
-                  </div>
-                </div>
-                <p className="text-sm opacity-90">
-                  Platform usage is up 23% this month. Great job! Keep monitoring the growth metrics.
-                </p>
-              </>
-            )}
+            <div className="mb-4">
+              <div className="flex justify-between text-sm mb-2">
+                <span>{progress.label}</span>
+                <span>{progress.value}{progress.unit}</span>
+              </div>
+              <div className="w-full bg-white/20 rounded-full h-2">
+                <div className="bg-white rounded-full h-2" style={{ width: `${progress.value}%` }}></div>
+              </div>
+            </div>
+            <p className="text-sm opacity-90">
+              {progress.message}
+            </p>
           </div>
         </div>
       </div>
