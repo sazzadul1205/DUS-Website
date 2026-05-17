@@ -1,11 +1,20 @@
 // resources/js/pages/Backend/JobListings/Create.jsx
 
+// React
 import { useState, useEffect } from 'react';
+
+// Inertia
 import { Head, router } from '@inertiajs/react';
+
+// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+import { Can } from '../../../components/Auth/Can';
+
 // Icons
-import { FaArrowLeft, FaBriefcase } from 'react-icons/fa';
+import { FaArrowLeft, FaBriefcase, FaShieldAlt } from 'react-icons/fa';
 
 // Step Components
 import { ReviewStep } from '../../../components/JobListingSteps/ReviewStep';
@@ -21,16 +30,35 @@ import { CompensationStep } from '../../../components/JobListingSteps/Compensati
 import Swal from 'sweetalert2';
 
 export default function Create({ categories, locations }) {
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    hasAnyPermission,
+    hasRole,
+    isAuthenticated,
+  } = useAuth();
+
+  // Check permissions for job creation
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewJobs = hasAnyPermission(['jobs.view', 'jobs.manage']);
+  const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const canCreateJobs = hasAnyPermission(['jobs.create', 'jobs.manage']);
+
+  // Check if user has an employer profile (for employers)
+  const hasEmployerProfile = currentUser?.employer_id !== null;
+
   // Make categories and locations available globally for child components
   if (typeof window !== 'undefined') {
     window.categories = categories;
     window.locations = locations;
   }
 
+  // States
+  const [errors, setErrors] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
 
+  // Steps
   const steps = [
     { id: 1, title: 'Basic Info', component: BasicInfoStep },
     { id: 2, title: 'Requirements', component: RequirementsStep },
@@ -40,6 +68,7 @@ export default function Create({ categories, locations }) {
     { id: 6, title: 'Review', component: ReviewStep },
   ];
 
+  // Form Data
   const [formData, setFormData] = useState({
     // Basic Info
     title: '',
@@ -73,6 +102,58 @@ export default function Create({ categories, locations }) {
     required_linkedin_link: false,
     required_facebook_link: false,
   });
+
+  // If user doesn't have permission to create jobs, show access denied
+  if (!canCreateJobs && !isEmployer) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to create job listings.</p>
+            {canViewJobs && (
+              <button
+                onClick={() => router.visit(route('backend.listing.index'))}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Back to Job Listings
+              </button>
+            )}
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // Warning for employers without complete profile
+  if (isEmployer && !hasEmployerProfile) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Complete Your Profile" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto p-6">
+            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaBriefcase className="w-10 h-10 text-yellow-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Complete Your Employer Profile</h2>
+            <p className="text-gray-500 mt-2">
+              Please complete your employer profile before posting jobs.
+            </p>
+            <button
+              onClick={() => router.visit(route('backend.employer.profile.edit'))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Complete Profile
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
 
   // Check if form has any data entered
   const hasFormData = () => {
@@ -162,6 +243,10 @@ export default function Create({ categories, locations }) {
         if (!formData.application_deadline) {
           newErrors.application_deadline = 'Please set an application deadline';
         }
+        // Validate deadline is in the future
+        if (formData.application_deadline && new Date(formData.application_deadline) < new Date()) {
+          newErrors.application_deadline = 'Application deadline must be in the future';
+        }
         break;
 
       case 6: // Review - Always valid if we got here
@@ -172,6 +257,7 @@ export default function Create({ categories, locations }) {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Handle form input changes
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -184,10 +270,12 @@ export default function Create({ categories, locations }) {
     }
   };
 
+  // Handle array input changes
   const handleArrayChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Move to the next step
   const nextStep = () => {
     if (validateStep()) {
       setCurrentStep(prev => Math.min(prev + 1, steps.length));
@@ -202,6 +290,7 @@ export default function Create({ categories, locations }) {
     }
   };
 
+  // Move to the previous step
   const previousStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -215,6 +304,17 @@ export default function Create({ categories, locations }) {
 
   // Final submission - ONLY called when user clicks "Post Job" on review page
   const handleSubmit = () => {
+    // Additional security check before submission
+    if (!canCreateJobs && !isEmployer) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to post jobs.',
+        confirmButtonColor: '#2563eb',
+      });
+      return;
+    }
+
     // Prepare data for submission
     const submitData = {
       ...formData,
@@ -275,11 +375,18 @@ export default function Create({ categories, locations }) {
                 text: 'Please check the form for errors.',
                 confirmButtonColor: '#2563eb',
               });
+            } else if (error.response?.data?.message) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Submission Failed',
+                text: error.response.data.message,
+                confirmButtonColor: '#2563eb',
+              });
             } else {
               Swal.fire({
                 icon: 'error',
                 title: 'Submission Failed',
-                text: error.response?.data?.message || 'Failed to post job listing. Please try again.',
+                text: 'Failed to post job listing. Please try again.',
                 confirmButtonColor: '#2563eb',
               });
             }
@@ -293,6 +400,7 @@ export default function Create({ categories, locations }) {
     });
   };
 
+  // Render current step component
   const CurrentStepComponent = steps[currentStep - 1].component;
 
   // Check if current step is the review step to customize button text
@@ -312,24 +420,47 @@ export default function Create({ categories, locations }) {
       <Head title="Create Job Listing" />
 
       <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto ">
+        <div className="max-w-5xl mx-auto">
+          {/* Back Button */}
+          <div className="mb-4">
+            <button
+              onClick={handleBackToListings}
+              className="group flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-all duration-200"
+            >
+              <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-200" size={14} />
+              <span className="text-sm">Back to Job Listings</span>
+            </button>
+          </div>
+
           {/* Header */}
-          <div className="mx-auto flex justify-center items-center gap-5">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg mb-4">
+          <div className="flex justify-center items-center gap-5 mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
               <FaBriefcase className="w-8 h-8 text-white" />
             </div>
-
-            {/* Header Content */}
-            <div>
+            <div className="text-center">
               <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Create Job Listing
               </h1>
-              <p className="text-sm text-gray-500 max-w-md mx-auto">
+              <p className="text-sm text-gray-500 max-w-md">
                 Fill in the details below to post a new job opportunity and find the perfect candidate
               </p>
             </div>
           </div>
 
+          {/* Employer Info Banner */}
+          {isEmployer && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <FaBriefcase className="text-blue-600" size={16} />
+                <span className="text-sm text-blue-800">
+                  Posting as: <strong>{currentUser?.employer?.company_name || 'Your Company'}</strong>
+                </span>
+              </div>
+              <span className="text-xs text-blue-600">
+                Jobs will appear under your company profile
+              </span>
+            </div>
+          )}
 
           {/* Main Card */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">

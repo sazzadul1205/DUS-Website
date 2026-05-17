@@ -1,8 +1,17 @@
 // resources/js/pages/Backend/JobListings/Applications.jsx
 
+// React
 import { useState, useEffect } from 'react';
+
+// Inertia
 import { Head, Link, router } from '@inertiajs/react';
+
+// SweetAlert
 import Swal from 'sweetalert2';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+import { Can } from '../../../components/Auth/Can';
 
 // Icons
 import {
@@ -25,20 +34,25 @@ import {
   FaTimes,
   FaChevronDown,
   FaChevronUp,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
+// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
 // Email Modal Component
-function EmailModal({ isOpen, onClose, applications, onSend, isBulk = false }) {
+function EmailModal({ isOpen, onClose, applications, onSend, isBulk = false, canSendEmails = true }) {
+
+  // States
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
+  const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Effects
   useEffect(() => {
-    if (isOpen && applications) {
+    if (isOpen && applications && canSendEmails) {
       setLoading(true);
       if (isBulk) {
         // Fetch bulk email template
@@ -84,9 +98,15 @@ function EmailModal({ isOpen, onClose, applications, onSend, isBulk = false }) {
           });
       }
     }
-  }, [isOpen, applications, isBulk]);
+  }, [isOpen, applications, isBulk, canSendEmails]);
 
+  // Send Email Handler
   const handleSend = () => {
+    if (!canSendEmails) {
+      setError('You do not have permission to send emails');
+      return;
+    }
+
     if (!subject.trim()) {
       setError('Subject is required');
       return;
@@ -131,8 +151,10 @@ function EmailModal({ isOpen, onClose, applications, onSend, isBulk = false }) {
       });
   };
 
+  // Render
   if (!isOpen) return null;
 
+  // Get recipient text
   const recipientText = isBulk
     ? `${applications?.length || 0} candidates`
     : applications?.name;
@@ -155,6 +177,12 @@ function EmailModal({ isOpen, onClose, applications, onSend, isBulk = false }) {
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[60vh]">
+          {!canSendEmails && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+              You do not have permission to send emails.
+            </div>
+          )}
+
           {loading && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg flex items-center gap-2">
               <FaSpinner className="animate-spin" size={16} />
@@ -168,7 +196,7 @@ function EmailModal({ isOpen, onClose, applications, onSend, isBulk = false }) {
             </div>
           )}
 
-          {!loading && (
+          {!loading && canSendEmails && (
             <>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -209,15 +237,17 @@ function EmailModal({ isOpen, onClose, applications, onSend, isBulk = false }) {
           >
             Cancel
           </button>
-          <button
-            onClick={handleSend}
-            disabled={sending || loading}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
-          >
-            {sending && <FaSpinner className="animate-spin" size={16} />}
-            <FaEnvelope size={14} />
-            Send Email
-          </button>
+          {canSendEmails && (
+            <button
+              onClick={handleSend}
+              disabled={sending || loading}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              {sending && <FaSpinner className="animate-spin" size={16} />}
+              <FaEnvelope size={14} />
+              Send Email
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -225,19 +255,61 @@ function EmailModal({ isOpen, onClose, applications, onSend, isBulk = false }) {
 }
 
 export default function Applications({ jobListing, applications, filters: initialFilters }) {
-  const [selectedApplications, setSelectedApplications] = useState([]);
-  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(null);
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    hasAnyPermission,
+    hasRole,
+    isAuthenticated,
+  } = useAuth();
+
+  // Check permissions for application management
+  const isSuperAdmin = hasRole('super-admin');
+  const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const canSendEmails = hasAnyPermission(['applications.email', 'applications.manage']);
+  const canViewApplications = hasAnyPermission(['applications.view', 'applications.manage']);
+  const canDownloadResumes = hasAnyPermission(['applications.download', 'applications.manage']);
+  const canUpdateApplications = hasAnyPermission(['applications.update', 'applications.manage']);
+  const canDeleteApplications = hasAnyPermission(['applications.destroy', 'applications.manage']);
+
+  // Check if user owns this job listing
+  const isJobOwner = isEmployer && currentUser?.employer_id === jobListing?.employer_id;
+
+  // State
   const [showFilters, setShowFilters] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailModalType, setEmailModalType] = useState('single');
   const [selectedForEmail, setSelectedForEmail] = useState(null);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [selectedApplications, setSelectedApplications] = useState([]);
+
+  // Filters
   const [filters, setFilters] = useState({
     search: initialFilters?.search || '',
     status: initialFilters?.status || 'all',
     minScore: initialFilters?.min_score || '',
   });
 
+  // If user doesn't have permission to view applications, show access denied
+  if (!canViewApplications && !isJobOwner) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view applications.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // Format date
   const formatDate = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -247,6 +319,7 @@ export default function Applications({ jobListing, applications, filters: initia
     });
   };
 
+  // Get status badge
   const getStatusBadge = (status) => {
     const statuses = {
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: FaClock, label: 'Pending' },
@@ -265,6 +338,7 @@ export default function Applications({ jobListing, applications, filters: initia
     );
   };
 
+  // Get ATS score Color
   const getATSScoreColor = (score) => {
     if (!score) return 'text-gray-400';
     if (score >= 80) return 'text-green-600';
@@ -273,6 +347,7 @@ export default function Applications({ jobListing, applications, filters: initia
     return 'text-red-600';
   };
 
+  // Get ATS score
   const getATSScore = (application) => {
     if (application.ats_score) {
       if (typeof application.ats_score === 'object') {
@@ -285,14 +360,16 @@ export default function Applications({ jobListing, applications, filters: initia
     return null;
   };
 
+  // Select all applications
   const handleSelectAll = () => {
-    if (selectedApplications.length === applications.length) {
+    if (selectedApplications.length === filteredApplications.length) {
       setSelectedApplications([]);
     } else {
-      setSelectedApplications(applications.map(app => app.id));
+      setSelectedApplications(filteredApplications.map(app => app.id));
     }
   };
 
+  // Select single application
   const handleSelectApplication = (id) => {
     setSelectedApplications(prev =>
       prev.includes(id)
@@ -301,7 +378,13 @@ export default function Applications({ jobListing, applications, filters: initia
     );
   };
 
+  // Bulk Status Update Handler
   const handleBulkStatusUpdate = (newStatus) => {
+    if (!canUpdateApplications) {
+      Swal.fire('Permission Denied', 'You do not have permission to update application statuses.', 'error');
+      return;
+    }
+
     if (selectedApplications.length === 0) {
       Swal.fire('No Selection', 'Please select at least one application.', 'warning');
       return;
@@ -350,7 +433,13 @@ export default function Applications({ jobListing, applications, filters: initia
     });
   };
 
+  // Bulk Delete Handler
   const handleBulkDelete = () => {
+    if (!canDeleteApplications) {
+      Swal.fire('Permission Denied', 'You do not have permission to delete applications.', 'error');
+      return;
+    }
+
     if (selectedApplications.length === 0) {
       Swal.fire('No Selection', 'Please select at least one application.', 'warning');
       return;
@@ -398,7 +487,13 @@ export default function Applications({ jobListing, applications, filters: initia
     });
   };
 
+  // Bulk Download Handler
   const handleBulkDownload = () => {
+    if (!canDownloadResumes) {
+      Swal.fire('Permission Denied', 'You do not have permission to download resumes.', 'error');
+      return;
+    }
+
     if (selectedApplications.length === 0) {
       Swal.fire('No Selection', 'Please select at least one application.', 'warning');
       return;
@@ -424,7 +519,13 @@ export default function Applications({ jobListing, applications, filters: initia
     });
   };
 
+  // Open Email Modal Handler
   const handleOpenEmailModal = (applicationId = null, isBulk = false) => {
+    if (!canSendEmails) {
+      Swal.fire('Permission Denied', 'You do not have permission to send emails.', 'error');
+      return;
+    }
+
     if (isBulk && selectedApplications.length === 0) {
       Swal.fire('No Selection', 'Please select at least one application to email.', 'warning');
       return;
@@ -435,7 +536,13 @@ export default function Applications({ jobListing, applications, filters: initia
     setEmailModalOpen(true);
   };
 
+  // Single Status Update Handler
   const handleSingleStatusUpdate = (applicationId, newStatus) => {
+    if (!canUpdateApplications) {
+      Swal.fire('Permission Denied', 'You do not have permission to update application status.', 'error');
+      return;
+    }
+
     // If status is being changed to shortlisted, open email modal first
     if (newStatus === 'shortlisted') {
       Swal.fire({
@@ -461,6 +568,7 @@ export default function Applications({ jobListing, applications, filters: initia
     }
   };
 
+  // Status Update Handler
   const performStatusUpdate = (applicationId, newStatus) => {
     setUpdatingStatus(applicationId);
 
@@ -490,7 +598,13 @@ export default function Applications({ jobListing, applications, filters: initia
     });
   };
 
+  // Delete Single Handler
   const handleDeleteSingle = (applicationId, applicantName) => {
+    if (!canDeleteApplications) {
+      Swal.fire('Permission Denied', 'You do not have permission to delete applications.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Delete Application?',
       text: `Are you sure you want to delete ${applicantName}'s application?`,
@@ -526,10 +640,16 @@ export default function Applications({ jobListing, applications, filters: initia
     });
   };
 
+  // Download Resume Handler
   const handleDownloadResume = (applicationId) => {
+    if (!canDownloadResumes) {
+      Swal.fire('Permission Denied', 'You do not have permission to download resumes.', 'error');
+      return;
+    }
     window.open(route('backend.applications.download-resume', applicationId), '_blank');
   };
 
+  // Apply Filters
   const applyFilters = () => {
     router.get(route('backend.listing.applications', jobListing.id), {
       search: filters.search,
@@ -541,6 +661,7 @@ export default function Applications({ jobListing, applications, filters: initia
     });
   };
 
+  // Reset Filters
   const resetFilters = () => {
     setFilters({
       search: '',
@@ -576,6 +697,7 @@ export default function Applications({ jobListing, applications, filters: initia
     return matches;
   });
 
+  // Calculate stats
   const stats = {
     total: applications.length,
     pending: applications.filter(a => a.status === 'pending').length,
@@ -589,12 +711,17 @@ export default function Applications({ jobListing, applications, filters: initia
     }, 0) / applications.filter(a => getATSScore(a)).length || 0,
   };
 
+  // Bulk Actions
+  const canBulkUpdate = canUpdateApplications && selectedApplications.length > 0;
+  const canBulkDownload = canDownloadResumes && selectedApplications.length > 0;
+  const canBulkDeleteApplications = canDeleteApplications && selectedApplications.length > 0;
+
   return (
     <AuthenticatedLayout>
       <Head title={`Applications - ${jobListing.title}`} />
 
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className=" mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-6">
             <Link
@@ -609,6 +736,11 @@ export default function Applications({ jobListing, applications, filters: initia
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">{jobListing.title}</h1>
                 <p className="text-gray-600 mt-1">Manage applications for this position</p>
+                {isJobOwner && (
+                  <span className="inline-flex items-center gap-1 mt-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                    Your Job Posting
+                  </span>
+                )}
               </div>
               <div className="flex gap-2">
                 <button
@@ -727,41 +859,47 @@ export default function Applications({ jobListing, applications, filters: initia
                   </span>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  <select
-                    onChange={(e) => {
-                      if (e.target.value === 'shortlisted') {
-                        handleOpenEmailModal(null, true);
-                      } else {
-                        handleBulkStatusUpdate(e.target.value);
-                      }
-                      e.target.value = '';
-                    }}
-                    defaultValue=""
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                    disabled={isBulkProcessing}
-                  >
-                    <option value="" disabled>Update Status</option>
-                    <option value="reviewed">Reviewed</option>
-                    <option value="shortlisted">Shortlisted</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="hired">Hired</option>
-                  </select>
-                  <button
-                    onClick={handleBulkDownload}
-                    disabled={isBulkProcessing}
-                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 text-sm"
-                  >
-                    <FaDownload size={14} />
-                    Download Resumes
-                  </button>
-                  <button
-                    onClick={handleBulkDelete}
-                    disabled={isBulkProcessing}
-                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 text-sm"
-                  >
-                    <FaTrash size={14} />
-                    Delete All
-                  </button>
+                  {canBulkUpdate && (
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value === 'shortlisted') {
+                          handleOpenEmailModal(null, true);
+                        } else {
+                          handleBulkStatusUpdate(e.target.value);
+                        }
+                        e.target.value = '';
+                      }}
+                      defaultValue=""
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                      disabled={isBulkProcessing}
+                    >
+                      <option value="" disabled>Update Status</option>
+                      <option value="reviewed">Reviewed</option>
+                      <option value="shortlisted">Shortlisted</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="hired">Hired</option>
+                    </select>
+                  )}
+                  {canBulkDownload && (
+                    <button
+                      onClick={handleBulkDownload}
+                      disabled={isBulkProcessing}
+                      className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 text-sm"
+                    >
+                      <FaDownload size={14} />
+                      Download Resumes
+                    </button>
+                  )}
+                  {canBulkDeleteApplications && (
+                    <button
+                      onClick={handleBulkDelete}
+                      disabled={isBulkProcessing}
+                      className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 text-sm"
+                    >
+                      <FaTrash size={14} />
+                      Delete All
+                    </button>
+                  )}
                   <button
                     onClick={() => setSelectedApplications([])}
                     className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 text-sm"
@@ -784,7 +922,8 @@ export default function Applications({ jobListing, applications, filters: initia
                         type="checkbox"
                         checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
                         onChange={handleSelectAll}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        disabled={!canUpdateApplications}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
                       />
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -829,7 +968,8 @@ export default function Applications({ jobListing, applications, filters: initia
                               type="checkbox"
                               checked={selectedApplications.includes(application.id)}
                               onChange={() => handleSelectApplication(application.id)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              disabled={!canUpdateApplications}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
                             />
                           </td>
                           <td className="px-6 py-4">
@@ -893,49 +1033,61 @@ export default function Applications({ jobListing, applications, filters: initia
                             )}
                           </td>
                           <td className="px-6 py-4">
-                            <select
-                              value={application.status}
-                              onChange={(e) => handleSingleStatusUpdate(application.id, e.target.value)}
-                              disabled={updatingStatus === application.id}
-                              className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-500"
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="reviewed">Reviewed</option>
-                              <option value="shortlisted">Shortlisted</option>
-                              <option value="rejected">Rejected</option>
-                              <option value="hired">Hired</option>
-                            </select>
+                            {canUpdateApplications ? (
+                              <select
+                                value={application.status}
+                                onChange={(e) => handleSingleStatusUpdate(application.id, e.target.value)}
+                                disabled={updatingStatus === application.id}
+                                className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-500"
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="reviewed">Reviewed</option>
+                                <option value="shortlisted">Shortlisted</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="hired">Hired</option>
+                              </select>
+                            ) : (
+                              getStatusBadge(application.status)
+                            )}
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex justify-end gap-2">
-                              <Link
-                                href={route('backend.applications.show', application.id)}
-                                className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                                title="View Details"
-                              >
-                                <FaEye size={16} />
-                              </Link>
-                              <button
-                                onClick={() => handleDownloadResume(application.id)}
-                                className="p-1.5 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200"
-                                title="Download Resume"
-                              >
-                                <FaFilePdf size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleOpenEmailModal(application.id, false)}
-                                className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                                title="Send Email"
-                              >
-                                <FaEnvelope size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteSingle(application.id, application.name)}
-                                className="p-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200"
-                                title="Delete"
-                              >
-                                <FaTrash size={16} />
-                              </button>
+                              <Can permission="applications.view" fallback={null}>
+                                <Link
+                                  href={route('backend.applications.show', application.id)}
+                                  className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                  title="View Details"
+                                >
+                                  <FaEye size={16} />
+                                </Link>
+                              </Can>
+                              {canDownloadResumes && (
+                                <button
+                                  onClick={() => handleDownloadResume(application.id)}
+                                  className="p-1.5 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200"
+                                  title="Download Resume"
+                                >
+                                  <FaFilePdf size={16} />
+                                </button>
+                              )}
+                              {canSendEmails && (
+                                <button
+                                  onClick={() => handleOpenEmailModal(application.id, false)}
+                                  className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                  title="Send Email"
+                                >
+                                  <FaEnvelope size={16} />
+                                </button>
+                              )}
+                              {canDeleteApplications && (
+                                <button
+                                  onClick={() => handleDeleteSingle(application.id, application.name)}
+                                  className="p-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200"
+                                  title="Delete"
+                                >
+                                  <FaTrash size={16} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -958,6 +1110,7 @@ export default function Applications({ jobListing, applications, filters: initia
         }}
         applications={selectedForEmail}
         isBulk={emailModalType === 'bulk'}
+        canSendEmails={canSendEmails}
         onSend={(success) => {
           if (success) {
             Swal.fire({
@@ -972,6 +1125,6 @@ export default function Applications({ jobListing, applications, filters: initia
           }
         }}
       />
-    </AuthenticatedLayout>
+    </AuthenticatedLayout >
   );
 }

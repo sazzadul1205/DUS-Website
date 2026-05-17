@@ -1,7 +1,14 @@
 // resources/js/pages/Backend/JobListings/Index.jsx
 
+// React
 import { useState, useMemo, useEffect } from 'react';
+
+// Inertia
 import { Head, router, usePage } from '@inertiajs/react';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+import { Can } from '../../../components/Auth/Can';
 
 // Icons
 import {
@@ -28,6 +35,7 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaChartLine,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
 // Layout
@@ -36,8 +44,56 @@ import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 // SweetAlert2
 import Swal from 'sweetalert2';
 
-export default function JobListingsIndex({ jobListings: initialJobListings, filters: initialFilters = {}, filterOptions = {}, activeJobs, inactiveJobs, deletedJobs, totalViews, totalJobs, }) {
+export default function JobListingsIndex({
+  jobListings: initialJobListings,
+  filters: initialFilters = {},
+  filterOptions = {},
+  activeJobs,
+  inactiveJobs,
+  deletedJobs,
+  totalViews,
+  totalJobs,
+}) {
   const { flash } = usePage().props;
+
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    hasAnyPermission,
+    hasRole,
+    isAuthenticated,
+  } = useAuth();
+
+  // Check permissions for job management
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewJobs = hasAnyPermission(['jobs.view', 'jobs.manage']);
+  const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const canEditJobs = hasAnyPermission(['jobs.update', 'jobs.manage']);
+  const canToggleJobs = hasAnyPermission(['jobs.update', 'jobs.manage']);
+  const canCreateJobs = hasAnyPermission(['jobs.create', 'jobs.manage']);
+  const canDeleteJobs = hasAnyPermission(['jobs.destroy', 'jobs.manage']);
+  const canRestoreJobs = hasAnyPermission(['jobs.restore', 'jobs.manage']);
+  const canBulkDeleteJobs = hasAnyPermission(['jobs.bulk_delete', 'jobs.manage']);
+  const canBulkActivateJobs = hasAnyPermission(['jobs.bulk_activate', 'jobs.manage']);
+  const canBulkDeactivateJobs = hasAnyPermission(['jobs.bulk_deactivate', 'jobs.manage']);
+
+  // If user doesn't have permission to view jobs, show access denied
+  if (!canViewJobs && !isEmployer) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view job listings.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
 
   // States
   const [deletingId, setDeletingId] = useState(null);
@@ -90,7 +146,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     const timeoutId = setTimeout(() => {
       router.get(route('backend.listing.index'), {
         ...filters,
-        page: 1, // Reset to first page when filters change
+        page: 1,
       }, {
         preserveState: true,
         preserveScroll: true,
@@ -140,6 +196,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     return Array.from(types);
   }, [jobListingItems]);
 
+  // Get unique values for filters from all jobs (not just current page)
   const uniqueExperienceLevels = useMemo(() => {
     const levels = new Set();
     jobListingItems.forEach(job => {
@@ -148,6 +205,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     return Array.from(levels);
   }, [jobListingItems]);
 
+  // Get unique values for filters from all jobs (not just current page)
   const uniqueCategories = useMemo(() => {
     const cats = new Set();
     jobListingItems.forEach(job => {
@@ -156,6 +214,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     return Array.from(cats);
   }, [jobListingItems]);
 
+  // Get unique values for filters from all jobs (not just current page)
   const uniqueLocations = useMemo(() => {
     const locs = new Set();
     jobListingItems.forEach(job => {
@@ -192,11 +251,11 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
   }, [jobListingItems]);
 
   // Count jobs by status
+  const totalCount = totalJobs || 0;
   const activeCount = activeJobs || 0;
-  const inactiveCount = inactiveJobs || 0;
   const deletedCount = deletedJobs || 0;
   const totalViewsAll = totalViews || 0;
-  const totalCount = totalJobs || 0;
+  const inactiveCount = inactiveJobs || 0;
 
   // Handle filter change
   const handleFilterChange = (key, value) => {
@@ -227,16 +286,17 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
       filters.dateRange !== 'all';
   };
 
-  // Bulk selection handlers (only for current page)
+  // Bulk selection handlers (only for non-deleted jobs user can edit)
   const handleSelectAll = () => {
-    const nonDeletedJobs = sortedJobListings.filter(job => !job.deleted_at);
-    if (selectedJobs.length === nonDeletedJobs.length) {
+    const selectableJobs = sortedJobListings.filter(job => !job.deleted_at && (canEditJobs || (isEmployer && job.employer_id === currentUser?.employer_id)));
+    if (selectedJobs.length === selectableJobs.length) {
       setSelectedJobs([]);
     } else {
-      setSelectedJobs(nonDeletedJobs.map(job => job.id));
+      setSelectedJobs(selectableJobs.map(job => job.id));
     }
   };
 
+  // Handle job selection
   const handleSelectJob = (jobId) => {
     setSelectedJobs(prev =>
       prev.includes(jobId)
@@ -245,8 +305,18 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     );
   };
 
-  // Bulk actions (same as before)
+  // Check if user can bulk perform actions
+  const canBulkActivate = canBulkActivateJobs && selectedJobs.length > 0;
+  const canBulkDeactivate = canBulkDeactivateJobs && selectedJobs.length > 0;
+  const canBulkDelete = canBulkDeleteJobs && selectedJobs.length > 0;
+
+  // Bulk actions 
   const handleBulkActivate = () => {
+    if (!canBulkActivateJobs) {
+      Swal.fire('Permission Denied', 'You do not have permission to bulk activate jobs.', 'error');
+      return;
+    }
+
     if (selectedJobs.length === 0) {
       Swal.fire('No Selection', 'Please select at least one job listing.', 'warning');
       return;
@@ -294,7 +364,13 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     });
   };
 
+  // Bulk Job Deactivate Handler
   const handleBulkDeactivate = () => {
+    if (!canBulkDeactivateJobs) {
+      Swal.fire('Permission Denied', 'You do not have permission to bulk deactivate jobs.', 'error');
+      return;
+    }
+
     if (selectedJobs.length === 0) {
       Swal.fire('No Selection', 'Please select at least one job listing.', 'warning');
       return;
@@ -342,7 +418,13 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     });
   };
 
+  // Bulk Job Delete Handler
   const handleBulkDelete = () => {
+    if (!canBulkDeleteJobs) {
+      Swal.fire('Permission Denied', 'You do not have permission to bulk delete jobs.', 'error');
+      return;
+    }
+
     if (selectedJobs.length === 0) {
       Swal.fire('No Selection', 'Please select at least one job listing.', 'warning');
       return;
@@ -389,8 +471,13 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     });
   };
 
-  // Single job actions
+  // Single Job Delete Handler
   const handleDelete = (id) => {
+    if (!canDeleteJobs) {
+      Swal.fire('Permission Denied', 'You do not have permission to delete jobs.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Delete job listing?',
       text: 'This will move it to trash. Applications will be preserved.',
@@ -430,7 +517,13 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     });
   };
 
+  // Single Job Restore Handler
   const handleRestore = (id) => {
+    if (!canRestoreJobs) {
+      Swal.fire('Permission Denied', 'You do not have permission to restore jobs.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Restore job listing?',
       text: 'This will restore the job listing from trash.',
@@ -470,7 +563,13 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     });
   };
 
+  // Single Job Toggle Handler
   const handleToggle = (job) => {
+    if (!canToggleJobs && !(isEmployer && job.employer_id === currentUser?.employer_id)) {
+      Swal.fire('Permission Denied', 'You do not have permission to change job status.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Change status?',
       text: `This will ${job.is_active ? 'deactivate' : 'activate'} this job listing.`,
@@ -509,6 +608,19 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     });
   };
 
+  // Check if user can edit a specific job
+  const canEditJob = (job) => {
+    if (canEditJobs) return true;
+    if (isEmployer && job.employer_id === currentUser?.employer_id) return true;
+    return false;
+  };
+
+  // Check if user can delete a specific job
+  const canDeleteJob = (job) => {
+    if (canDeleteJobs) return true;
+    return false; // Employers cannot delete jobs (only admins)
+  };
+
   // Helper functions
   const formatDate = (date) => {
     if (!date) return 'N/A';
@@ -519,6 +631,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     });
   };
 
+  // Job Type Badges
   const getJobTypeBadge = (type) => {
     const types = {
       'full-time': 'bg-green-100 text-green-800',
@@ -531,6 +644,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     return types[type] || 'bg-gray-100 text-gray-800';
   };
 
+  // Experience Badges
   const getExperienceBadge = (level) => {
     const levels = {
       'entry': 'bg-blue-100 text-blue-800',
@@ -543,6 +657,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     return levels[level] || 'bg-gray-100 text-gray-800';
   };
 
+  // Salary Range
   const getSalaryRange = (job) => {
     if (job.as_per_companies_policy) {
       return 'As per company policy';
@@ -559,6 +674,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     return null;
   };
 
+  // Format locations
   const formatLocations = (locations) => {
     if (!locations || locations.length === 0) return 'N/A';
     if (locations.length === 1) return locations[0].name;
@@ -677,6 +793,15 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
     }
   }, [flash]);
 
+  // Check if user can select a job for bulk actions
+  const canSelectJob = (job) => {
+    return !job.deleted_at && (canEditJobs || (isEmployer && job.employer_id === currentUser?.employer_id));
+  };
+
+  // Check if all selectable jobs are selected
+  const selectableJobsCount = sortedJobListings.filter(job => canSelectJob(job)).length;
+  const allSelectableSelected = selectedJobs.length === selectableJobsCount && selectableJobsCount > 0;
+
   return (
     <AuthenticatedLayout>
       <Head title="Job Listings" />
@@ -742,13 +867,15 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                 {showFilters ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
               </button>
 
-              <a
-                href={route('backend.listing.create')}
-                className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
-              >
-                <FaPlus size={16} />
-                Create Job
-              </a>
+              <Can permission="jobs.create" fallback={null}>
+                <a
+                  href={route('backend.listing.create')}
+                  className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+                >
+                  <FaPlus size={16} />
+                  Create Job
+                </a>
+              </Can>
             </div>
           </div>
 
@@ -763,30 +890,36 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={handleBulkActivate}
-                    disabled={isBulkProcessing}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <FaCheckCircle size={14} />
-                    Activate All
-                  </button>
-                  <button
-                    onClick={handleBulkDeactivate}
-                    disabled={isBulkProcessing}
-                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <FaBan size={14} />
-                    Deactivate All
-                  </button>
-                  <button
-                    onClick={handleBulkDelete}
-                    disabled={isBulkProcessing}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <FaTrash size={14} />
-                    Delete All
-                  </button>
+                  {canBulkActivate && (
+                    <button
+                      onClick={handleBulkActivate}
+                      disabled={isBulkProcessing}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <FaCheckCircle size={14} />
+                      Activate All
+                    </button>
+                  )}
+                  {canBulkDeactivate && (
+                    <button
+                      onClick={handleBulkDeactivate}
+                      disabled={isBulkProcessing}
+                      className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <FaBan size={14} />
+                      Deactivate All
+                    </button>
+                  )}
+                  {canBulkDelete && (
+                    <button
+                      onClick={handleBulkDelete}
+                      disabled={isBulkProcessing}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <FaTrash size={14} />
+                      Delete All
+                    </button>
+                  )}
                   <button
                     onClick={() => setSelectedJobs([])}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200"
@@ -930,10 +1063,10 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                     <th className="px-4 py-4 text-left">
                       <input
                         type="checkbox"
-                        checked={selectedJobs.length === sortedJobListings.filter(job => !job.deleted_at).length && sortedJobListings.filter(job => !job.deleted_at).length > 0}
+                        checked={allSelectableSelected}
                         onChange={handleSelectAll}
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        disabled={sortedJobListings.filter(job => !job.deleted_at).length === 0}
+                        disabled={selectableJobsCount === 0}
                       />
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -991,6 +1124,10 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                     const applicationsCount = job.applications_count || 0;
                     const viewsCount = job.views_count || 0;
                     const salaryDisplay = getSalaryRange(job);
+                    const canEdit = canEditJob(job);
+                    const canDelete = canDeleteJob(job);
+                    const canToggleThis = canToggleJobs || (isEmployer && job.employer_id === currentUser?.employer_id);
+                    const canSelect = canSelectJob(job);
 
                     return (
                       <tr
@@ -999,7 +1136,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <td className="px-4 py-4">
-                          {!trashed && (
+                          {canSelect && (
                             <input
                               type="checkbox"
                               checked={selectedJobs.includes(job.id)}
@@ -1025,6 +1162,11 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                               {salaryDisplay && (
                                 <div className={`text-xs mt-1 font-medium ${trashed ? 'text-gray-400' : 'text-green-600'}`}>
                                   {salaryDisplay}
+                                </div>
+                              )}
+                              {!trashed && isEmployer && job.employer_id === currentUser?.employer_id && (
+                                <div className="text-xs text-blue-500 mt-1">
+                                  Your Job
                                 </div>
                               )}
                             </div>
@@ -1073,7 +1215,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                           </div>
                         </td>
 
-                        {/* VIEWS */}
+                        {/* VIEWS & APPS */}
                         <td className="px-6 py-4">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
@@ -1082,6 +1224,17 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                                 {viewsCount.toLocaleString()} views
                               </span>
                             </div>
+                            {!trashed && (
+                              <a
+                                href={route('backend.applications.job', job.id)}
+                                className="flex items-center gap-2 hover:text-purple-700 transition-colors"
+                              >
+                                <FaUsers className={`text-sm ${trashed ? 'text-gray-400' : 'text-purple-500'}`} size={14} />
+                                <span className={`text-sm font-medium ${trashed ? 'text-gray-400' : 'text-gray-700'}`}>
+                                  {applicationsCount.toLocaleString()} applications
+                                </span>
+                              </a>
+                            )}
                           </div>
                         </td>
 
@@ -1110,11 +1263,12 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                           {!trashed ? (
                             <button
                               onClick={() => handleToggle(job)}
-                              disabled={togglingId === job.id}
+                              disabled={togglingId === job.id || !canToggleThis}
                               className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 transform hover:scale-105 flex items-center gap-2 ${job.is_active
                                 ? 'bg-green-100 text-green-800 hover:bg-green-200'
                                 : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                } ${togglingId === job.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                } ${(togglingId === job.id || !canToggleThis) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title={!canToggleThis ? 'You do not have permission to change job status' : ''}
                             >
                               {togglingId === job.id ? (
                                 <FaSpinner className="animate-spin" size={12} />
@@ -1161,7 +1315,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                               <FaEye size={18} />
                             </a>
 
-                            {!trashed && (
+                            {!trashed && canEdit && (
                               <a
                                 href={route('backend.listing.edit', job.id)}
                                 className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
@@ -1171,7 +1325,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                               </a>
                             )}
 
-                            {trashed && (
+                            {trashed && canRestoreJobs && (
                               <button
                                 onClick={() => handleRestore(job.id)}
                                 disabled={restoringId === job.id}
@@ -1187,7 +1341,7 @@ export default function JobListingsIndex({ jobListings: initialJobListings, filt
                               </button>
                             )}
 
-                            {!trashed && (
+                            {!trashed && canDelete && (
                               <button
                                 onClick={() => handleDelete(job.id)}
                                 disabled={deletingId === job.id}

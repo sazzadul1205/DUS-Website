@@ -1,9 +1,20 @@
 // resources/js/pages/Backend/JobListings/Show.jsx
 
+// Inertia
 import { Head, Link, router } from '@inertiajs/react';
+
+// React
 import { useState } from 'react';
+
+// Sweetalert
 import Swal from 'sweetalert2';
+
+// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+import { Can } from '../../../components/Auth/Can';
 
 import {
   FaArrowLeft,
@@ -35,11 +46,64 @@ import {
   FaUserTie,
   FaFileAlt,
   FaCheckDouble,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
 export default function Show({ jobListing, applicationStats, averageAtsScore, recentApplications, totalViews }) {
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    hasAnyPermission,
+    hasRole,
+    isAuthenticated,
+  } = useAuth();
+
+  // Check permissions for job management
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewJobs = hasAnyPermission(['jobs.view', 'jobs.manage']);
+  const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const canEditJobs = hasAnyPermission(['jobs.update', 'jobs.manage']);
+  const canToggleJobs = hasAnyPermission(['jobs.update', 'jobs.manage']);
+  const canDeleteJobs = hasAnyPermission(['jobs.destroy', 'jobs.manage']);
+  const canViewApplications = hasAnyPermission(['applications.view', 'applications.manage']);
+
+  // Check if user owns this job listing
+  const isJobOwner = isEmployer && currentUser?.employer_id === jobListing?.employer_id;
+
+  // Check if user can edit this specific job
+  const canEditThisJob = canEditJobs || isJobOwner || isSuperAdmin;
+  const canDeleteThisJob = canDeleteJobs || isSuperAdmin;
+  const canToggleThisJob = canToggleJobs || isJobOwner || isSuperAdmin;
+
+  // Tab states
   const [activeTab, setActiveTab] = useState('details');
 
+  // If user doesn't have permission to view jobs, show access denied
+  if (!canViewJobs && !isEmployer) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-50 to-gray-100">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view job details.</p>
+            <Link
+              href={route('backend.listing.index')}
+              className="inline-flex items-center gap-2 mt-6 text-blue-600 hover:text-blue-800 font-medium"
+            >
+              <FaArrowLeft size={14} />
+              Back to job listings
+            </Link>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // If job doesn't exist, show loading screen
   if (!jobListing) {
     return (
       <AuthenticatedLayout>
@@ -61,11 +125,13 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
     );
   }
 
+  // Format date
   const formatDate = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
+  // Format date and time
   const formatDateTime = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -77,6 +143,7 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
     });
   };
 
+  // Get job type label
   const getJobTypeLabel = (type) => {
     const types = {
       'full-time': { label: 'Full Time', color: 'bg-emerald-100 text-emerald-800' },
@@ -89,6 +156,7 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
     return types[type] || { label: type || 'N/A', color: 'bg-gray-100 text-gray-800' };
   };
 
+  // Get experience level label
   const getExperienceLabel = (level) => {
     const levels = {
       entry: { label: 'Entry Level', color: 'bg-green-100 text-green-800' },
@@ -101,6 +169,7 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
     return levels[level] || { label: level || 'N/A', color: 'bg-gray-100 text-gray-800' };
   };
 
+  // Get salary display
   const getSalaryDisplay = () => {
     if (jobListing.as_per_companies_policy) return 'As per company policy';
     if (jobListing.is_salary_negotiable) return 'Negotiable';
@@ -108,20 +177,22 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
     const formatNumber = (amount) =>
       new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(amount);
 
-    if (jobListing.salary_min && jobListing.salary_max) 
+    if (jobListing.salary_min && jobListing.salary_max)
       return `${formatNumber(jobListing.salary_min)} - ${formatNumber(jobListing.salary_max)} BDT`;
-    if (jobListing.salary_min) 
+    if (jobListing.salary_min)
       return `From ${formatNumber(jobListing.salary_min)} BDT`;
-    if (jobListing.salary_max) 
+    if (jobListing.salary_max)
       return `Up to ${formatNumber(jobListing.salary_max)} BDT`;
     return 'Not specified';
   };
 
+  // Check if job is expired
   const isExpired = () => {
     if (!jobListing.application_deadline) return false;
     return new Date(jobListing.application_deadline) < new Date();
   };
 
+  // Get ATS badge
   const getAtsBadge = (score) => {
     if (score === undefined || score === null) return 'bg-gray-100 text-gray-700';
     if (score >= 80) return 'bg-green-100 text-green-800';
@@ -130,7 +201,18 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
     return 'bg-red-100 text-red-800';
   };
 
+  // Toggle job status handler
   const handleToggleActive = () => {
+    if (!canToggleThisJob) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to change job status.',
+        confirmButtonColor: '#2563eb',
+      });
+      return;
+    }
+
     Swal.fire({
       title: jobListing.is_active ? 'Deactivate Job?' : 'Activate Job?',
       html: jobListing.is_active
@@ -167,7 +249,18 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
     });
   };
 
+  // Delete job Delete Handler
   const handleDelete = () => {
+    if (!canDeleteThisJob) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to delete this job.',
+        confirmButtonColor: '#2563eb',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Delete Job?',
       html: '<p class="text-gray-600">This will move the job to trash.</p><p class="text-sm text-red-600 mt-2">Jobs with applications cannot be deleted.</p>',
@@ -188,6 +281,8 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
             text: 'Job moved to trash.',
             timer: 1500,
             showConfirmButton: false,
+          }).then(() => {
+            router.visit(route('backend.listing.index'));
           });
         },
         onError: (errors) => {
@@ -201,6 +296,7 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
     });
   };
 
+  // Components - Stat Card
   const StatCard = ({ icon: Icon, label, value, subtext, colorClass }) => (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 hover:shadow-xl transition-shadow duration-300">
       <div className="flex items-start justify-between">
@@ -216,6 +312,7 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
     </div>
   );
 
+  // Components - Info Row
   const InfoRow = ({ icon: Icon, label, value, highlight }) => (
     <div className={`flex items-start gap-3 p-3 rounded-xl transition-colors ${highlight ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
       <Icon className={`mt-0.5 ${highlight ? 'text-blue-600' : 'text-gray-400'}`} size={16} />
@@ -226,17 +323,21 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
     </div>
   );
 
+  // Get job type
   const jobType = getJobTypeLabel(jobListing.job_type);
+
+  // Get experience level
   const experienceLevel = getExperienceLabel(jobListing.experience_level);
+
+  // Check if job is expired
   const expired = isExpired();
 
-  const newLocal = "px-6 py-4 bg-linear-to-r from-indigo-600 to-indigo-700";
   return (
     <AuthenticatedLayout>
       <Head title={`${jobListing.title} - Job Details`} />
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50">
-        <div className=" mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header Section */}
           <div className="mb-6">
             <Link
@@ -253,10 +354,9 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                   <div className="flex-1">
                     <div className="flex items-center gap-3 flex-wrap mb-3">
                       <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{jobListing.title}</h1>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                        jobListing.is_active && !expired ? 'bg-emerald-100 text-emerald-800' : 
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${jobListing.is_active && !expired ? 'bg-emerald-100 text-emerald-800' :
                         expired ? 'bg-red-100 text-red-800' : 'bg-gray-200 text-gray-700'
-                      }`}>
+                        }`}>
                         {jobListing.is_active && !expired ? (
                           <><FaCheckCircle size={12} /> Active</>
                         ) : expired ? (
@@ -270,8 +370,13 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                           <FaTrash size={12} /> Trashed
                         </span>
                       )}
+                      {isJobOwner && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                          <FaBuilding size={12} /> Your Job
+                        </span>
+                      )}
                     </div>
-                    
+
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                       <span className="flex items-center gap-1.5">
                         <FaClock size={14} />
@@ -297,28 +402,31 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                   </div>
 
                   <div className="flex items-center gap-3 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={handleToggleActive}
-                      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 ${
-                        jobListing.is_active
+                    {canToggleThisJob && !jobListing.deleted_at && (
+                      <button
+                        type="button"
+                        onClick={handleToggleActive}
+                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 ${jobListing.is_active
                           ? 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100'
                           : 'bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                      }`}
-                    >
-                      {jobListing.is_active ? <FaToggleOff size={18} /> : <FaToggleOn size={18} />}
-                      {jobListing.is_active ? 'Deactivate' : 'Activate'}
-                    </button>
-                    
-                    <Link
-                      href={route('backend.listing.edit', jobListing.id)}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-                    >
-                      <FaEdit size={16} />
-                      Edit Job
-                    </Link>
+                          }`}
+                      >
+                        {jobListing.is_active ? <FaToggleOff size={18} /> : <FaToggleOn size={18} />}
+                        {jobListing.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                    )}
 
-                    {!jobListing.deleted_at && (
+                    {canEditThisJob && !jobListing.deleted_at && (
+                      <Link
+                        href={route('backend.listing.edit', jobListing.id)}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                      >
+                        <FaEdit size={16} />
+                        Edit Job
+                      </Link>
+                    )}
+
+                    {canDeleteThisJob && !jobListing.deleted_at && (
                       <button
                         type="button"
                         onClick={handleDelete}
@@ -336,30 +444,30 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-            <StatCard 
-              icon={FaUsers} 
-              label="Total Applications" 
+            <StatCard
+              icon={FaUsers}
+              label="Total Applications"
               value={applicationStats?.total ?? 0}
               subtext={`${applicationStats?.pending ?? 0} pending review`}
               colorClass="bg-blue-50 text-blue-600"
             />
-            <StatCard 
-              icon={FaEye} 
-              label="Total Views" 
+            <StatCard
+              icon={FaEye}
+              label="Total Views"
               value={totalViews ?? jobListing.views_count ?? 0}
               subtext="Unique visitor views"
               colorClass="bg-indigo-50 text-indigo-600"
             />
-            <StatCard 
-              icon={FaChartLine} 
-              label="Avg ATS Score" 
+            <StatCard
+              icon={FaChartLine}
+              label="Avg ATS Score"
               value={averageAtsScore === null || averageAtsScore === undefined ? 'N/A' : `${averageAtsScore}%`}
               subtext="Across all applications"
               colorClass="bg-teal-50 text-teal-600"
             />
-            <StatCard 
-              icon={FaCalendarAlt} 
-              label="Application Deadline" 
+            <StatCard
+              icon={FaCalendarAlt}
+              label="Application Deadline"
               value={formatDate(jobListing.application_deadline)}
               subtext={expired ? 'Deadline passed' : `${Math.ceil((new Date(jobListing.application_deadline) - new Date()) / (1000 * 60 * 60 * 24))} days remaining`}
               colorClass={expired ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}
@@ -370,21 +478,33 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
           <div className="mb-6">
             <div className="border-b border-gray-200">
               <nav className="flex gap-6">
-                {['details', 'applications', 'analytics'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`pb-3 px-1 text-sm font-medium transition-all duration-200 relative ${
-                      activeTab === tab
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                <button
+                  onClick={() => setActiveTab('details')}
+                  className={`pb-3 px-1 text-sm font-medium transition-all duration-200 relative ${activeTab === 'details'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
                     }`}
-                  >
-                    {tab === 'details' && 'Job Details'}
-                    {tab === 'applications' && `Applications (${applicationStats?.total ?? 0})`}
-                    {tab === 'analytics' && 'Analytics'}
-                  </button>
-                ))}
+                >
+                  Job Details
+                </button>
+                <button
+                  onClick={() => setActiveTab('applications')}
+                  className={`pb-3 px-1 text-sm font-medium transition-all duration-200 relative ${activeTab === 'applications'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                  Applications ({applicationStats?.total ?? 0})
+                </button>
+                <button
+                  onClick={() => setActiveTab('analytics')}
+                  className={`pb-3 px-1 text-sm font-medium transition-all duration-200 relative ${activeTab === 'analytics'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                  Analytics
+                </button>
               </nav>
             </div>
           </div>
@@ -463,7 +583,7 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                 {/* Skills Section */}
                 {jobListing.skills && jobListing.skills.length > 0 && (
                   <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                    <div className={newLocal}>
+                    <div className="px-6 py-4 bg-linear-to-r from-indigo-600 to-indigo-700">
                       <h2 className="text-white font-semibold flex items-center gap-2">
                         <FaTags size={16} />
                         Required Skills
@@ -471,17 +591,17 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                     </div>
                     <div className="p-6">
                       <div className="flex flex-wrap gap-2">
-                        {typeof jobListing.skills === 'string' 
+                        {typeof jobListing.skills === 'string'
                           ? jobListing.skills.split(',').map((skill, idx) => (
-                              <span key={idx} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium">
-                                {skill.trim()}
-                              </span>
-                            ))
+                            <span key={idx} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium">
+                              {skill.trim()}
+                            </span>
+                          ))
                           : jobListing.skills.map((skill, idx) => (
-                              <span key={idx} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium">
-                                {skill}
-                              </span>
-                            ))
+                            <span key={idx} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium">
+                              {skill}
+                            </span>
+                          ))
                         }
                       </div>
                     </div>
@@ -506,7 +626,7 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                     <InfoRow icon={FaGraduationCap} label="Education" value={jobListing.education_requirement || 'Not specified'} />
                     <InfoRow icon={FaCalendarAlt} label="Publish Date" value={formatDate(jobListing.publish_at) || 'Immediately'} />
                     <InfoRow icon={FaClock} label="Deadline" value={formatDate(jobListing.application_deadline)} highlight={expired} />
-                    
+
                     {jobListing.required_linkedin_link && (
                       <InfoRow icon={FaLinkedin} label="LinkedIn Required" value="Yes" />
                     )}
@@ -542,7 +662,6 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                     </div>
                   </div>
                 )}
-
               </div>
             </div>
           )}
@@ -555,15 +674,17 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                     <FaUsers size={18} />
                     All Applications
                   </h2>
-                  <Link
-                    href={route('backend.listing.applications', jobListing.id)}
-                    className="text-white/90 hover:text-white text-sm font-medium underline underline-offset-2"
-                  >
-                    View All Applications →
-                  </Link>
+                  {canViewApplications && (
+                    <Link
+                      href={route('backend.listing.applications', jobListing.id)}
+                      className="text-white/90 hover:text-white text-sm font-medium underline underline-offset-2"
+                    >
+                      View All Applications →
+                    </Link>
+                  )}
                 </div>
               </div>
-              
+
               {recentApplications?.length > 0 ? (
                 <div className="divide-y divide-gray-100">
                   {recentApplications.map((app) => (
@@ -577,12 +698,11 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                           <p className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                             {app.name || 'N/A'}
                           </p>
-                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                            app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                             app.status === 'shortlisted' ? 'bg-blue-100 text-blue-800' :
-                            app.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
+                              app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                'bg-green-100 text-green-800'
+                            }`}>
                             {app.status || 'pending'}
                           </span>
                         </div>
@@ -667,7 +787,7 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
+                      <div
                         className="bg-blue-600 rounded-full h-2 transition-all duration-500"
                         style={{ width: totalViews > 0 ? `${((applicationStats?.total ?? 0) / totalViews) * 100}%` : '0%' }}
                       />
@@ -681,7 +801,7 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
+                      <div
                         className="bg-green-600 rounded-full h-2 transition-all duration-500"
                         style={{ width: (applicationStats?.total ?? 0) > 0 ? `${((applicationStats?.shortlisted ?? 0) / (applicationStats?.total ?? 1)) * 100}%` : '0%' }}
                       />
@@ -695,7 +815,7 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
+                      <div
                         className="bg-purple-600 rounded-full h-2 transition-all duration-500"
                         style={{ width: (applicationStats?.total ?? 0) > 0 ? `${((applicationStats?.hired ?? 0) / (applicationStats?.total ?? 1)) * 100}%` : '0%' }}
                       />
