@@ -28,10 +28,16 @@ import {
   FaChevronRight,
   FaCopy,
   FaDownload,
+  FaLock,
 } from 'react-icons/fa';
 
 // Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+import { Can } from '../../../components/Auth/Can';
+import { CanAny } from '../../../components/Auth/CanAny';
 
 // SweetAlert2
 import Swal from 'sweetalert2';
@@ -39,6 +45,28 @@ import Swal from 'sweetalert2';
 export default function RolesIndex({ roles: initialRoles, filters: initialFilters = {}, stats: initialStats = {} }) {
   const { flash } = usePage().props;
 
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    hasAnyPermission,
+    hasRole,
+    isAuthenticated
+  } = useAuth();
+
+  // Check permissions for role management
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewRoles = hasAnyPermission(['roles.view', 'roles.manage']);
+  const canEditRoles = hasAnyPermission(['roles.update', 'roles.manage']);
+  const canCloneRoles = hasAnyPermission(['roles.create', 'roles.manage']);
+  const canCreateRoles = hasAnyPermission(['roles.create', 'roles.manage']);
+  const canExportRoles = hasAnyPermission(['roles.export', 'roles.manage']);
+  const canToggleStatus = hasAnyPermission(['roles.update', 'roles.manage']);
+  const canDeleteRoles = hasAnyPermission(['roles.destroy', 'roles.manage']);
+  const canRestoreRoles = hasAnyPermission(['roles.restore', 'roles.manage']);
+  const canBulkDeleteRoles = hasAnyPermission(['roles.bulk_delete', 'roles.manage']);
+  const canBulkRestoreRoles = hasAnyPermission(['roles.bulk_restore', 'roles.manage']);
+
+  // Non editable role slugs
   const NON_EDITABLE_ROLE_SLUGS = useMemo(() => ([
     'super-admin',
     'admin',
@@ -48,6 +76,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     'job_seeker',
   ]), []);
 
+  // Protected Role Checker 
   const isRoleProtected = (role) => {
     if (!role) return false;
     if (role.is_default) return true;
@@ -55,19 +84,54 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     return NON_EDITABLE_ROLE_SLUGS.includes(role.slug);
   };
 
+  // Check if user can edit a specific role
+  const canEditSpecificRole = (role) => {
+    if (!canEditRoles) return false;
+    if (isSuperAdmin) return true;
+    // Non-super-admin cannot edit roles with level >= their own highest role level
+    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
+    return !isRoleProtected(role);
+  };
+
+  // Check if user can delete a specific role
+  const canDeleteSpecificRole = (role) => {
+    if (!canDeleteRoles) return false;
+    if (isSuperAdmin) return true;
+    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
+    return !isRoleProtected(role) && !role.is_default;
+  };
+
+  // If user doesn't have permission to view roles, show access denied
+  if (!canViewRoles) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view roles.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
   // States
+  const [cloningId, setCloningId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [togglingId, setTogglingId] = useState(null);
-  const [selectedRoles, setSelectedRoles] = useState([]);
   const [restoringId, setRestoringId] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedRoles, setSelectedRoles] = useState([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
-  const [cloningId, setCloningId] = useState(null);
 
   // Pagination state
   const [roles, setRoles] = useState(initialRoles);
-  const [currentPage, setCurrentPage] = useState(initialRoles?.current_page || 1);
   const [stats, setStats] = useState(initialStats);
+  const [currentPage, setCurrentPage] = useState(initialRoles?.current_page || 1);
 
   // Filter states - synced with URL/backend
   const [filters, setFilters] = useState({
@@ -77,7 +141,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     maxLevel: initialFilters.max_level || '',
   });
 
-  // Build query params for the index route (avoid sending "no-op" filters that the backend may treat as real filters)
+  // Build query params for the index route
   const buildIndexQueryParams = (pageNumber = 1, nextFilters = filters) => {
     const params = { page: pageNumber };
 
@@ -200,14 +264,15 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
 
   // Bulk selection handlers
   const handleSelectAll = () => {
-    const nonDeletedRoles = sortedRoles.filter(role => !role.deleted_at && !isRoleProtected(role));
-    if (selectedRoles.length === nonDeletedRoles.length) {
+    const selectableRoles = sortedRoles.filter(role => !role.deleted_at && canDeleteSpecificRole(role));
+    if (selectedRoles.length === selectableRoles.length) {
       setSelectedRoles([]);
     } else {
-      setSelectedRoles(nonDeletedRoles.map(role => role.id));
+      setSelectedRoles(selectableRoles.map(role => role.id));
     }
   };
 
+  // Select Role Handler
   const handleSelectRole = (roleId) => {
     setSelectedRoles(prev =>
       prev.includes(roleId)
@@ -218,14 +283,25 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
 
   // Bulk delete
   const handleBulkDelete = () => {
+    if (!canBulkDeleteRoles) {
+      Swal.fire('Permission Denied', 'You do not have permission to bulk delete roles.', 'error');
+      return;
+    }
+
     if (selectedRoles.length === 0) {
       Swal.fire('No Selection', 'Please select at least one role.', 'warning');
       return;
     }
 
     const selectedRoleObjects = sortedRoles.filter(r => selectedRoles.includes(r.id));
-    if (selectedRoleObjects.some(isRoleProtected)) {
-      Swal.fire('Protected Role', 'One or more selected roles are protected and cannot be deleted.', 'error');
+    const protectedSelected = selectedRoleObjects.filter(r => !canDeleteSpecificRole(r));
+
+    if (protectedSelected.length > 0) {
+      Swal.fire(
+        'Protected Roles',
+        `You cannot delete ${protectedSelected.length} selected role(s) due to protection or permission restrictions.`,
+        'error'
+      );
       return;
     }
 
@@ -273,6 +349,11 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
 
   // Bulk restore
   const handleBulkRestore = () => {
+    if (!canBulkRestoreRoles) {
+      Swal.fire('Permission Denied', 'You do not have permission to bulk restore roles.', 'error');
+      return;
+    }
+
     if (selectedRoles.length === 0) {
       Swal.fire('No Selection', 'Please select at least one role.', 'warning');
       return;
@@ -322,6 +403,11 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
 
   // Single role actions
   const handleDelete = (id, name) => {
+    if (!canDeleteRoles) {
+      Swal.fire('Permission Denied', 'You do not have permission to delete roles.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Delete Role?',
       text: `Are you sure you want to delete "${name}"? This will move it to trash.`,
@@ -361,7 +447,13 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     });
   };
 
+  // Restore role Handler
   const handleRestore = (id, name) => {
+    if (!canRestoreRoles) {
+      Swal.fire('Permission Denied', 'You do not have permission to restore roles.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Restore Role?',
       text: `Are you sure you want to restore "${name}"?`,
@@ -401,20 +493,34 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     });
   };
 
+  // Toggle role status Handler
   const handleToggleStatus = (role) => {
+    if (!canToggleStatus) {
+      Swal.fire('Permission Denied', 'You do not have permission to change role status.', 'error');
+      return;
+    }
+
+    if (role.is_default) {
+      Swal.fire('Cannot Deactivate', 'Default roles cannot be deactivated.', 'info');
+      return;
+    }
+
+    if (!isSuperAdmin && role.level >= (currentUser?.highest_role_level || 100)) {
+      Swal.fire('Permission Denied', 'You cannot modify a role with equal or higher level than your own.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: role.is_active ? 'Deactivate Role?' : 'Activate Role?',
-      text: role.is_default
-        ? 'Default roles cannot be deactivated.'
-        : `This will ${role.is_active ? 'deactivate' : 'activate'} "${role.name}".`,
+      text: `This will ${role.is_active ? 'deactivate' : 'activate'} "${role.name}".`,
       icon: 'question',
-      showCancelButton: !role.is_default,
+      showCancelButton: true,
       confirmButtonColor: '#2563eb',
       cancelButtonColor: '#d33',
       confirmButtonText: role.is_active ? 'Deactivate' : 'Activate',
       cancelButtonText: 'Cancel',
     }).then((result) => {
-      if (result.isConfirmed && !role.is_default) {
+      if (result.isConfirmed) {
         setTogglingId(role.id);
 
         router.post(route('backend.roles.toggle-status', role.id), {}, {
@@ -443,7 +549,13 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     });
   };
 
+  // Clone role Handler
   const handleClone = (id, name) => {
+    if (!canCloneRoles) {
+      Swal.fire('Permission Denied', 'You do not have permission to clone roles.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Clone Role?',
       text: `Create a copy of "${name}"?`,
@@ -483,7 +595,12 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     });
   };
 
+  // Export role Handle 
   const handleExport = () => {
+    if (!canExportRoles) {
+      Swal.fire('Permission Denied', 'You do not have permission to export roles.', 'error');
+      return;
+    }
     window.open(route('backend.roles.export', filters), '_blank');
   };
 
@@ -497,6 +614,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     });
   };
 
+  // Level Badge Color Generator
   const getLevelBadge = (level) => {
     if (!level) return 'bg-gray-100 text-gray-600';
     if (level <= 10) return 'bg-red-100 text-red-700';
@@ -618,10 +736,11 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     }
   }, [flash]);
 
+  // Status
   const activeCount = stats?.active || 0;
+  const defaultCount = stats?.default || 0;
   const inactiveCount = stats?.inactive || 0;
   const deletedCount = stats?.total_deleted || 0;
-  const defaultCount = stats?.default || 0;
   const totalCount = stats?.total || roleItems.length;
 
   return (
@@ -672,13 +791,15 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={handleExport}
-                className="px-4 py-2.5 rounded-lg flex items-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all duration-200"
-              >
-                <FaDownload size={14} />
-                Export
-              </button>
+              <Can permission="roles.export" fallback={null}>
+                <button
+                  onClick={handleExport}
+                  className="px-4 py-2.5 rounded-lg flex items-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all duration-200"
+                >
+                  <FaDownload size={14} />
+                  Export
+                </button>
+              </Can>
 
               <button
                 onClick={() => setShowFilters(!showFilters)}
@@ -697,13 +818,15 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                 {showFilters ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
               </button>
 
-              <a
-                href={route('backend.roles.create')}
-                className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
-              >
-                <FaPlus size={16} />
-                Create Role
-              </a>
+              <Can permission="roles.create" fallback={null}>
+                <a
+                  href={route('backend.roles.create')}
+                  className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+                >
+                  <FaPlus size={16} />
+                  Create Role
+                </a>
+              </Can>
             </div>
           </div>
 
@@ -718,22 +841,26 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={handleBulkRestore}
-                    disabled={isBulkProcessing}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <FaTrashRestore size={14} />
-                    Restore All
-                  </button>
-                  <button
-                    onClick={handleBulkDelete}
-                    disabled={isBulkProcessing}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <FaTrash size={14} />
-                    Delete All
-                  </button>
+                  <Can permission="roles.bulk_restore" fallback={null}>
+                    <button
+                      onClick={handleBulkRestore}
+                      disabled={isBulkProcessing}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <FaTrashRestore size={14} />
+                      Restore All
+                    </button>
+                  </Can>
+                  <Can permission="roles.bulk_delete" fallback={null}>
+                    <button
+                      onClick={handleBulkDelete}
+                      disabled={isBulkProcessing}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <FaTrash size={14} />
+                      Delete All
+                    </button>
+                  </Can>
                   <button
                     onClick={() => setSelectedRoles([])}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200"
@@ -829,10 +956,10 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                     <th className="px-4 py-4 text-left">
                       <input
                         type="checkbox"
-                        checked={selectedRoles.length === sortedRoles.filter(role => !role.deleted_at).length && sortedRoles.filter(role => !role.deleted_at).length > 0}
+                        checked={selectedRoles.length === sortedRoles.filter(role => !role.deleted_at && canDeleteSpecificRole(role)).length && sortedRoles.filter(role => !role.deleted_at && canDeleteSpecificRole(role)).length > 0}
                         onChange={handleSelectAll}
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        disabled={sortedRoles.filter(role => !role.deleted_at).length === 0}
+                        disabled={sortedRoles.filter(role => !role.deleted_at && canDeleteSpecificRole(role)).length === 0}
                       />
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -886,9 +1013,12 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                     const trashed = role.deleted_at != null;
                     const isDefault = role.is_default;
                     const isProtected = isRoleProtected(role);
-                    const isJobSeekerRole = ['job-seeker', 'job_seeker'].includes(role.slug);
+                    const canEdit = canEditSpecificRole(role);
+                    const canDelete = canDeleteSpecificRole(role);
+                    const canToggle = canToggleStatus && !isDefault && (isSuperAdmin || role.level < (currentUser?.highest_role_level || 100));
+                    const showDefaultBadge = isDefault;
                     const isPermanentRole = ['super-admin', 'admin', 'employer', 'employer-admin'].includes(role.slug);
-                    const showDefaultBadge = isJobSeekerRole;
+                    const isHighLevel = role.level >= (currentUser?.highest_role_level || 100) && !isSuperAdmin;
 
                     return (
                       <tr
@@ -897,7 +1027,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <td className="px-4 py-4">
-                          {!trashed && !isProtected && (
+                          {!trashed && canDelete && (
                             <input
                               type="checkbox"
                               checked={selectedRoles.includes(role.id)}
@@ -909,7 +1039,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
 
                         {/* ROLE DETAILS */}
                         <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${trashed ? 'bg-gray-300' : showDefaultBadge ? 'bg-purple-100' : isPermanentRole ? 'bg-red-100' : role.is_active ? 'bg-green-100' : 'bg-yellow-100'
                               }`}>
                               <FaShieldAlt className={
@@ -927,6 +1057,12 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                                 {isPermanentRole && (
                                   <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
                                     Permanent
+                                  </span>
+                                )}
+                                {isHighLevel && !trashed && (
+                                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
+                                    <FaLock size={10} className="mr-1" />
+                                    Restricted
                                   </span>
                                 )}
                               </div>
@@ -987,11 +1123,12 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                           {!trashed ? (
                             <button
                               onClick={() => handleToggleStatus(role)}
-                              disabled={togglingId === role.id || isProtected}
+                              disabled={togglingId === role.id || !canToggle}
                               className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 transform hover:scale-105 flex items-center gap-2 ${role.is_active
-                                  ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                  : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                } ${(togglingId === role.id || isProtected) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                } ${(togglingId === role.id || !canToggle) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title={!canToggle ? (isDefault ? 'Default roles cannot be toggled' : 'Insufficient permission') : ''}
                             >
                               {togglingId === role.id ? (
                                 <FaSpinner className="animate-spin" size={12} />
@@ -1015,15 +1152,15 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                             <a
                               href={route('backend.roles.show', role.id)}
                               className={`p-2 rounded-lg transition-all duration-200 ${trashed
-                                  ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                                 }`}
                               title="View Details"
                             >
                               <FaEye size={18} />
                             </a>
 
-                            {!trashed && !isProtected && (
+                            {!trashed && canEdit && (
                               <a
                                 href={route('backend.roles.edit', role.id)}
                                 className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
@@ -1033,7 +1170,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                               </a>
                             )}
 
-                            {!trashed && !isProtected && (
+                            {!trashed && canCloneRoles && (
                               <button
                                 onClick={() => handleClone(role.id, role.name)}
                                 disabled={cloningId === role.id}
@@ -1049,7 +1186,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                               </button>
                             )}
 
-                            {trashed && (
+                            {trashed && canRestoreRoles && (
                               <button
                                 onClick={() => handleRestore(role.id, role.name)}
                                 disabled={restoringId === role.id}
@@ -1065,7 +1202,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                               </button>
                             )}
 
-                            {!trashed && !isProtected && (
+                            {!trashed && canDelete && (
                               <button
                                 onClick={() => handleDelete(role.id, role.name)}
                                 disabled={deletingId === role.id}

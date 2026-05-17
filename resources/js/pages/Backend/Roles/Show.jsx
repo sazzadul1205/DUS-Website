@@ -5,6 +5,11 @@ import { useState } from 'react';
 import Swal from 'sweetalert2';
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+import { Can } from '../../../components/Auth/Can';
+import { CanAny } from '../../../components/Auth/CanAny';
+
 import {
   FaArrowLeft,
   FaShieldAlt,
@@ -30,15 +35,93 @@ import {
   FaTag,
   FaIdCard,
   FaUserTag,
+  FaStar,
+  FaSyncAlt,
 } from 'react-icons/fa';
 
 export default function Show({ role, users, permissions, moduleAccess, isDeleted }) {
-  const [activeTab, setActiveTab] = useState('permissions');
-  const [togglingStatus, setTogglingStatus] = useState(false);
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    hasAnyPermission,
+    hasRole,
+    isAuthenticated
+  } = useAuth();
+
+  // Check permissions for role management
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewRoles = hasAnyPermission(['roles.view', 'roles.manage']);
+  const canEditRoles = hasAnyPermission(['roles.update', 'roles.manage']);
+  const canCloneRoles = hasAnyPermission(['roles.create', 'roles.manage']);
+  const canDeleteRoles = hasAnyPermission(['roles.destroy', 'roles.manage']);
+  const canToggleStatus = hasAnyPermission(['roles.update', 'roles.manage']);
+  const canRestoreRoles = hasAnyPermission(['roles.restore', 'roles.manage']);
+
+  // State
+  const [cloning, setCloning] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [restoring, setRestoring] = useState(false);
-  const [cloning, setCloning] = useState(false);
+  const [activeTab, setActiveTab] = useState('permissions');
+  const [togglingStatus, setTogglingStatus] = useState(false);
 
+  // Check if user can edit this specific role
+  const canEditSpecificRole = () => {
+    if (!canEditRoles) return false;
+    if (isSuperAdmin) return true;
+    // Non-super-admin cannot edit roles with level >= their own highest role level
+    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
+    return !role.is_default;
+  };
+
+  // Check if user can delete this specific role
+  const canDeleteSpecificRole = () => {
+    if (!canDeleteRoles) return false;
+    if (isDeleted) return false;
+    if (isSuperAdmin) return true;
+    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
+    return !role.is_default && role.user_count === 0;
+  };
+
+  // Check if user can toggle status of this specific role
+  const canToggleSpecificRole = () => {
+    if (!canToggleStatus) return false;
+    if (isSuperAdmin) return true;
+    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
+    return !role.is_default;
+  };
+
+  // Check if user can clone this specific role
+  const canCloneSpecificRole = () => {
+    if (!canCloneRoles) return false;
+    return !isDeleted;
+  };
+
+  // If user doesn't have permission to view roles, show access denied
+  if (!canViewRoles) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-50 to-gray-100">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view roles.</p>
+            <Link
+              href={route('backend.roles.index')}
+              className="inline-flex items-center gap-2 mt-6 text-blue-600 hover:text-blue-800 font-medium"
+            >
+              <FaArrowLeft size={14} />
+              Back to roles
+            </Link>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // If role doesn't exist, show loading screen
   if (!role) {
     return (
       <AuthenticatedLayout>
@@ -60,11 +143,13 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     );
   }
 
+  // Helper functions - Date formatting
   const formatDate = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
+  // Helper functions - Date Time formatting
   const formatDateTime = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -76,6 +161,7 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     });
   };
 
+  // Level Badge Color Generator
   const getLevelBadge = (level) => {
     if (!level) return 'bg-gray-100 text-gray-600';
     if (level <= 10) return 'bg-red-100 text-red-700';
@@ -85,6 +171,7 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     return 'bg-green-100 text-green-700';
   };
 
+  // Access Level Badge Color Generator
   const getAccessLevelBadge = (level) => {
     const colors = {
       manage: 'bg-purple-100 text-purple-700',
@@ -95,6 +182,7 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     return colors[level] || colors.no_access;
   };
 
+  // Access Level Label Generator
   const getAccessLevelLabel = (level) => {
     const labels = {
       manage: 'Full Management',
@@ -105,12 +193,15 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     return labels[level] || level;
   };
 
+  // Toggle Role Status Handler
   const handleToggleStatus = () => {
-    if (role.is_default) {
+    if (!canToggleSpecificRole()) {
       Swal.fire({
         icon: 'warning',
-        title: 'Cannot Deactivate',
-        text: 'Default roles cannot be deactivated.',
+        title: 'Permission Denied',
+        text: role.is_default
+          ? 'Default roles cannot be deactivated.'
+          : 'You do not have permission to change this role\'s status.',
         confirmButtonColor: '#2563eb',
       });
       return;
@@ -155,22 +246,20 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     });
   };
 
+  // Delete Role Handler
   const handleDelete = () => {
-    if (role.is_default) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Cannot Delete',
-        text: 'Default roles cannot be deleted.',
-        confirmButtonColor: '#2563eb',
-      });
-      return;
-    }
+    if (!canDeleteSpecificRole()) {
+      let errorMsg = '';
+      if (!canDeleteRoles) errorMsg = 'You do not have permission to delete roles.';
+      else if (role.is_default) errorMsg = 'Default roles cannot be deleted.';
+      else if (role.user_count > 0) errorMsg = `This role has ${role.user_count} user(s) assigned. Please reassign users first.`;
+      else if (role.level >= (currentUser?.highest_role_level || 100)) errorMsg = 'You cannot delete a role with equal or higher level than your own.';
+      else errorMsg = 'You do not have permission to delete this role.';
 
-    if (role.user_count > 0) {
       Swal.fire({
         icon: 'warning',
         title: 'Cannot Delete',
-        text: `This role has ${role.user_count} user(s) assigned. Please reassign users first.`,
+        text: errorMsg,
         confirmButtonColor: '#2563eb',
       });
       return;
@@ -213,7 +302,18 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     });
   };
 
+  // Restore Role Handler
   const handleRestore = () => {
+    if (!canRestoreRoles) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to restore roles.',
+        confirmButtonColor: '#2563eb',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Restore Role?',
       text: 'This will restore the role from trash.',
@@ -251,7 +351,18 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     });
   };
 
+  // Clone Role Handler
   const handleClone = () => {
+    if (!canCloneSpecificRole()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to clone roles.',
+        confirmButtonColor: '#2563eb',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Clone Role?',
       text: `Create a copy of "${role.name}"?`,
@@ -289,6 +400,7 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     });
   };
 
+  // Components - State Card
   const StatCard = ({ icon: Icon, label, value, subtext, colorClass }) => (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 hover:shadow-xl transition-shadow duration-300">
       <div className="flex items-start justify-between">
@@ -304,6 +416,7 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     </div>
   );
 
+  // Components - Info Row
   const InfoRow = ({ icon: Icon, label, value, highlight }) => (
     <div className={`flex items-start gap-3 p-3 rounded-xl transition-colors ${highlight ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
       <Icon className={`mt-0.5 ${highlight ? 'text-blue-600' : 'text-gray-400'}`} size={16} />
@@ -313,6 +426,13 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
       </div>
     </div>
   );
+
+  // Check if user can edit/clone/delete this specific role
+  const canEdit = canEditSpecificRole();
+  const canClone = canCloneSpecificRole();
+  const canDelete = canDeleteSpecificRole();
+  const canToggle = canToggleSpecificRole();
+  const isHighLevelRestricted = !isSuperAdmin && role.level >= (currentUser?.highest_role_level || 100);
 
   return (
     <AuthenticatedLayout>
@@ -353,6 +473,12 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
                           Trashed
                         </span>
                       )}
+                      {isHighLevelRestricted && !isDeleted && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                          <FaLock size={12} />
+                          Restricted Access
+                        </span>
+                      )}
                     </div>
 
                     {role.description && (
@@ -380,66 +506,88 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
                   <div className="flex items-center gap-3 flex-wrap">
                     {!isDeleted && (
                       <>
-                        <button
-                          type="button"
-                          onClick={handleToggleStatus}
-                          disabled={togglingStatus || role.is_default}
-                          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 ${role.is_active
+                        <Can permission="roles.update" fallback={null}>
+                          <button
+                            type="button"
+                            onClick={handleToggleStatus}
+                            disabled={togglingStatus || !canToggle}
+                            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 ${role.is_active
                               ? 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100'
                               : 'bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                            } ${(togglingStatus || role.is_default) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          {togglingStatus ? (
-                            <FaSpinner className="animate-spin" size={16} />
-                          ) : role.is_active ? (
-                            <FaToggleOff size={16} />
-                          ) : (
-                            <FaToggleOn size={16} />
-                          )}
-                          {role.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
+                              } ${(togglingStatus || !canToggle) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title={!canToggle ? (role.is_default ? 'Default roles cannot be toggled' : 'Insufficient permission') : ''}
+                          >
+                            {togglingStatus ? (
+                              <FaSpinner className="animate-spin" size={16} />
+                            ) : role.is_active ? (
+                              <FaToggleOff size={16} />
+                            ) : (
+                              <FaToggleOn size={16} />
+                            )}
+                            {role.is_active ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </Can>
 
-                        <Link
-                          href={route('backend.roles.edit', role.id)}
-                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-                        >
-                          <FaEdit size={14} />
-                          Edit Role
-                        </Link>
+                        <Can permission="roles.update" fallback={null}>
+                          <Link
+                            href={route('backend.roles.edit', role.id)}
+                            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 shadow-md hover:shadow-lg ${canEdit
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                              : 'bg-gray-200 text-gray-500 cursor-not-allowed pointer-events-none'
+                              }`}
+                            title={!canEdit ? 'You do not have permission to edit this role' : ''}
+                          >
+                            <FaEdit size={14} />
+                            Edit Role
+                          </Link>
+                        </Can>
 
-                        <button
-                          type="button"
-                          onClick={handleClone}
-                          disabled={cloning}
-                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-600 hover:bg-teal-100 font-medium transition-all duration-200"
-                        >
-                          {cloning ? <FaSpinner className="animate-spin" size={14} /> : <FaCopy size={14} />}
-                          Clone
-                        </button>
+                        <Can permission="roles.create" fallback={null}>
+                          <button
+                            type="button"
+                            onClick={handleClone}
+                            disabled={cloning || !canClone}
+                            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 ${canClone
+                              ? 'bg-teal-50 border border-teal-200 text-teal-600 hover:bg-teal-100'
+                              : 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed'
+                              }`}
+                            title={!canClone ? 'You do not have permission to clone roles' : ''}
+                          >
+                            {cloning ? <FaSpinner className="animate-spin" size={14} /> : <FaCopy size={14} />}
+                            Clone
+                          </button>
+                        </Can>
 
-                        <button
-                          type="button"
-                          onClick={handleDelete}
-                          disabled={deleting || role.is_default}
-                          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 font-medium transition-all duration-200 ${(deleting || role.is_default) ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
-                        >
-                          {deleting ? <FaSpinner className="animate-spin" size={14} /> : <FaTrash size={14} />}
-                          Delete
-                        </button>
+                        <Can permission="roles.destroy" fallback={null}>
+                          <button
+                            type="button"
+                            onClick={handleDelete}
+                            disabled={deleting || !canDelete}
+                            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 ${canDelete
+                              ? 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100'
+                              : 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed'
+                              }`}
+                            title={!canDelete ? (role.is_default ? 'Default roles cannot be deleted' : role.user_count > 0 ? 'Cannot delete role with assigned users' : 'Insufficient permission') : ''}
+                          >
+                            {deleting ? <FaSpinner className="animate-spin" size={14} /> : <FaTrash size={14} />}
+                            Delete
+                          </button>
+                        </Can>
                       </>
                     )}
 
                     {isDeleted && (
-                      <button
-                        type="button"
-                        onClick={handleRestore}
-                        disabled={restoring}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 font-medium transition-all duration-200"
-                      >
-                        {restoring ? <FaSpinner className="animate-spin" size={14} /> : <FaTrashRestore size={14} />}
-                        Restore Role
-                      </button>
+                      <Can permission="roles.restore" fallback={null}>
+                        <button
+                          type="button"
+                          onClick={handleRestore}
+                          disabled={restoring}
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 font-medium transition-all duration-200"
+                        >
+                          {restoring ? <FaSpinner className="animate-spin" size={14} /> : <FaTrashRestore size={14} />}
+                          Restore Role
+                        </button>
+                      </Can>
                     )}
                   </div>
                 </div>
@@ -488,8 +636,8 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={`pb-3 px-1 text-sm font-medium transition-all duration-200 relative ${activeTab === tab
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
                       }`}
                   >
                     {tab === 'permissions' && `Permissions (${role.permission_count || 0})`}
@@ -648,13 +796,15 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
                             </span>
                           </div>
                         </div>
-                        <Link
-                          href={route('backend.users.index', { search: user.email })}
-                          className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                          title="View User"
-                        >
-                          <FaEye size={16} />
-                        </Link>
+                        <Can permission="users.view" fallback={null}>
+                          <Link
+                            href={route('backend.users.index', { search: user.email })}
+                            className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                            title="View User"
+                          >
+                            <FaEye size={16} />
+                          </Link>
+                        </Can>
                       </div>
                     </div>
                   ))}
@@ -695,7 +845,7 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
               {isDeleted && role.deleted_at && (
                 <>
                   <InfoRow icon={FaTrash} label="Deleted At" value={formatDateTime(role.deleted_at)} highlight />
-                  <InfoRow icon={FaUser} label="Deleted By" value={role.updater?.name || 'System'} highlight />
+                  <InfoRow icon={FaUser} label="Deleted By" value={role.deleter?.name || 'System'} highlight />
                 </>
               )}
             </div>
@@ -705,6 +855,3 @@ export default function Show({ role, users, permissions, moduleAccess, isDeleted
     </AuthenticatedLayout>
   );
 }
-
-// Missing FaStar and FaSyncAlt icons - add to imports
-import { FaStar, FaSyncAlt } from 'react-icons/fa';

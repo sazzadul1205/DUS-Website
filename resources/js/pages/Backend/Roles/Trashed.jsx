@@ -1,6 +1,9 @@
 // resources/js/pages/Backend/Roles/Trashed.jsx
 
+// React
 import { useState, useEffect, useMemo } from 'react';
+
+// Inertia
 import { Head, Link, router, usePage } from '@inertiajs/react';
 
 // Icons
@@ -23,10 +26,16 @@ import {
   FaUser,
   FaClock,
   FaUndo,
+  FaLock,
 } from 'react-icons/fa';
 
 // Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+import { Can } from '../../../components/Auth/Can';
+import { CanAny } from '../../../components/Auth/CanAny';
 
 // SweetAlert2
 import Swal from 'sweetalert2';
@@ -34,17 +43,33 @@ import Swal from 'sweetalert2';
 export default function RolesTrashed({ roles: initialRoles, filters: initialFilters = {}, stats: initialStats = {} }) {
   const { flash } = usePage().props;
 
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    hasAnyPermission,
+    hasRole,
+    isAuthenticated
+  } = useAuth();
+
+  // Check permissions for role management
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewRoles = hasAnyPermission(['roles.view', 'roles.manage']);
+  const canRestoreRoles = hasAnyPermission(['roles.restore', 'roles.manage']);
+  const canForceDeleteRoles = hasAnyPermission(['roles.force_delete', 'roles.manage']);
+  const canBulkRestoreRoles = hasAnyPermission(['roles.bulk_restore', 'roles.manage']);
+  const canBulkForceDeleteRoles = hasAnyPermission(['roles.bulk_force_delete', 'roles.manage']);
+
   // States
   const [restoringId, setRestoringId] = useState(null);
-  const [forceDeletingId, setForceDeletingId] = useState(null);
-  const [selectedRoles, setSelectedRoles] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedRoles, setSelectedRoles] = useState([]);
+  const [forceDeletingId, setForceDeletingId] = useState(null);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   // Pagination state
   const [roles, setRoles] = useState(initialRoles);
-  const [currentPage, setCurrentPage] = useState(initialRoles?.current_page || 1);
   const [stats, setStats] = useState(initialStats);
+  const [currentPage, setCurrentPage] = useState(initialRoles?.current_page || 1);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -52,6 +77,49 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
     sortBy: initialFilters.sort_by || 'deleted_at',
     sortDir: initialFilters.sort_dir || 'desc',
   });
+
+  // If user doesn't have permission to view roles, show access denied
+  if (!canViewRoles) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view trashed roles.</p>
+            <Link
+              href={route('backend.roles.index')}
+              className="inline-flex items-center gap-2 mt-6 text-blue-600 hover:text-blue-800 font-medium"
+            >
+              <FaArrowLeft size={14} />
+              Back to Roles
+            </Link>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // Check if user can restore a specific role
+  const canRestoreSpecificRole = (role) => {
+    if (!canRestoreRoles) return false;
+    if (isSuperAdmin) return true;
+    // Non-super-admin cannot restore roles with level >= their own highest role level
+    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
+    return true;
+  };
+
+  // Check if user can force delete a specific role
+  const canForceDeleteSpecificRole = (role) => {
+    if (!canForceDeleteRoles) return false;
+    if (isSuperAdmin) return true;
+    // Non-super-admin cannot permanently delete roles with level >= their own highest role level
+    if (role.level >= (currentUser?.highest_role_level || 100)) return false;
+    return !role.is_default;
+  };
 
   // Get roles array from paginated response
   const roleItems = useMemo(() => {
@@ -170,13 +238,15 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
 
   // Bulk selection handlers
   const handleSelectAll = () => {
-    if (selectedRoles.length === sortedRoles.length) {
+    const selectableRoles = sortedRoles.filter(role => canRestoreSpecificRole(role));
+    if (selectedRoles.length === selectableRoles.length) {
       setSelectedRoles([]);
     } else {
-      setSelectedRoles(sortedRoles.map(role => role.id));
+      setSelectedRoles(selectableRoles.map(role => role.id));
     }
   };
 
+  // Select Role Handler
   const handleSelectRole = (roleId) => {
     setSelectedRoles(prev =>
       prev.includes(roleId)
@@ -187,8 +257,25 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
 
   // Bulk restore
   const handleBulkRestore = () => {
+    if (!canBulkRestoreRoles) {
+      Swal.fire('Permission Denied', 'You do not have permission to bulk restore roles.', 'error');
+      return;
+    }
+
     if (selectedRoles.length === 0) {
       Swal.fire('No Selection', 'Please select at least one role.', 'warning');
+      return;
+    }
+
+    const selectedRoleObjects = sortedRoles.filter(r => selectedRoles.includes(r.id));
+    const protectedSelected = selectedRoleObjects.filter(r => !canRestoreSpecificRole(r));
+
+    if (protectedSelected.length > 0) {
+      Swal.fire(
+        'Protected Roles',
+        `You cannot restore ${protectedSelected.length} selected role(s) due to permission restrictions.`,
+        'error'
+      );
       return;
     }
 
@@ -236,8 +323,25 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
 
   // Bulk force delete (permanent delete)
   const handleBulkForceDelete = () => {
+    if (!canBulkForceDeleteRoles) {
+      Swal.fire('Permission Denied', 'You do not have permission to permanently delete roles.', 'error');
+      return;
+    }
+
     if (selectedRoles.length === 0) {
       Swal.fire('No Selection', 'Please select at least one role.', 'warning');
+      return;
+    }
+
+    const selectedRoleObjects = sortedRoles.filter(r => selectedRoles.includes(r.id));
+    const protectedSelected = selectedRoleObjects.filter(r => !canForceDeleteSpecificRole(r));
+
+    if (protectedSelected.length > 0) {
+      Swal.fire(
+        'Protected Roles',
+        `You cannot permanently delete ${protectedSelected.length} selected role(s) due to permission restrictions or default role protection.`,
+        'error'
+      );
       return;
     }
 
@@ -286,6 +390,11 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
 
   // Single role actions
   const handleRestore = (id, name) => {
+    if (!canRestoreRoles) {
+      Swal.fire('Permission Denied', 'You do not have permission to restore roles.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Restore Role?',
       text: `Are you sure you want to restore "${name}"?`,
@@ -325,7 +434,13 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
     });
   };
 
+  // Force delete handler
   const handleForceDelete = (id, name) => {
+    if (!canForceDeleteRoles) {
+      Swal.fire('Permission Denied', 'You do not have permission to permanently delete roles.', 'error');
+      return;
+    }
+
     Swal.fire({
       title: 'Permanently Delete?',
       html: `<p>Are you sure you want to permanently delete "${name}"?</p>
@@ -378,6 +493,7 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
     });
   };
 
+  // Level Badge Color Generator
   const getLevelBadge = (level) => {
     if (!level) return 'bg-gray-100 text-gray-600';
     if (level <= 10) return 'bg-red-100 text-red-700';
@@ -499,6 +615,10 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
     }
   }, [flash]);
 
+  // Check if user can restore or force delete any role
+  const canRestoreAny = canRestoreRoles && sortedRoles.some(role => canRestoreSpecificRole(role));
+  const canForceDeleteAny = canForceDeleteRoles && sortedRoles.some(role => canForceDeleteSpecificRole(role));
+
   return (
     <AuthenticatedLayout>
       <Head title="Trashed Roles" />
@@ -568,22 +688,34 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={handleBulkRestore}
-                    disabled={isBulkProcessing}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <FaTrashRestore size={14} />
-                    Restore All
-                  </button>
-                  <button
-                    onClick={handleBulkForceDelete}
-                    disabled={isBulkProcessing}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <FaTrash size={14} />
-                    Delete Permanently
-                  </button>
+                  <Can permission="roles.bulk_restore" fallback={null}>
+                    <button
+                      onClick={handleBulkRestore}
+                      disabled={isBulkProcessing || !canRestoreAny}
+                      className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 disabled:opacity-50 ${canRestoreAny
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-gray-400 text-white cursor-not-allowed'
+                        }`}
+                      title={!canRestoreAny ? 'You don\'t have permission to restore any selected roles' : ''}
+                    >
+                      <FaTrashRestore size={14} />
+                      Restore All
+                    </button>
+                  </Can>
+                  <Can permission="roles.bulk_force_delete" fallback={null}>
+                    <button
+                      onClick={handleBulkForceDelete}
+                      disabled={isBulkProcessing || !canForceDeleteAny}
+                      className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 disabled:opacity-50 ${canForceDeleteAny
+                        ? 'bg-red-600 text-white hover:bg-red-700'
+                        : 'bg-gray-400 text-white cursor-not-allowed'
+                        }`}
+                      title={!canForceDeleteAny ? 'You don\'t have permission to permanently delete any selected roles' : ''}
+                    >
+                      <FaTrash size={14} />
+                      Delete Permanently
+                    </button>
+                  </Can>
                   <button
                     onClick={() => setSelectedRoles([])}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200"
@@ -664,10 +796,10 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
                     <th className="px-4 py-4 text-left">
                       <input
                         type="checkbox"
-                        checked={selectedRoles.length === sortedRoles.length && sortedRoles.length > 0}
+                        checked={selectedRoles.length === sortedRoles.filter(role => canRestoreSpecificRole(role)).length && sortedRoles.filter(role => canRestoreSpecificRole(role)).length > 0}
                         onChange={handleSelectAll}
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        disabled={sortedRoles.length === 0}
+                        disabled={sortedRoles.filter(role => canRestoreSpecificRole(role)).length === 0}
                       />
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -711,110 +843,132 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
                     </tr>
                   )}
 
-                  {sortedRoles.map((role, index) => (
-                    <tr
-                      key={role.id}
-                      className={`hover:bg-gray-50 transition-all duration-200 animate-fade-in ${selectedRoles.includes(role.id) ? 'bg-amber-50' : ''}`}
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <td className="px-4 py-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedRoles.includes(role.id)}
-                          onChange={() => handleSelectRole(role.id)}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                      </td>
+                  {sortedRoles.map((role, index) => {
+                    const canRestore = canRestoreSpecificRole(role);
+                    const canForceDelete = canForceDeleteSpecificRole(role);
+                    const isHighLevelRestricted = !isSuperAdmin && role.level >= (currentUser?.highest_role_level || 100);
 
-                      {/* ROLE DETAILS */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center shrink-0">
-                            <FaShieldAlt className="text-gray-500" size={18} />
-                          </div>
-                          <div>
-                            <div className="font-semibold text-gray-900 line-through">
-                              {role.name}
+                    return (
+                      <tr
+                        key={role.id}
+                        className={`hover:bg-gray-50 transition-all duration-200 animate-fade-in ${selectedRoles.includes(role.id) ? 'bg-amber-50' : ''}`}
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <td className="px-4 py-4">
+                          {canRestore && (
+                            <input
+                              type="checkbox"
+                              checked={selectedRoles.includes(role.id)}
+                              onChange={() => handleSelectRole(role.id)}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                          )}
+                        </td>
+
+                        {/* ROLE DETAILS */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center shrink-0">
+                              <FaShieldAlt className="text-gray-500" size={18} />
                             </div>
-                            <div className="text-sm text-gray-500">
-                              Slug: {role.slug}
-                            </div>
-                            {role.description && (
-                              <div className="text-xs text-gray-400 mt-1">
-                                {role.description.length > 60 ? role.description.substring(0, 60) + '...' : role.description}
+                            <div>
+                              <div className="font-semibold text-gray-900 line-through">
+                                {role.name}
+                                {isHighLevelRestricted && (
+                                  <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
+                                    <FaLock size={10} />
+                                    Restricted
+                                  </span>
+                                )}
                               </div>
-                            )}
+                              <div className="text-sm text-gray-500">
+                                Slug: {role.slug}
+                              </div>
+                              {role.description && (
+                                <div className="text-xs text-gray-400 mt-1">
+                                  {role.description.length > 60 ? role.description.substring(0, 60) + '...' : role.description}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* LEVEL */}
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-3 py-1.5 rounded-full text-sm font-bold ${getLevelBadge(role.level)}`}>
-                          Level {role.level}
-                        </span>
-                      </td>
-
-                      {/* DELETED INFO */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <FaClock className="text-red-400" size={14} />
-                          <span className="text-sm text-gray-700">
-                            {formatDate(role.deleted_at)}
+                        {/* LEVEL */}
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex px-3 py-1.5 rounded-full text-sm font-bold ${getLevelBadge(role.level)}`}>
+                            Level {role.level}
                           </span>
-                        </div>
-                        {role.deleted_by && (
-                          <div className="flex items-center gap-2">
-                            <FaUser className="text-gray-400" size={12} />
-                            <span className="text-xs text-gray-500">
-                              Deleted by: {role.deleted_by}
+                        </td>
+
+                        {/* DELETED INFO */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <FaClock className="text-red-400" size={14} />
+                            <span className="text-sm text-gray-700">
+                              {formatDate(role.deleted_at)}
                             </span>
                           </div>
-                        )}
-                      </td>
+                          {role.deleted_by && (
+                            <div className="flex items-center gap-2">
+                              <FaUser className="text-gray-400" size={12} />
+                              <span className="text-xs text-gray-500">
+                                Deleted by: {role.deleted_by}
+                              </span>
+                            </div>
+                          )}
+                        </td>
 
-                      {/* ACTIONS */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="flex justify-end gap-2">
-                          <Link
-                            href={route('backend.roles.show', role.id)}
-                            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
-                            title="View Details"
-                          >
-                            <FaEye size={18} />
-                          </Link>
+                        {/* ACTIONS */}
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="flex justify-end gap-2">
+                            <Link
+                              href={route('backend.roles.show', role.id)}
+                              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                              title="View Details"
+                            >
+                              <FaEye size={18} />
+                            </Link>
 
-                          <button
-                            onClick={() => handleRestore(role.id, role.name)}
-                            disabled={restoringId === role.id}
-                            className={`p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200 ${restoringId === role.id ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                            title="Restore"
-                          >
-                            {restoringId === role.id ? (
-                              <FaSpinner className="animate-spin" size={18} />
-                            ) : (
-                              <FaTrashRestore size={18} />
-                            )}
-                          </button>
+                            <Can permission="roles.restore" fallback={null}>
+                              <button
+                                onClick={() => handleRestore(role.id, role.name)}
+                                disabled={restoringId === role.id || !canRestore}
+                                className={`p-2 rounded-lg transition-all duration-200 ${canRestore
+                                  ? 'text-green-600 hover:text-green-900 hover:bg-green-50'
+                                  : 'text-gray-400 cursor-not-allowed'
+                                  } ${restoringId === role.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                title={!canRestore ? 'You don\'t have permission to restore this role' : 'Restore'}
+                              >
+                                {restoringId === role.id ? (
+                                  <FaSpinner className="animate-spin" size={18} />
+                                ) : (
+                                  <FaTrashRestore size={18} />
+                                )}
+                              </button>
+                            </Can>
 
-                          <button
-                            onClick={() => handleForceDelete(role.id, role.name)}
-                            disabled={forceDeletingId === role.id}
-                            className={`p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200 ${forceDeletingId === role.id ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                            title="Permanently Delete"
-                          >
-                            {forceDeletingId === role.id ? (
-                              <FaSpinner className="animate-spin" size={18} />
-                            ) : (
-                              <FaTrash size={18} />
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            <Can permission="roles.force_delete" fallback={null}>
+                              <button
+                                onClick={() => handleForceDelete(role.id, role.name)}
+                                disabled={forceDeletingId === role.id || !canForceDelete}
+                                className={`p-2 rounded-lg transition-all duration-200 ${canForceDelete
+                                  ? 'text-red-600 hover:text-red-900 hover:bg-red-50'
+                                  : 'text-gray-400 cursor-not-allowed'
+                                  } ${forceDeletingId === role.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                title={!canForceDelete ? (role.is_default ? 'Default roles cannot be permanently deleted' : 'You don\'t have permission to permanently delete this role') : 'Permanently Delete'}
+                              >
+                                {forceDeletingId === role.id ? (
+                                  <FaSpinner className="animate-spin" size={18} />
+                                ) : (
+                                  <FaTrash size={18} />
+                                )}
+                              </button>
+                            </Can>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -833,7 +987,8 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
                 <p className="text-sm font-medium text-blue-800">About Trashed Roles</p>
                 <p className="text-xs text-blue-600 mt-1">
                   Roles in trash can be restored at any time. Permanently deleted roles cannot be recovered.
-                  Default roles cannot be deleted or permanently removed.
+                  Default roles cannot be deleted or permanently removed. You can only restore or delete roles
+                  that have a lower access level than your own.
                 </p>
               </div>
             </div>

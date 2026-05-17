@@ -15,15 +15,19 @@ import {
   FaLock,
   FaSpinner,
   FaInfoCircle,
+  FaExclamationTriangle,
 } from 'react-icons/fa';
 
 // Step Components
-import { BasicInfoStep } from '../../../components/RoleSteps/BasicInfoStep';
-import { PermissionsStep } from '../../../components/RoleSteps/PermissionsStep';
-import { ModuleAccessStep } from '../../../components/RoleSteps/ModuleAccessStep';
 import { ReviewStep } from '../../../components/RoleSteps/ReviewStep';
 import { StepIndicator } from '../../../components/RoleSteps/StepIndicator';
+import { BasicInfoStep } from '../../../components/RoleSteps/BasicInfoStep';
 import { StepNavigation } from '../../../components/RoleSteps/StepNavigation';
+import { PermissionsStep } from '../../../components/RoleSteps/PermissionsStep';
+import { ModuleAccessStep } from '../../../components/RoleSteps/ModuleAccessStep';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
 
 // SweetAlert
 import Swal from 'sweetalert2';
@@ -36,10 +40,31 @@ export default function Edit({
   existingLevels,
   accessLevels
 }) {
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    hasAnyPermission,
+    hasRole,
+    isAuthenticated
+  } = useAuth();
+
+  // Check permissions for role management
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewRoles = hasAnyPermission(['roles.view', 'roles.manage']);
+  const canEditRoles = hasAnyPermission(['roles.update', 'roles.manage']);
+
+  // Check if user can assign specific permissions (for super-admin only)
+  const canAssignAllPermissions = isSuperAdmin || hasAnyPermission(['roles.assign_all_permissions', 'roles.manage']);
+
+  // Check if user can edit default role (only super-admin can)
+  const canEditDefaultRole = isSuperAdmin || !initialRole.is_default;
+
+  // State
+  const [errors, setErrors] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
 
+  // Steps
   const steps = [
     { id: 1, title: 'Basic Info', component: BasicInfoStep },
     { id: 2, title: 'Permissions', component: PermissionsStep },
@@ -47,6 +72,7 @@ export default function Edit({
     { id: 4, title: 'Review', component: ReviewStep },
   ];
 
+  // Form Data
   const [formData, setFormData] = useState({
     // Basic Info
     name: initialRole.name || '',
@@ -62,6 +88,58 @@ export default function Edit({
     // Module Access
     module_access: initialModuleAccess || [],
   });
+
+  // If user doesn't have permission to edit roles, show access denied
+  if (!canEditRoles) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to edit roles.</p>
+            {canViewRoles && (
+              <button
+                onClick={() => router.visit(route('backend.roles.show', initialRole.id))}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Back to Role Details
+              </button>
+            )}
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // If user can't edit default role and this is a default role, show access denied
+  if (initialRole.is_default && !canEditDefaultRole) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaLock className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Cannot Edit Default Role</h2>
+            <p className="text-gray-500 mt-2">
+              Default roles can only be edited by super-admins to prevent system issues.
+            </p>
+            <button
+              onClick={() => router.visit(route('backend.roles.show', initialRole.id))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Back to Role Details
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
 
   // Track unsaved changes
   const [hasChanges, setHasChanges] = useState(false);
@@ -120,15 +198,30 @@ export default function Edit({
         if (!formData.name || formData.name.trim().length < 2) {
           newErrors.name = 'Role name must be at least 2 characters';
         }
-        if (!formData.slug || formData.slug.trim().length < 2) {
-          newErrors.slug = 'Slug must be at least 2 characters';
-        } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-          newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
+
+        // Only validate slug if it's not a default role OR user is super-admin
+        if (!isDefaultRole || isSuperAdmin) {
+          if (!formData.slug || formData.slug.trim().length < 2) {
+            newErrors.slug = 'Slug must be at least 2 characters';
+          } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
+            newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
+          }
+
+          // Check if slug is unique (excluding current role)
+          if (existingLevels && existingLevels.some(role => role.slug === formData.slug && role.id !== initialRole.id)) {
+            newErrors.slug = 'This slug is already in use by another role. Please choose another.';
+          }
         }
+
         if (!formData.level) {
           newErrors.level = 'Please select a level';
         } else if (formData.level < 1 || formData.level > 100) {
           newErrors.level = 'Level must be between 1 and 100';
+        }
+
+        // Prevent lowering level below current user's level (security)
+        if (currentUser && formData.level >= (currentUser.highest_role_level || 0)) {
+          newErrors.level = `You cannot set role level higher or equal to your own level (${currentUser.highest_role_level || 0}). This would allow privilege escalation.`;
         }
         break;
 
@@ -142,6 +235,7 @@ export default function Edit({
     return Object.keys(newErrors).length === 0;
   };
 
+  // Next step
   const nextStep = () => {
     if (validateStep()) {
       setCurrentStep(prev => Math.min(prev + 1, steps.length));
@@ -156,6 +250,7 @@ export default function Edit({
     }
   };
 
+  // Previous step
   const previousStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -184,6 +279,28 @@ export default function Edit({
         icon: 'info',
         title: 'No Changes',
         text: "You haven't made any changes to the role.",
+        confirmButtonColor: '#2563eb',
+      });
+      return;
+    }
+
+    // Additional security check before submission
+    if (!canEditRoles) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to edit roles.',
+        confirmButtonColor: '#2563eb',
+      });
+      return;
+    }
+
+    // Check if trying to edit default role without permission
+    if (isDefaultRole && !canEditDefaultRole) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Cannot Edit Default Role',
+        text: 'Default roles can only be edited by super-admins.',
         confirmButtonColor: '#2563eb',
       });
       return;
@@ -241,11 +358,18 @@ export default function Edit({
                 text: 'Please check the form for errors.',
                 confirmButtonColor: '#2563eb',
               });
+            } else if (error.response?.data?.message) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Update Failed',
+                text: error.response.data.message,
+                confirmButtonColor: '#2563eb',
+              });
             } else {
               Swal.fire({
                 icon: 'error',
                 title: 'Update Failed',
-                text: error.response?.data?.message || 'Failed to update role. Please try again.',
+                text: 'Failed to update role. Please try again.',
                 confirmButtonColor: '#2563eb',
               });
             }
@@ -259,9 +383,11 @@ export default function Edit({
     });
   };
 
+  // Render current step
   const CurrentStepComponent = steps[currentStep - 1].component;
   const isReviewStep = currentStep === steps.length;
 
+  // Handle step submit
   const handleStepSubmit = () => {
     if (isReviewStep) {
       handleSubmit();
@@ -270,38 +396,71 @@ export default function Edit({
     }
   };
 
+  // Filter permissions based on user's own permissions (non-super-admins can only assign permissions they have)
+  const filteredPermissions = canAssignAllPermissions
+    ? permissions
+    : permissions.filter(permission => {
+      // Non-super-admins can only assign permissions they personally have
+      return hasAnyPermission([permission.slug]);
+    });
+
+  // Filter out any permissions in formData that user no longer has access to assign
+  const filteredFormDataPermissions = canAssignAllPermissions
+    ? formData.permissions
+    : formData.permissions.filter(permId => {
+      const permission = permissions.find(p => p.id === permId);
+      return permission && hasAnyPermission([permission.slug]);
+    });
+
   // Extended props for BasicInfoStep with edit mode
   const basicInfoProps = {
-    formData,
+    formData: {
+      ...formData,
+      permissions: filteredFormDataPermissions,
+    },
     errors,
     setFormData,
     existingLevels,
     isEdit: true,
     isDefaultRole,
     originalName: initialRole.name,
+    canEditSlug: !isDefaultRole || isSuperAdmin,
+    canEditName: !isDefaultRole || isSuperAdmin,
+    isSuperAdmin,
   };
 
   // Extended props for PermissionsStep
   const permissionsProps = {
-    formData,
+    formData: {
+      ...formData,
+      permissions: filteredFormDataPermissions,
+    },
     setFormData,
-    permissions,
+    permissions: filteredPermissions,
     isEdit: true,
+    canAssignAllPermissions,
   };
 
   // Extended props for ModuleAccessStep
   const moduleAccessProps = {
-    formData,
+    formData: {
+      ...formData,
+      permissions: filteredFormDataPermissions,
+    },
     setFormData,
-    permissions,
+    permissions: filteredPermissions,
     accessLevels,
     isEdit: true,
+    canAssignAllPermissions,
   };
 
   // Extended props for ReviewStep
   const reviewProps = {
-    formData,
-    permissions,
+    formData: {
+      ...formData,
+      permissions: filteredFormDataPermissions,
+    },
+    permissions: filteredPermissions,
     accessLevels,
     onNavigateToStep: navigateToStep,
     isEdit: true,
@@ -350,15 +509,37 @@ export default function Edit({
             )}
           </div>
 
+          {/* Warning for Limited Permissions */}
+          {!canAssignAllPermissions && (
+            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <FaExclamationTriangle className="text-yellow-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">Limited Permission Mode</p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    You can only assign permissions that you personally have. You cannot assign higher-level permissions than your own.
+                    Any permissions you don't have access to will be preserved but cannot be modified.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Warning for Default Role */}
           {isDefaultRole && (
             <div className="mb-4 bg-amber-50 border-l-4 border-amber-400 rounded-lg p-3">
               <div className="flex items-start gap-2">
                 <FaInfoCircle className="text-amber-500 mt-0.5" size={14} />
-                <p className="text-xs text-amber-700">
-                  <strong className="font-medium">Default Role:</strong> This is a default role.
-                  Some basic fields like name and slug cannot be edited to prevent system issues.
-                </p>
+                <div>
+                  <p className="text-xs text-amber-700">
+                    <strong className="font-medium">Default Role:</strong> This is a default role.
+                    {!canEditDefaultRole ? (
+                      " Only super-admins can edit default roles."
+                    ) : (
+                      " Some basic fields like name and slug should be edited with caution to prevent system issues."
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -399,4 +580,4 @@ export default function Edit({
       </div>
     </AuthenticatedLayout>
   );
-}BasicInfoStep
+}

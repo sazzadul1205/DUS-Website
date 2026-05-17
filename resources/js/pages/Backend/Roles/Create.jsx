@@ -1,7 +1,12 @@
 // resources/js/pages/Backend/Roles/Create.jsx
 
+// React
 import { useState, useEffect, useCallback, useRef } from 'react';
+
+// Inertia
 import { Head, router } from '@inertiajs/react';
+
+// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
 // Icons
@@ -30,20 +35,38 @@ import {
 } from 'react-icons/fa';
 
 // Step Components
-import { BasicInfoStep } from '../../../components/RoleSteps/BasicInfoStep';
-import { PermissionsStep } from '../../../components/RoleSteps/PermissionsStep';
-import { StepIndicator } from '../../../components/RoleSteps/StepIndicator';
-import { ModuleAccessStep } from '../../../components/RoleSteps/ModuleAccessStep';
 import { ReviewStep } from '../../../components/RoleSteps/ReviewStep';
+import { BasicInfoStep } from '../../../components/RoleSteps/BasicInfoStep';
+import { StepIndicator } from '../../../components/RoleSteps/StepIndicator';
 import { StepNavigation } from '../../../components/RoleSteps/StepNavigation';
+import { PermissionsStep } from '../../../components/RoleSteps/PermissionsStep';
+import { ModuleAccessStep } from '../../../components/RoleSteps/ModuleAccessStep';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+import { Can } from '../../../components/Auth/Can';
 
 // SweetAlert
 import Swal from 'sweetalert2';
 
 export default function Create({ permissions, existingLevels, accessLevels }) {
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    hasAnyPermission,
+    hasRole,
+    isAuthenticated
+  } = useAuth();
+
+  // Check permissions for role management
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewRoles = hasAnyPermission(['roles.view', 'roles.manage']);
+  const canCreateRoles = hasAnyPermission(['roles.create', 'roles.manage']);
+
+  // State
+  const [errors, setErrors] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
 
   const steps = [
     { id: 1, title: 'Basic Info', component: BasicInfoStep },
@@ -67,6 +90,35 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
     // Module Access
     module_access: [],
   });
+
+  // If user doesn't have permission to create roles, show access denied
+  if (!canCreateRoles) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to create roles.</p>
+            {canViewRoles && (
+              <button
+                onClick={() => router.visit(route('backend.roles.index'))}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Back to Roles
+              </button>
+            )}
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // Check if user can assign specific permissions (for super-admin only)
+  const canAssignAllPermissions = isSuperAdmin || hasAnyPermission(['roles.assign_all_permissions', 'roles.manage']);
 
   // Check if form has any data entered
   const hasFormData = () => {
@@ -119,6 +171,11 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
         } else if (formData.level < 1 || formData.level > 100) {
           newErrors.level = 'Level must be between 1 and 100';
         }
+
+        // Check if slug is unique (client-side check)
+        if (existingLevels && existingLevels.some(role => role.slug === formData.slug)) {
+          newErrors.slug = 'This slug is already in use. Please choose another.';
+        }
         break;
 
       case 2: // Permissions - Optional, no validation needed
@@ -135,6 +192,7 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Next step
   const nextStep = () => {
     if (validateStep()) {
       setCurrentStep(prev => Math.min(prev + 1, steps.length));
@@ -149,6 +207,7 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
     }
   };
 
+  // Previous step
   const previousStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -162,6 +221,17 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
 
   // Final submission
   const handleSubmit = () => {
+    // Additional security check before submission
+    if (!canCreateRoles) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to create roles.',
+        confirmButtonColor: '#2563eb',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Create Role?',
       html: `
@@ -171,6 +241,7 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
             <li>Role: <strong>${formData.name}</strong></li>
             <li>Level: <strong>${formData.level}</strong></li>
             <li>Permissions: <strong>${formData.permissions.length}</strong> assigned</li>
+            ${formData.is_default ? '<li class="text-blue-600">This will be set as DEFAULT role</li>' : ''}
           </ul>
         </div>
       `,
@@ -214,11 +285,18 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
                 text: 'Please check the form for errors.',
                 confirmButtonColor: '#2563eb',
               });
+            } else if (error.response?.data?.message) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Creation Failed',
+                text: error.response.data.message,
+                confirmButtonColor: '#2563eb',
+              });
             } else {
               Swal.fire({
                 icon: 'error',
                 title: 'Creation Failed',
-                text: error.response?.data?.message || 'Failed to create role. Please try again.',
+                text: 'Failed to create role. Please try again.',
                 confirmButtonColor: '#2563eb',
               });
             }
@@ -232,6 +310,7 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
     });
   };
 
+  // Render current step
   const CurrentStepComponent = steps[currentStep - 1].component;
   const isReviewStep = currentStep === steps.length;
 
@@ -243,6 +322,14 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
       nextStep();
     }
   };
+
+  // Filter permissions based on user's own permissions (non-super-admins can only assign permissions they have)
+  const filteredPermissions = canAssignAllPermissions
+    ? permissions
+    : permissions.filter(permission => {
+      // Non-super-admins can only assign permissions they personally have
+      return hasAnyPermission([permission.slug]);
+    });
 
   return (
     <AuthenticatedLayout>
@@ -276,6 +363,21 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
             </button>
           </div>
 
+          {/* Warning for limited permission users */}
+          {!canAssignAllPermissions && (
+            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <FaExclamationTriangle className="text-yellow-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">Limited Permission Mode</p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    You can only assign permissions that you personally have. You cannot assign higher-level permissions than your own.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Main Card */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
             {/* Step Indicator */}
@@ -289,10 +391,11 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
                 formData={formData}
                 errors={errors}
                 setFormData={setFormData}
-                permissions={permissions}
+                permissions={filteredPermissions}
                 existingLevels={existingLevels}
                 accessLevels={accessLevels}
                 onNavigateToStep={navigateToStep}
+                canAssignAllPermissions={canAssignAllPermissions}
               />
             </div>
 
