@@ -16,7 +16,7 @@ class RBACSeeder extends Seeder
     $createdBy = $superAdmin?->id ?? $adminUser?->id ?? 1;
 
     // ==========================================
-    // 1. INSERT ALL PERMISSIONS (164 total)
+    // 1. INSERT ALL PERMISSIONS (ALL NAMES UNIQUE)
     // ==========================================
     $permissions = [
       // Dashboard Module (4)
@@ -51,7 +51,7 @@ class RBACSeeder extends Seeder
       ['name' => 'Share Job', 'slug' => 'public_jobs.share', 'module' => 'public_jobs', 'action' => 'share'],
       ['name' => 'Print Job Details', 'slug' => 'public_jobs.print', 'module' => 'public_jobs', 'action' => 'print'],
 
-      // Applications Module (17)
+      // Applications Module (for Employers/Admins) (17)
       ['name' => 'View Applications', 'slug' => 'applications.view', 'module' => 'applications', 'action' => 'view'],
       ['name' => 'View Own Job Applications', 'slug' => 'applications.view.for_own_jobs', 'module' => 'applications', 'action' => 'view_for_own_jobs'],
       ['name' => 'Show Application', 'slug' => 'applications.show', 'module' => 'applications', 'action' => 'show'],
@@ -69,22 +69,21 @@ class RBACSeeder extends Seeder
       ['name' => 'Export Applications', 'slug' => 'applications.export', 'module' => 'applications', 'action' => 'export'],
       ['name' => 'Export Single Application', 'slug' => 'applications.export_single', 'module' => 'applications', 'action' => 'export_single'],
       ['name' => 'Recalculate ATS', 'slug' => 'applications.recalculate_ats', 'module' => 'applications', 'action' => 'recalculate_ats'],
-      ['name' => 'View Job Applications', 'slug' => 'applications.job_applications', 'module' => 'applications', 'action' => 'job_applications'],
 
-      // Apply Module (Self-Service) (11)
+      // Apply Module (for Job Seekers - Self Service) (13) - ALL NAMES UNIQUE
       ['name' => 'View My Applications', 'slug' => 'apply.view', 'module' => 'apply', 'action' => 'view'],
-      ['name' => 'View Own Applications', 'slug' => 'apply.view.own', 'module' => 'apply', 'action' => 'view_own'],
-      ['name' => 'Create Application', 'slug' => 'apply.create', 'module' => 'apply', 'action' => 'create'],
-      ['name' => 'Store Application', 'slug' => 'apply.store', 'module' => 'apply', 'action' => 'store'],
-      ['name' => 'Show My Application', 'slug' => 'apply.show', 'module' => 'apply', 'action' => 'show'],
-      ['name' => 'Edit Application', 'slug' => 'apply.edit', 'module' => 'apply', 'action' => 'edit'],
-      ['name' => 'Update Application', 'slug' => 'apply.update', 'module' => 'apply', 'action' => 'update'],
-      ['name' => 'Withdraw Application', 'slug' => 'apply.destroy', 'module' => 'apply', 'action' => 'destroy'],
-      ['name' => 'Restore Application', 'slug' => 'apply.restore', 'module' => 'apply', 'action' => 'restore'],
-      ['name' => 'Force Delete Application', 'slug' => 'apply.force_delete', 'module' => 'apply', 'action' => 'force_delete'],
-      ['name' => 'View Trashed Applications', 'slug' => 'apply.trashed', 'module' => 'apply', 'action' => 'trashed'],
-      ['name' => 'Recalculate My ATS', 'slug' => 'apply.recalculate_ats', 'module' => 'apply', 'action' => 'recalculate_ats'],
-      ['name' => 'Get ATS Status', 'slug' => 'apply.ats_status', 'module' => 'apply', 'action' => 'ats_status'],
+      ['name' => 'View My Own Applications', 'slug' => 'apply.view.own', 'module' => 'apply', 'action' => 'view_own'],
+      ['name' => 'Create New Application', 'slug' => 'apply.create', 'module' => 'apply', 'action' => 'create'],
+      ['name' => 'Store New Application', 'slug' => 'apply.store', 'module' => 'apply', 'action' => 'store'],
+      ['name' => 'Show My Application Details', 'slug' => 'apply.show', 'module' => 'apply', 'action' => 'show'],
+      ['name' => 'Edit My Application', 'slug' => 'apply.edit', 'module' => 'apply', 'action' => 'edit'],
+      ['name' => 'Update My Application', 'slug' => 'apply.update', 'module' => 'apply', 'action' => 'update'],
+      ['name' => 'Withdraw My Application', 'slug' => 'apply.destroy', 'module' => 'apply', 'action' => 'destroy'],
+      ['name' => 'Restore My Application', 'slug' => 'apply.restore', 'module' => 'apply', 'action' => 'restore'],
+      ['name' => 'Force Delete My Application', 'slug' => 'apply.force_delete', 'module' => 'apply', 'action' => 'force_delete'],
+      ['name' => 'View My Trashed Applications', 'slug' => 'apply.trashed', 'module' => 'apply', 'action' => 'trashed'],
+      ['name' => 'Recalculate My ATS Score', 'slug' => 'apply.recalculate_ats', 'module' => 'apply', 'action' => 'recalculate_ats'],
+      ['name' => 'Get My ATS Status', 'slug' => 'apply.ats_status', 'module' => 'apply', 'action' => 'ats_status'],
 
       // Job Categories Module (13)
       ['name' => 'View Categories', 'slug' => 'categories.view', 'module' => 'categories', 'action' => 'view'],
@@ -115,21 +114,21 @@ class RBACSeeder extends Seeder
       ['name' => 'Bulk Deactivate Locations', 'slug' => 'locations.bulk_deactivate', 'module' => 'locations', 'action' => 'bulk_deactivate'],
       ['name' => 'Get Active Locations', 'slug' => 'locations.get_active', 'module' => 'locations', 'action' => 'get_active'],
 
-      // Applicant Profiles Module (18)
+      // Applicant Profiles Module (28)
       ['name' => 'View Applicant Profiles', 'slug' => 'profiles.view', 'module' => 'profiles', 'action' => 'view'],
       ['name' => 'View Any Profile', 'slug' => 'profiles.view.any', 'module' => 'profiles', 'action' => 'view_any'],
-      ['name' => 'View Own Profile', 'slug' => 'profiles.view.own', 'module' => 'profiles', 'action' => 'view_own'],
-      ['name' => 'Show Profile', 'slug' => 'profiles.show', 'module' => 'profiles', 'action' => 'show'],
-      ['name' => 'Edit Own Profile', 'slug' => 'profiles.edit.own', 'module' => 'profiles', 'action' => 'edit_own'],
-      ['name' => 'Edit Basic Info', 'slug' => 'profiles.edit_basic', 'module' => 'profiles', 'action' => 'edit_basic'],
-      ['name' => 'Edit Professional Info', 'slug' => 'profiles.edit_professional', 'module' => 'profiles', 'action' => 'edit_professional'],
+      ['name' => 'View My Own Profile', 'slug' => 'profiles.view.own', 'module' => 'profiles', 'action' => 'view_own'],
+      ['name' => 'Show Profile Details', 'slug' => 'profiles.show', 'module' => 'profiles', 'action' => 'show'],
+      ['name' => 'Edit My Profile', 'slug' => 'profiles.edit.own', 'module' => 'profiles', 'action' => 'edit_own'],
+      ['name' => 'Edit Basic Information', 'slug' => 'profiles.edit_basic', 'module' => 'profiles', 'action' => 'edit_basic'],
+      ['name' => 'Edit Professional Information', 'slug' => 'profiles.edit_professional', 'module' => 'profiles', 'action' => 'edit_professional'],
       ['name' => 'Edit Work Experience', 'slug' => 'profiles.edit_work', 'module' => 'profiles', 'action' => 'edit_work'],
-      ['name' => 'Edit Education', 'slug' => 'profiles.edit_education', 'module' => 'profiles', 'action' => 'edit_education'],
+      ['name' => 'Edit Education History', 'slug' => 'profiles.edit_education', 'module' => 'profiles', 'action' => 'edit_education'],
       ['name' => 'Edit Achievements', 'slug' => 'profiles.edit_achievements', 'module' => 'profiles', 'action' => 'edit_achievements'],
-      ['name' => 'Update Basic Info', 'slug' => 'profiles.update_basic', 'module' => 'profiles', 'action' => 'update_basic'],
-      ['name' => 'Update Professional Info', 'slug' => 'profiles.update_professional', 'module' => 'profiles', 'action' => 'update_professional'],
+      ['name' => 'Update Basic Information', 'slug' => 'profiles.update_basic', 'module' => 'profiles', 'action' => 'update_basic'],
+      ['name' => 'Update Professional Information', 'slug' => 'profiles.update_professional', 'module' => 'profiles', 'action' => 'update_professional'],
       ['name' => 'Update Work Experience', 'slug' => 'profiles.update_work', 'module' => 'profiles', 'action' => 'update_work'],
-      ['name' => 'Update Education', 'slug' => 'profiles.update_education', 'module' => 'profiles', 'action' => 'update_education'],
+      ['name' => 'Update Education History', 'slug' => 'profiles.update_education', 'module' => 'profiles', 'action' => 'update_education'],
       ['name' => 'Update Achievements', 'slug' => 'profiles.update_achievements', 'module' => 'profiles', 'action' => 'update_achievements'],
       ['name' => 'Delete Profile', 'slug' => 'profiles.destroy', 'module' => 'profiles', 'action' => 'destroy'],
       ['name' => 'Restore Profile', 'slug' => 'profiles.restore', 'module' => 'profiles', 'action' => 'restore'],
@@ -137,11 +136,11 @@ class RBACSeeder extends Seeder
       ['name' => 'Bulk Delete Profiles', 'slug' => 'profiles.bulk_delete', 'module' => 'profiles', 'action' => 'bulk_delete'],
       ['name' => 'Bulk Restore Profiles', 'slug' => 'profiles.bulk_restore', 'module' => 'profiles', 'action' => 'bulk_restore'],
       ['name' => 'Export Profiles', 'slug' => 'profiles.export', 'module' => 'profiles', 'action' => 'export'],
-      ['name' => 'Upload CV', 'slug' => 'profiles.upload_cv', 'module' => 'profiles', 'action' => 'upload_cv'],
-      ['name' => 'Delete CV', 'slug' => 'profiles.destroy_cv', 'module' => 'profiles', 'action' => 'destroy_cv'],
+      ['name' => 'Upload CV Document', 'slug' => 'profiles.upload_cv', 'module' => 'profiles', 'action' => 'upload_cv'],
+      ['name' => 'Delete CV Document', 'slug' => 'profiles.destroy_cv', 'module' => 'profiles', 'action' => 'destroy_cv'],
       ['name' => 'Set Primary CV', 'slug' => 'profiles.set_primary_cv', 'module' => 'profiles', 'action' => 'set_primary_cv'],
       ['name' => 'Change Profile Password', 'slug' => 'profiles.change_password', 'module' => 'profiles', 'action' => 'change_password'],
-      ['name' => 'Download CV', 'slug' => 'profiles.download_cv', 'module' => 'profiles', 'action' => 'download_cv'],
+      ['name' => 'Download CV Document', 'slug' => 'profiles.download_cv', 'module' => 'profiles', 'action' => 'download_cv'],
       ['name' => 'View Profile Photo', 'slug' => 'profiles.photo', 'module' => 'profiles', 'action' => 'photo'],
       ['name' => 'Get Profile Data', 'slug' => 'profiles.get_data', 'module' => 'profiles', 'action' => 'get_data'],
 
@@ -170,7 +169,7 @@ class RBACSeeder extends Seeder
       ['name' => 'Mark Notification Read', 'slug' => 'notifications.mark_read', 'module' => 'notifications', 'action' => 'mark_read'],
       ['name' => 'Mark All Notifications Read', 'slug' => 'notifications.mark_all_read', 'module' => 'notifications', 'action' => 'mark_all_read'],
 
-      // Roles Module (13)
+      // Roles Module (15)
       ['name' => 'View Roles', 'slug' => 'roles.view', 'module' => 'roles', 'action' => 'view'],
       ['name' => 'Create Role', 'slug' => 'roles.create', 'module' => 'roles', 'action' => 'create'],
       ['name' => 'Store Role', 'slug' => 'roles.store', 'module' => 'roles', 'action' => 'store'],
@@ -208,50 +207,9 @@ class RBACSeeder extends Seeder
       // Statistics Module (2)
       ['name' => 'View Statistics', 'slug' => 'statistics.view', 'module' => 'statistics', 'action' => 'view'],
       ['name' => 'Export Statistics', 'slug' => 'statistics.export', 'module' => 'statistics', 'action' => 'export'],
-
-      // Job Seeker Dashboard (6)
-      ['name' => 'View Job Seeker Dashboard', 'slug' => 'dashboard.job_seeker', 'module' => 'dashboard', 'action' => 'job_seeker'],
-      ['name' => 'View Any Job', 'slug' => 'job.view.any', 'module' => 'job', 'action' => 'view_any'],
-      ['name' => 'View Own Profile', 'slug' => 'profile.view.own', 'module' => 'profile', 'action' => 'view_own'],
-      ['name' => 'Edit Own Profile', 'slug' => 'profile.edit.own', 'module' => 'profile', 'action' => 'edit_own'],
-      ['name' => 'View Own Applications', 'slug' => 'application.view.own', 'module' => 'application', 'action' => 'view_own'],
-      ['name' => 'View Notifications', 'slug' => 'notification.view', 'module' => 'notification', 'action' => 'view'],
-
-      // Employer Dashboard (9)
-      ['name' => 'View Employer Dashboard', 'slug' => 'dashboard.employer', 'module' => 'dashboard', 'action' => 'employer'],
-      ['name' => 'Create Job', 'slug' => 'job.create', 'module' => 'job', 'action' => 'create'],
-      ['name' => 'View Own Jobs', 'slug' => 'job.view.own', 'module' => 'job', 'action' => 'view_own'],
-      ['name' => 'Edit Own Job', 'slug' => 'job.edit.own', 'module' => 'job', 'action' => 'edit_own'],
-      ['name' => 'View Any Job', 'slug' => 'job.view.any', 'module' => 'job', 'action' => 'view_any'],
-      ['name' => 'View Apps for Own Jobs', 'slug' => 'application.view.for_own_jobs', 'module' => 'application', 'action' => 'view_for_own_jobs'],
-      ['name' => 'View Any Application', 'slug' => 'application.view.any', 'module' => 'application', 'action' => 'view_any'],
-      ['name' => 'Shortlist Application', 'slug' => 'application.shortlist', 'module' => 'application', 'action' => 'shortlist'],
-      ['name' => 'Reject Application', 'slug' => 'application.reject', 'module' => 'application', 'action' => 'reject'],
-      ['name' => 'Edit Own Profile', 'slug' => 'profile.edit.own', 'module' => 'profile', 'action' => 'edit_own'],
-
-      // Admin Dashboard (17)
-      ['name' => 'View Admin Dashboard', 'slug' => 'dashboard.admin', 'module' => 'dashboard', 'action' => 'admin'],
-      ['name' => 'View Any Job', 'slug' => 'job.view.any', 'module' => 'job', 'action' => 'view_any'],
-      ['name' => 'Create Job', 'slug' => 'job.create', 'module' => 'job', 'action' => 'create'],
-      ['name' => 'View Categories', 'slug' => 'category.view', 'module' => 'category', 'action' => 'view'],
-      ['name' => 'View Locations', 'slug' => 'location.view', 'module' => 'location', 'action' => 'view'],
-      ['name' => 'View Statistics', 'slug' => 'statistics.view', 'module' => 'statistics', 'action' => 'view'],
-      ['name' => 'View Job Reports', 'slug' => 'report.jobs', 'module' => 'report', 'action' => 'jobs'],
-      ['name' => 'View Any Profile', 'slug' => 'profile.view.any', 'module' => 'profile', 'action' => 'view_any'],
-      ['name' => 'View Any Application', 'slug' => 'application.view.any', 'module' => 'application', 'action' => 'view_any'],
-      ['name' => 'Shortlist Application', 'slug' => 'application.shortlist', 'module' => 'application', 'action' => 'shortlist'],
-      ['name' => 'Reject Application', 'slug' => 'application.reject', 'module' => 'application', 'action' => 'reject'],
-      ['name' => 'View Users', 'slug' => 'user.view', 'module' => 'user', 'action' => 'view'],
-      ['name' => 'Create User', 'slug' => 'user.create', 'module' => 'user', 'action' => 'create'],
-      ['name' => 'Edit User', 'slug' => 'user.edit', 'module' => 'user', 'action' => 'edit'],
-      ['name' => 'View Roles', 'slug' => 'role.view', 'module' => 'role', 'action' => 'view'],
-      ['name' => 'Create Role', 'slug' => 'role.create', 'module' => 'role', 'action' => 'create'],
-      ['name' => 'Edit Role', 'slug' => 'role.edit', 'module' => 'role', 'action' => 'edit'],
-      ['name' => 'Delete Role', 'slug' => 'role.delete', 'module' => 'role', 'action' => 'delete'],
-      ['name' => 'Edit Own Profile', 'slug' => 'profile.edit.own', 'module' => 'profile', 'action' => 'edit_own'],
-      ['name' => 'View Notifications', 'slug' => 'notification.view', 'module' => 'notification', 'action' => 'view'],
     ];
 
+    // Insert permissions with updateOrInsert to avoid duplicates
     foreach ($permissions as $permission) {
       DB::table('permissions')->updateOrInsert(
         ['slug' => $permission['slug']],
@@ -387,13 +345,10 @@ class RBACSeeder extends Seeder
 
     // Employer Admin permissions
     $employerAdminPermissionSlugs = [
-      // Dashboard
       'dashboard.view',
       'dashboard.stats.view',
       'dashboard.quick_actions.view',
       'dashboard.recent_activity.view',
-      'dashboard.employer',
-      // Job Listings
       'job_listings.view',
       'job_listings.create',
       'job_listings.store',
@@ -402,7 +357,7 @@ class RBACSeeder extends Seeder
       'job_listings.show',
       'job_listings.destroy',
       'job_listings.toggle_active',
-      // Applications
+      'job_listings.applications',
       'applications.view',
       'applications.view.for_own_jobs',
       'applications.show',
@@ -412,36 +367,18 @@ class RBACSeeder extends Seeder
       'applications.bulk_download_resumes',
       'applications.email.send',
       'applications.bulk_email.send',
-      'applications.job_applications',
-      // Categories (read only)
       'categories.view',
       'categories.get_active',
-      // Locations (read only)
       'locations.view',
       'locations.get_active',
-      // Employer Profile
       'employer_profile.view',
       'employer_profile.edit',
       'employer_profile.update',
       'employer_profile.update_password',
-      // Notifications
       'notifications.view',
       'notifications.mark_read',
       'notifications.mark_all_read',
-      // Statistics
       'statistics.view',
-      // Job (legacy)
-      'job.create',
-      'job.view.own',
-      'job.edit.own',
-      'job.view.any',
-      // Application (legacy)
-      'application.view.for_own_jobs',
-      'application.shortlist',
-      'application.reject',
-      // Profile
-      'profile.edit.own',
-      'profile.view.own',
     ];
 
     foreach ($employerAdminPermissionSlugs as $slug) {
@@ -460,7 +397,6 @@ class RBACSeeder extends Seeder
     // HR Manager permissions
     $hrManagerPermissionSlugs = [
       'dashboard.view',
-      'dashboard.employer',
       'job_listings.view',
       'job_listings.create',
       'job_listings.store',
@@ -481,14 +417,6 @@ class RBACSeeder extends Seeder
       'employer_profile.update_password',
       'notifications.view',
       'notifications.mark_read',
-      'job.create',
-      'job.view.own',
-      'job.edit.own',
-      'application.view.for_own_jobs',
-      'application.shortlist',
-      'application.reject',
-      'profile.edit.own',
-      'profile.view.own',
     ];
 
     foreach ($hrManagerPermissionSlugs as $slug) {
@@ -507,7 +435,6 @@ class RBACSeeder extends Seeder
     // Recruiter permissions
     $recruiterPermissionSlugs = [
       'dashboard.view',
-      'dashboard.employer',
       'job_listings.view',
       'job_listings.create',
       'job_listings.store',
@@ -526,14 +453,6 @@ class RBACSeeder extends Seeder
       'employer_profile.update',
       'employer_profile.update_password',
       'notifications.view',
-      'job.create',
-      'job.view.own',
-      'job.edit.own',
-      'application.view.for_own_jobs',
-      'application.shortlist',
-      'application.reject',
-      'profile.edit.own',
-      'profile.view.own',
     ];
 
     foreach ($recruiterPermissionSlugs as $slug) {
@@ -549,10 +468,9 @@ class RBACSeeder extends Seeder
       }
     }
 
-    // Job Seeker permissions
+    // Job Seeker permissions - using the updated unique names
     $jobSeekerPermissionSlugs = [
       'dashboard.view',
-      'dashboard.job_seeker',
       'public_jobs.view',
       'public_jobs.show',
       'public_jobs.popular',
@@ -601,12 +519,6 @@ class RBACSeeder extends Seeder
       'notifications.view',
       'notifications.mark_read',
       'notifications.mark_all_read',
-      'job.view.any',
-      'application.view.own',
-      'application.apply',
-      'application.withdraw',
-      'profile.view.own',
-      'profile.edit.own',
     ];
 
     foreach ($jobSeekerPermissionSlugs as $slug) {

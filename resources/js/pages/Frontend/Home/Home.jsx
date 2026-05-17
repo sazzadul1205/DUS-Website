@@ -28,7 +28,7 @@ export default function Home() {
   // Banner Data (updated for better responsiveness)
   const bannerData = {
     background: {
-      src: "/storage/uploads/banners/Background.jpg",
+      src: "/storage/Banner/64065404ef679e54d2dabd90bba3b1744817c578.webp",
       alt: "Background"
     },
     overlay: {
@@ -82,28 +82,28 @@ export default function Home() {
       items: [
         {
           id: 1,
-          icon: "/storage/uploads/Home/AboutUs/education.png",
+          icon: "/storage/AboutUs/65af8a95ec6612fa3ef2941b_011-charity-1 1.svg",
           title: "Education for All",
           description: "Charity is dedicated to ensuring that every child has access to quality education.",
           alt: "Education Icon"
         },
         {
           id: 2,
-          icon: "/storage/uploads/Home/AboutUs/healthcare.png",
+          icon: "/storage/AboutUs/65af8a95c570e47bd1123b4e_033-hospital 1.svg",
           title: "Health and Wellness",
           description: "Our commitment to health and wellness extends across borders.",
           alt: "Health Icon"
         },
         {
           id: 3,
-          icon: "/storage/uploads/Home/AboutUs/disaster-recovery.png",
+          icon: "/storage/AboutUs/65af8a95cee257c23ab03ff8_040-shelter 1.svg",
           title: "Disaster Relief",
           description: "In times of crisis, Charity responds swiftly to provide emergency relief.",
           alt: "Disaster Relief Icon"
         },
         {
           id: 4,
-          icon: "/storage/uploads/Home/AboutUs/investment.png",
+          icon: "/storage/AboutUs/65af8a958d27ad8d830434f4_022-family-1 1.svg",
           title: "Community Development",
           description: "Charity invests in sustainable community development projects to create.",
           alt: "Community Development Icon"
@@ -134,7 +134,7 @@ export default function Home() {
       ]
     },
     image: {
-      src: "https://placehold.es/2048x2048/cccccc/webp?text=Placeholder",
+      src: "/storage/AboutUs/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff.webp",
       alt: "About Us Image"
     }
   };
@@ -148,63 +148,63 @@ export default function Home() {
     actions: [
       {
         id: 1,
-        icon: "/storage/uploads/Home/OurAction/006-mortarboard.png",
+        icon: "/storage/OurActions/fi_1940611.svg",
         title: "Education",
         description: "We empower communities by investing in sustainable projects, training livelihood programs.",
         alt: "Education Icon"
       },
       {
         id: 2,
-        icon: "/storage/uploads/Home/OurAction/004-financial-inclusion.png",
+        icon: "/storage/OurActions/fi_14888982.svg",
         title: "Microfinance",
         description: "We empower communities by investing in sustainable projects, training livelihood programs.",
         alt: "Microfinance Icon"
       },
       {
         id: 3,
-        icon: "/storage/uploads/Home/OurAction/007-cardiogram.png",
+        icon: "/storage/OurActions/fi_3004451.svg",
         title: "Health",
         description: "Providing nutritious meals and groceries to individuals and families in need.",
         alt: "Health Icon"
       },
       {
         id: 4,
-        icon: "/storage/uploads/Home/OurAction/008-leadership.png",
+        icon: "/storage/OurActions/fi_17316107.svg",
         title: "Organizational Development",
         description: "We empower underprivileged children with the opportunity to learn, grow, and succeed.",
         alt: "Organizational Development Icon"
       },
       {
         id: 5,
-        icon: "/storage/uploads/Home/OurAction/003-global-warming.png",
+        icon: "/storage/OurActions/fi_6786176.svg",
         title: "Climate Change",
         description: "From free medical camps to life-saving treatments, we support initiatives that provide critical aid to access to proper.",
         alt: "Climate Change Icon"
       },
       {
         id: 6,
-        icon: "/storage/uploads/Home/OurAction/002-action.png",
+        icon: "/storage/OurActions/fi_1176562.svg",
         title: "Human Rights",
         description: "From free medical camps to life-saving treatments, we support initiatives that provide critical aid to access to proper.",
         alt: "Human Rights Icon"
       },
       {
         id: 7,
-        icon: "/storage/uploads/Home/OurAction/009-teamwork.png",
+        icon: "/storage/OurActions/fi_8992468.svg",
         title: "Human Resource",
         description: "Bringing clean and safe drinking water to communities, improving sanitation, and preventing waterborne diseases.",
         alt: "Human Resource Icon"
       },
       {
         id: 8,
-        icon: "/storage/uploads/Home/OurAction/001-user.png",
+        icon: "/storage/OurActions/fi_726211.svg",
         title: "Social Enterprises",
         description: "We empower communities by investing in sustainable projects, training livelihood programs.",
         alt: "Social Enterprises Icon"
       },
       {
         id: 9,
-        icon: "/storage/uploads/Home/OurAction/010-food-safety.png",
+        icon: "/storage/OurActions/fi_4994126.svg",
         title: "Agriculture Food Security",
         description: "Bringing clean and safe drinking water to communities, improving sanitation, and preventing waterborne diseases.",
         alt: "Agriculture Food Security Icon"
@@ -220,49 +220,49 @@ export default function Home() {
     stats: [
       {
         id: 1,
-        icon: "/storage/uploads/Home/WhereWeWork/001-kindness.png",
+        icon: "/storage/WhereWeWork/image 6-3.png",
         value: "450K",
         label: "Total Member Reach",
         alt: "Member Reach Icon"
       },
       {
         id: 2,
-        icon: "/storage/uploads/Home/WhereWeWork/001-kindness.png",
-        value: "450K",
-        label: "Total Member Reach",
+        icon: "/storage/WhereWeWork/image 6-2.png",
+        value: "41,382",
+        label: "Mail Engaged in Divers Livelihoods Options",
         alt: "Member Reach Icon"
       },
       {
         id: 3,
-        icon: "/storage/uploads/Home/WhereWeWork/001-kindness.png",
-        value: "450K",
-        label: "Total Member Reach",
+        icon: "/storage/WhereWeWork/image 6-1.png",
+        value: "35,193",
+        label: "Women Engaged in Diverse Livelihoods Options",
         alt: "Member Reach Icon"
       },
       {
         id: 4,
-        icon: "/storage/uploads/Home/WhereWeWork/001-kindness.png",
-        value: "41,382",
-        label: "Mail Engaged in Diverse Livelihoods Options",
+        icon: "/storage/WhereWeWork/image 6.png",
+        value: "35,193",
+        label: "Women Engaged in Diverse Livelihoods Options",
         alt: "Mail Engaged Icon"
       },
       {
         id: 5,
-        icon: "/storage/uploads/Home/WhereWeWork/001-kindness.png",
-        value: "35,193",
-        label: "Women Engaged in Diverse Livelihoods Options",
+        icon: "/storage/WhereWeWork/image 6-1.png",
+        value: "38.0 M",
+        label: "Digital media Outreach",
         alt: "Women Engaged Icon"
       },
       {
         id: 6,
-        icon: "/storage/uploads/Home/WhereWeWork/001-kindness.png",
-        value: "41,382",
-        label: "Mail Engaged in Diverse Livelihoods Options",
+        icon: "/storage/WhereWeWork/image 6.png",
+        value: "35,193",
+        label: "Women Engagement in Diverse Livelihood Options",
         alt: "Mail Engaged Icon"
       }
     ],
     image: {
-      src: "https://placehold.es/710x930/cccccc/webp?text=Map%20Place%20holder%20Text",
+      src: "/storage/WhereWeWork/image.png",
       alt: "Map Place holder Text",
       className: "w-full h-232.5 object-cover rounded-4xl"
     }
@@ -283,7 +283,7 @@ export default function Home() {
         id: 1,
         title: "Micro-Finance <br /> Program",
         description: "Micro finance Program is the core program of all DUS activities. DUS has been implementing its major program in partnership with Palli Karma Sahayak Foundation (PKSF) since 2000. It provides collateral free micro-credit to its around 40K+ group members where 97 percent are female. Under this program, DUS has savings scheme for poor women who has no access in mainstream banks due to lack of capital and assets.",
-        image: "https://placehold.es/700x500/cccccc/webp?text=Micro-Finance",
+        image: "/storage/OurPrograms/945e2496664a40b12a1cddd6561e954cdc78e255.webp",
         bgColor: "bg-[#E6F3E7]",
         link: "/programs/micro-finance"
       },
@@ -291,7 +291,7 @@ export default function Home() {
         id: 2,
         title: "Climate Change and Disaster Management Program",
         description: "DUS is geographically located at very exposed disaster risk area of Coastal Bangladesh, most of its beneficiaries as well as core staffs of the organization and volunteers including general members are experienced by the influence of topography & living experience with the community, to cope with and face any natural disaster. Further during its lifetime DUS was active in major emergency in relief and rehabilitation programs following Nov. 1970 cyclone relief, 1988/1991-cyclone recovery, 1998 flood response, SIDR 2007 etc. DUS is now moving beyond relief and rehabilitation into institutionalized preparedness, risk reduction and management interventions as well as long term adaptation strategies as consequence of lessons learnt while helping communities cope with the devastating effects of Cyclone SIDR, which struck in November 2007.",
-        image: "https://placehold.es/700x500/cccccc/webp?text=Climate+Change",
+        image: "/storage/OurPrograms/a03fa6dba9fcdac0a5aedf2d337b118228a03298.webp",
         bgColor: "bg-[#F3EDE6]",
         link: "/programs/climate-change"
       },
@@ -299,7 +299,7 @@ export default function Home() {
         id: 3,
         title: "Community Radio",
         description: "Strengthening Hatiya Island community for pioneering-connecting and empowering their Voice for Change Bangladesh Government has already acknowledged the importance of community radio and announced the Community Radio Installation, Broadcast & Operation Policy. Bangladesh is the 2nd country in South Asia in formulating policy for Community Radio. Meanwhile, Govt.",
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
+        image: "/storage/OurPrograms/e280b627b1771904c38022aac2566b932e248887.webp",
         bgColor: "bg-[#E8E6F3]",
         link: "/programs/community-radio"
       },
@@ -307,7 +307,7 @@ export default function Home() {
         id: 4,
         title: "Research and Documentation",
         description: "DUS has a strong Research and Documentation Cell to conduct quality research in diverse areas of human and social development sectors, covering most importantly education, health, livelihood development, environment, human rights and social justice. The R&D cell works as a professional support services unit to fulfill the growing demand for generation and systematic analysis of information in connection with the increasing involvement of DUS in its development activities. Thus it engages in survey and research activities addressing the in-house needs of the organization for exploring and examining the feasible approaches for development, planning, designing, piloting, assessing and improving the implementation and performance of a wide range of projects, and determining the best practices and models of socio-economic interventions.",
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
+        image: "/storage/OurPrograms/a496922a3fc00992b6c454822d60bde51dc001e5.webp",
         bgColor: "bg-[#F3E6EA]",
         link: "/programs/community-radio"
       },
@@ -315,7 +315,7 @@ export default function Home() {
         id: 5,
         title: "WATSAN Program",
         description: "Building on its long experience of providing water and sanitation services to communities, DUS started its Water and Sanitation program with the financial and technical support of the Netherland Govt. The program is implementing in Nangolia Char and Nalerchar under Hatiya Upazilla. Our goal is to provide sustainable and integrated WATSAN services in the rural areas and break the contamination cycle of unsanitary latrines, contaminated water and unsafe hygiene practices, as well as ensure sustainability and scaling-up of WATSAN services. The program aims to ensure access to sanitation services for four thousand six hundred & five household, safe water services with 250 nos. DTW and hygiene education for around 20000 people of the respective area of DUS.",
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
+        image: "/storage/OurPrograms/be14c45848898048e7b7832affc4dc713b032e10.webp",
         bgColor: "bg-[#F2F3E6]",
         link: "/programs/community-radio"
       }
@@ -331,7 +331,7 @@ export default function Home() {
     stories: [
       {
         id: 1,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
+        image: "/storage/Stories/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp",
         date: "June 6, 2023",
         title: "Invest in Kindness, Reap a Better Future",
         description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
@@ -339,7 +339,7 @@ export default function Home() {
       },
       {
         id: 2,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
+        image: "/storage/Stories/b3d758bf8cd7985c857cdbe55b5101b105ee9f75.webp",
         date: "June 6, 2023",
         title: "How to Design a Custom Pool That Perfectly Fits Your Charlotte Backyard",
         description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
@@ -347,7 +347,7 @@ export default function Home() {
       },
       {
         id: 3,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
+        image: "/storage/Stories/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff (1).webp",
         date: "June 6, 2023",
         title: "The Benefits of Mindfulness in Daily Life",
         description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
@@ -355,7 +355,7 @@ export default function Home() {
       },
       {
         id: 4,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
+        image: "/storage/Stories/3fe55eb9ebcfd7efb80f559a00b8b5a1da0e8c3e.webp",
         date: "July 15, 2023",
         title: "Empowering Women Through Microfinance",
         description: "Discover how small loans are making a big difference in the lives of women entrepreneurs in rural communities. Our microfinance program has helped thousands of women start their own businesses and achieve financial independence.",
@@ -363,7 +363,7 @@ export default function Home() {
       },
       {
         id: 5,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
+        image: "/storage/Stories/de90e922c05aa3585b8f65361c306413c3b3d7be.webp",
         date: "August 2, 2023",
         title: "Building Resilient Communities Against Climate Change",
         description: "Learn about our initiatives to help coastal communities adapt to the impacts of climate change through sustainable farming practices, disaster preparedness, and ecosystem restoration.",
@@ -371,7 +371,7 @@ export default function Home() {
       },
       {
         id: 6,
-        image: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
+        image: "/storage/Stories/f465fcbdab4004cd25dba4df06b9f8d5f2648620.webp",
         date: "September 10, 2023",
         title: "Providing Clean Water to Remote Villages",
         description: "Access to clean water is a basic human right. See how our WATSAN program is bringing safe drinking water to communities that have never had it before.",
@@ -391,7 +391,7 @@ export default function Home() {
       }
     },
     image: {
-      src: "https://placehold.es/700x500/cccccc/webp?text=Community+Radio",
+      src: "/storage/UpcomingEvent/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp",
       alt: "Events Image",
       className: "mt-15 rounded-2xl h-139.25 w-auto"
     },
@@ -514,32 +514,32 @@ export default function Home() {
       title: "Program Impact and SDGs",
       mainImage: {
         images: [
-          "https://placehold.co/700x745/cccccc/webp?text=Community+Radio+1",
-          "https://placehold.co/700x745/bbbbbb/webp?text=Community+Radio+2",
-          "https://placehold.co/700x745/aaaaaa/webp?text=Community+Radio+3",
-          "https://placehold.co/700x745/dddddd/webp?text=Community+Radio+4"
+          "/storage/ProgramImpact/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff (1).webp",
+          "/storage/ProgramImpact/64065404ef679e54d2dabd90bba3b1744817c578.webp",
+          "/storage/ProgramImpact/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff (1).webp",
+          "/storage/ProgramImpact/64065404ef679e54d2dabd90bba3b1744817c578.webp"
         ]
       }
     },
     sdgImages: [
-      { id: 1, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+1", alt: "No Poverty" },
-      { id: 2, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+2", alt: "Zero Hunger" },
-      { id: 3, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+3", alt: "Good Health" },
-      { id: 4, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+4", alt: "Quality Education" },
-      { id: 5, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+5", alt: "Gender Equality" },
-      { id: 6, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+6", alt: "Clean Water" },
-      { id: 7, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+7", alt: "Clean Energy" },
-      { id: 8, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+8", alt: "Decent Work" },
-      { id: 9, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+9", alt: "Industry Innovation" },
-      { id: 10, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+10", alt: "Reduced Inequalities" },
-      { id: 11, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+11", alt: "Sustainable Cities" },
-      { id: 12, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+12", alt: "Responsible Consumption" },
-      { id: 13, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+13", alt: "Climate Action" },
-      { id: 14, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+14", alt: "Life Below Water" },
-      { id: 15, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+15", alt: "Life On Land" },
-      { id: 16, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+16", alt: "Peace Justice" },
-      { id: 17, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+17", alt: "Partnerships" },
-      { id: 18, src: "https://placehold.es/200x200/cccccc/webp?text=SDG+18", alt: "SDG 18" }
+      { id: 1, src: "/storage/ProgramImpact/Screenshot_17-5-2026_18732_www.figma.com.webp", alt: "No Poverty" },
+      { id: 2, src: "/storage/ProgramImpact/Screenshot_17-5-2026_18742_www.figma.com.webp", alt: "Zero Hunger" },
+      { id: 3, src: "/storage/ProgramImpact/Screenshot_17-5-2026_18750_www.figma.com.webp", alt: "Good Health" },
+      { id: 4, src: "/storage/ProgramImpact/Screenshot_17-5-2026_1887_www.figma.com.webp", alt: "Quality Education" },
+      { id: 5, src: "/storage/ProgramImpact/Screenshot_17-5-2026_18823_www.figma.com.webp", alt: "Gender Equality" },
+      { id: 6, src: "/storage/ProgramImpact/Screenshot_17-5-2026_18837_www.figma.com.webp", alt: "Clean Water" },
+      { id: 7, src: "/storage/ProgramImpact/Screenshot_17-5-2026_1894_www.figma.com.webp", alt: "Clean Energy" },
+      { id: 8, src: "/storage/ProgramImpact/Screenshot_17-5-2026_18913_www.figma.com.webp", alt: "Decent Work" },
+      { id: 9, src: "/storage/ProgramImpact/Screenshot_17-5-2026_18920_www.figma.com.webp", alt: "Industry Innovation" },
+      { id: 10, src: "/storage/ProgramImpact/Screenshot_17-5-2026_18930_www.figma.com.webp", alt: "Reduced Inequalities" },
+      { id: 11, src: "/storage/ProgramImpact/Screenshot_17-5-2026_18939_www.figma.com.webp", alt: "Sustainable Cities" },
+      { id: 12, src: "/storage/ProgramImpact/Screenshot_17-5-2026_18949_www.figma.com.webp", alt: "Responsible Consumption" },
+      { id: 13, src: "/storage/ProgramImpact/Screenshot_17-5-2026_18108_www.figma.com.webp", alt: "Climate Action" },
+      { id: 14, src: "/storage/ProgramImpact/Screenshot_17-5-2026_181017_www.figma.com.webp", alt: "Life Below Water" },
+      { id: 15, src: "/storage/ProgramImpact/Screenshot_17-5-2026_181031_www.figma.com.webp", alt: "Life On Land" },
+      { id: 16, src: "/storage/ProgramImpact/Screenshot_17-5-2026_181046_www.figma.com.webp", alt: "Peace Justice" },
+      { id: 17, src: "/storage/ProgramImpact/Screenshot_17-5-2026_181055_www.figma.com.webp", alt: "Partnerships" },
+      { id: 18, src: "/storage/ProgramImpact/Screenshot_17-5-2026_181133_www.figma.com.webp", alt: "SDG 18" }
     ]
   };
 

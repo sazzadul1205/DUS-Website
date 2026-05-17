@@ -18,10 +18,17 @@ import {
   FaArrowUp,
   FaArrowDown,
   FaMinus,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
 // Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';;
+import { Can } from '../../../components/Auth/Can';
+import { CanAny } from '../../../components/Auth/CanAny';
+
 
 // Chart.js imports
 import {
@@ -68,8 +75,44 @@ export default function StatisticsIndex({
   dateRange,
   filters
 }) {
-  const [selectedRange, setSelectedRange] = useState(dateRange || 'all');
+  const { flash } = usePage().props;
+
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    hasAnyPermission,
+    hasRole
+  } = useAuth();
+
+  // Check permissions for viewing statistics
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewAtsAnalytics = hasAnyPermission(['statistics.ats', 'statistics.manage']);
+  const canViewJobAnalytics = hasAnyPermission(['statistics.jobs', 'statistics.manage']);
+  const canViewEmployerAnalytics = hasAnyPermission(['statistics.employers', 'statistics.manage']);
+  const canViewApplicationAnalytics = hasAnyPermission(['statistics.applications', 'statistics.manage']);
+  const canViewStatistics = hasAnyPermission(['statistics.view', 'statistics.manage', 'dashboard.view']);
+
+  // State
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedRange, setSelectedRange] = useState(dateRange || 'all');
+
+  // If user doesn't have permission to view statistics, show access denied
+  if (!canViewStatistics) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view statistics.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
 
   // Handle date range filter change
   const handleRangeChange = (range) => {
@@ -90,7 +133,7 @@ export default function StatisticsIndex({
 
   // Date range buttons
   const DateRangeButtons = () => (
-    <div className="flex gap-2">
+    <div className="flex gap-2 flex-wrap">
       {[
         { value: 'today', label: 'Today' },
         { value: 'week', label: 'This Week' },
@@ -102,8 +145,8 @@ export default function StatisticsIndex({
           key={range.value}
           onClick={() => handleRangeChange(range.value)}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${selectedRange === range.value
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            ? 'bg-blue-600 text-white shadow-md'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
         >
           {range.label}
@@ -159,7 +202,7 @@ export default function StatisticsIndex({
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="mx-auto">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-start mb-6 flex-wrap gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Statistics Dashboard</h1>
               <p className="text-sm text-gray-500 mt-1">
@@ -169,7 +212,7 @@ export default function StatisticsIndex({
             <DateRangeButtons />
           </div>
 
-          {/* Summary Cards */}
+          {/* Summary Cards - Always visible for users with view permission */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Total Jobs */}
             <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
@@ -269,389 +312,411 @@ export default function StatisticsIndex({
             </div>
           </div>
 
-          {/* Charts Row 1 */}
+          {/* Charts Row 1 - Job & Application Trends */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Monthly Job Trend */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FaChartLine className="text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Job Creation Trend</h3>
-              </div>
-              {monthlyJobs.length > 0 ? (
-                <Line
-                  data={{
-                    labels: monthlyJobs.map(item => item.month),
-                    datasets: [
-                      {
-                        label: 'Jobs Created',
-                        data: monthlyJobs.map(item => item.total),
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                      legend: {
-                        position: 'bottom',
-                      },
-                    },
-                  }}
-                />
-              ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
-              )}
-            </div>
-
-            {/* Monthly Application Trend */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FaChartLine className="text-purple-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Application Trend</h3>
-              </div>
-              {monthlyApplications.length > 0 ? (
-                <Line
-                  data={{
-                    labels: monthlyApplications.map(item => item.month),
-                    datasets: [
-                      {
-                        label: 'Applications Received',
-                        data: monthlyApplications.map(item => item.total),
-                        borderColor: '#8b5cf6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                      legend: {
-                        position: 'bottom',
-                      },
-                    },
-                  }}
-                />
-              ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
-              )}
-            </div>
-          </div>
-
-          {/* Charts Row 2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Jobs by Type */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FaChartPie className="text-green-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Jobs by Type</h3>
-              </div>
-              {jobsByType.length > 0 ? (
-                <Pie
-                  data={{
-                    labels: jobsByType.map(item => item.name),
-                    datasets: [
-                      {
-                        data: jobsByType.map(item => item.value),
-                        backgroundColor: jobsByType.map(item => item.color),
-                        borderWidth: 0,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                      legend: {
-                        position: 'bottom',
-                        labels: {
-                          font: { size: 11 },
+            {/* Monthly Job Trend - Requires job analytics permission */}
+            <CanAny permissions={['statistics.jobs', 'statistics.manage']} fallback={null}>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaChartLine className="text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Job Creation Trend</h3>
+                </div>
+                {monthlyJobs.length > 0 ? (
+                  <Line
+                    data={{
+                      labels: monthlyJobs.map(item => item.month),
+                      datasets: [
+                        {
+                          label: 'Jobs Created',
+                          data: monthlyJobs.map(item => item.total),
+                          borderColor: '#3b82f6',
+                          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                          fill: true,
+                          tension: 0.4,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                        legend: {
+                          position: 'bottom',
                         },
                       },
-                    },
-                  }}
-                />
-              ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
-              )}
-            </div>
-
-            {/* Jobs by Experience */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FaChartBar className="text-orange-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Jobs by Experience</h3>
+                    }}
+                  />
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No data available</p>
+                )}
               </div>
-              {jobsByExperience.length > 0 ? (
-                <Bar
-                  data={{
-                    labels: jobsByExperience.map(item => item.name),
-                    datasets: [
-                      {
-                        data: jobsByExperience.map(item => item.value),
-                        backgroundColor: jobsByExperience.map(item => item.color),
-                        borderRadius: 8,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                      legend: {
-                        display: false,
-                      },
-                    },
-                  }}
-                />
-              ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
-              )}
-            </div>
+            </CanAny>
 
-            {/* Applications by Status */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FaChartPie className="text-red-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Applications by Status</h3>
+            {/* Monthly Application Trend - Requires application analytics permission */}
+            <CanAny permissions={['statistics.applications', 'statistics.manage']} fallback={null}>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaChartLine className="text-purple-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Application Trend</h3>
+                </div>
+                {monthlyApplications.length > 0 ? (
+                  <Line
+                    data={{
+                      labels: monthlyApplications.map(item => item.month),
+                      datasets: [
+                        {
+                          label: 'Applications Received',
+                          data: monthlyApplications.map(item => item.total),
+                          borderColor: '#8b5cf6',
+                          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                          fill: true,
+                          tension: 0.4,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                        legend: {
+                          position: 'bottom',
+                        },
+                      },
+                    }}
+                  />
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No data available</p>
+                )}
               </div>
-              {applicationsByStatus.some(item => item.value > 0) ? (
-                <Doughnut
-                  data={{
-                    labels: applicationsByStatus.map(item => item.name),
-                    datasets: [
-                      {
-                        data: applicationsByStatus.map(item => item.value),
-                        backgroundColor: applicationsByStatus.map(item => item.color),
-                        borderWidth: 0,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                      legend: {
-                        position: 'bottom',
-                      },
-                    },
-                  }}
-                />
-              ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
-              )}
-            </div>
+            </CanAny>
           </div>
 
-          {/* Charts Row 3 */}
+          {/* Charts Row 2 - Job Distribution & Application Status */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* Jobs by Type - Requires job analytics */}
+            <CanAny permissions={['statistics.jobs', 'statistics.manage']} fallback={null}>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaChartPie className="text-green-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Jobs by Type</h3>
+                </div>
+                {jobsByType.length > 0 ? (
+                  <Pie
+                    data={{
+                      labels: jobsByType.map(item => item.name),
+                      datasets: [
+                        {
+                          data: jobsByType.map(item => item.value),
+                          backgroundColor: jobsByType.map(item => item.color),
+                          borderWidth: 0,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                        legend: {
+                          position: 'bottom',
+                          labels: {
+                            font: { size: 11 },
+                          },
+                        },
+                      },
+                    }}
+                  />
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No data available</p>
+                )}
+              </div>
+            </CanAny>
+
+            {/* Jobs by Experience - Requires job analytics */}
+            <CanAny permissions={['statistics.jobs', 'statistics.manage']} fallback={null}>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaChartBar className="text-orange-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Jobs by Experience</h3>
+                </div>
+                {jobsByExperience.length > 0 ? (
+                  <Bar
+                    data={{
+                      labels: jobsByExperience.map(item => item.name),
+                      datasets: [
+                        {
+                          data: jobsByExperience.map(item => item.value),
+                          backgroundColor: jobsByExperience.map(item => item.color),
+                          borderRadius: 8,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                        legend: {
+                          display: false,
+                        },
+                      },
+                    }}
+                  />
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No data available</p>
+                )}
+              </div>
+            </CanAny>
+
+            {/* Applications by Status - Requires application analytics */}
+            <CanAny permissions={['statistics.applications', 'statistics.manage']} fallback={null}>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaChartPie className="text-red-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Applications by Status</h3>
+                </div>
+                {applicationsByStatus.some(item => item.value > 0) ? (
+                  <Doughnut
+                    data={{
+                      labels: applicationsByStatus.map(item => item.name),
+                      datasets: [
+                        {
+                          data: applicationsByStatus.map(item => item.value),
+                          backgroundColor: applicationsByStatus.map(item => item.color),
+                          borderWidth: 0,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                        legend: {
+                          position: 'bottom',
+                        },
+                      },
+                    }}
+                  />
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No data available</p>
+                )}
+              </div>
+            </CanAny>
+          </div>
+
+          {/* Charts Row 3 - Categories & Locations */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Top Categories */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FaBuilding className="text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Top Job Categories</h3>
-              </div>
-              {jobsByCategory.length > 0 ? (
-                <div className="space-y-3">
-                  {jobsByCategory.map((category, index) => (
-                    <div key={index}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700">{category.name}</span>
-                        <span className="font-semibold">{category.value}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full transition-all duration-500"
-                          style={{
-                            width: `${(category.value / jobsByCategory[0].value) * 100}%`,
-                            backgroundColor: category.color,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
+            <CanAny permissions={['statistics.jobs', 'statistics.manage']} fallback={null}>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaBuilding className="text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Top Job Categories</h3>
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
-              )}
-            </div>
+                {jobsByCategory.length > 0 ? (
+                  <div className="space-y-3">
+                    {jobsByCategory.map((category, index) => (
+                      <div key={index}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-700">{category.name}</span>
+                          <span className="font-semibold">{category.value}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="h-2 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${(category.value / jobsByCategory[0].value) * 100}%`,
+                              backgroundColor: category.color,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No data available</p>
+                )}
+              </div>
+            </CanAny>
 
             {/* Top Locations */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FaMapMarkerAlt className="text-red-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Top Job Locations</h3>
-              </div>
-              {jobsByLocation.length > 0 ? (
-                <div className="space-y-3">
-                  {jobsByLocation.map((location, index) => (
-                    <div key={index}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700">{location.name}</span>
-                        <span className="font-semibold">{location.value}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full transition-all duration-500"
-                          style={{
-                            width: `${(location.value / jobsByLocation[0].value) * 100}%`,
-                            backgroundColor: location.color,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
+            <CanAny permissions={['statistics.jobs', 'statistics.manage']} fallback={null}>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaMapMarkerAlt className="text-red-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Top Job Locations</h3>
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
-              )}
-            </div>
+                {jobsByLocation.length > 0 ? (
+                  <div className="space-y-3">
+                    {jobsByLocation.map((location, index) => (
+                      <div key={index}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-700">{location.name}</span>
+                          <span className="font-semibold">{location.value}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="h-2 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${(location.value / jobsByLocation[0].value) * 100}%`,
+                              backgroundColor: location.color,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No data available</p>
+                )}
+              </div>
+            </CanAny>
           </div>
 
-          {/* Charts Row 4 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Charts Row 4 - Top Jobs & ATS Scores */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Top Jobs by Applications */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FaBriefcase className="text-green-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Most Applied Jobs</h3>
-              </div>
-              {applicationsByJob.length > 0 ? (
-                <div className="space-y-3 max-h-80 overflow-y-auto">
-                  {applicationsByJob.map((job, index) => (
-                    <div key={index}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700 truncate flex-1 mr-2">{job.title}</span>
-                        <span className="font-semibold">{job.count} apps</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full transition-all duration-500"
-                          style={{
-                            width: `${(job.count / applicationsByJob[0].count) * 100}%`,
-                            backgroundColor: job.color,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
+            <CanAny permissions={['statistics.applications', 'statistics.manage']} fallback={null}>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaBriefcase className="text-green-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Most Applied Jobs</h3>
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
-              )}
-            </div>
+                {applicationsByJob.length > 0 ? (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {applicationsByJob.map((job, index) => (
+                      <div key={index}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-700 truncate flex-1 mr-2">{job.title}</span>
+                          <span className="font-semibold">{job.count} apps</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="h-2 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${(job.count / applicationsByJob[0].count) * 100}%`,
+                              backgroundColor: job.color,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No data available</p>
+                )}
+              </div>
+            </CanAny>
 
             {/* ATS Score by Job Type */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FaChartBar className="text-indigo-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Average ATS Score by Job Type</h3>
-              </div>
-              {atsScoreByJobType.length > 0 ? (
-                <Bar
-                  data={{
-                    labels: atsScoreByJobType.map(item => item.type),
-                    datasets: [
-                      {
-                        label: 'ATS Score (%)',
-                        data: atsScoreByJobType.map(item => item.score),
-                        backgroundColor: '#6366f1',
-                        borderRadius: 8,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        max: 100,
-                        title: {
-                          display: true,
-                          text: 'Score (%)',
+            <CanAny permissions={['statistics.ats', 'statistics.manage']} fallback={null}>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaChartBar className="text-indigo-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Average ATS Score by Job Type</h3>
+                </div>
+                {atsScoreByJobType.length > 0 ? (
+                  <Bar
+                    data={{
+                      labels: atsScoreByJobType.map(item => item.type),
+                      datasets: [
+                        {
+                          label: 'ATS Score (%)',
+                          data: atsScoreByJobType.map(item => item.score),
+                          backgroundColor: '#6366f1',
+                          borderRadius: 8,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          max: 100,
+                          title: {
+                            display: true,
+                            text: 'Score (%)',
+                          },
                         },
                       },
-                    },
-                    plugins: {
-                      legend: {
-                        display: false,
+                      plugins: {
+                        legend: {
+                          display: false,
+                        },
                       },
-                    },
-                  }}
-                />
-              ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
-              )}
-            </div>
+                    }}
+                  />
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No data available</p>
+                )}
+              </div>
+            </CanAny>
           </div>
 
           {/* Top Employers Section */}
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Top Employers by Job Count */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FaBuilding className="text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Top Employers (Jobs)</h3>
-              </div>
-              {topEmployers.length > 0 ? (
-                <div className="space-y-3">
-                  {topEmployers.map((employer, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        {employer.avatar ? (
-                          <img
-                            src={employer.avatar}
-                            alt={employer.name}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <FaBuilding className="text-blue-600 text-sm" />
-                          </div>
-                        )}
-                        <span className="font-medium text-gray-900">{employer.name}</span>
-                      </div>
-                      <span className="text-2xl font-bold text-blue-600">{employer.job_count}</span>
-                    </div>
-                  ))}
+            <CanAny permissions={['statistics.employers', 'statistics.manage']} fallback={null}>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaBuilding className="text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Top Employers (Jobs)</h3>
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
-              )}
-            </div>
+                {topEmployers.length > 0 ? (
+                  <div className="space-y-3">
+                    {topEmployers.map((employer, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          {employer.avatar ? (
+                            <img
+                              src={employer.avatar}
+                              alt={employer.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <FaBuilding className="text-blue-600 text-sm" />
+                            </div>
+                          )}
+                          <span className="font-medium text-gray-900">{employer.name}</span>
+                        </div>
+                        <span className="text-2xl font-bold text-blue-600">{employer.job_count}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No data available</p>
+                )}
+              </div>
+            </CanAny>
 
             {/* Top Employers by Applications */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FaFileAlt className="text-purple-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Top Employers (Applications)</h3>
-              </div>
-              {topEmployersByApplications.length > 0 ? (
-                <div className="space-y-3">
-                  {topEmployersByApplications.map((employer, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <span className="font-medium text-gray-900">{employer.name}</span>
-                      <span className="text-2xl font-bold text-purple-600">{employer.application_count}</span>
-                    </div>
-                  ))}
+            <CanAny permissions={['statistics.employers', 'statistics.manage']} fallback={null}>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaFileAlt className="text-purple-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Top Employers (Applications)</h3>
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
-              )}
-            </div>
+                {topEmployersByApplications.length > 0 ? (
+                  <div className="space-y-3">
+                    {topEmployersByApplications.map((employer, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <span className="font-medium text-gray-900">{employer.name}</span>
+                        <span className="text-2xl font-bold text-purple-600">{employer.application_count}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No data available</p>
+                )}
+              </div>
+            </CanAny>
           </div>
         </div>
       </div>

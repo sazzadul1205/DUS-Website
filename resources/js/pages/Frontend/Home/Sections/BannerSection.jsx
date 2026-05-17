@@ -10,7 +10,7 @@ const BannerSection = ({ bannerData }) => {
   return (
     <section
       id="banner"
-      className="relative w-full h-125 md:h-250 overflow-hidden"
+      className="relative w-full h-125 md:h-280 overflow-hidden"
     >
 
       {/* Background Image */}
