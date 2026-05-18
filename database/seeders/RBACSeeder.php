@@ -16,7 +16,7 @@ class RBACSeeder extends Seeder
     $createdBy = $superAdmin?->id ?? $adminUser?->id ?? 1;
 
     // ==========================================
-    // 1. INSERT ALL PERMISSIONS (ALL NAMES UNIQUE)
+    // 1. INSERT ALL PERMISSIONS (WITH DUPLICATE HANDLING)
     // ==========================================
     $permissions = [
       // Dashboard Module (4)
@@ -25,7 +25,7 @@ class RBACSeeder extends Seeder
       ['name' => 'View Dashboard Quick Actions', 'slug' => 'dashboard.quick_actions.view', 'module' => 'dashboard', 'action' => 'quick_actions_view'],
       ['name' => 'View Dashboard Recent Activity', 'slug' => 'dashboard.recent_activity.view', 'module' => 'dashboard', 'action' => 'recent_activity_view'],
 
-      // Job Listings Module (15)
+      // Job Listings Module (16)
       ['name' => 'View Job Listings', 'slug' => 'job_listings.view', 'module' => 'job_listings', 'action' => 'view'],
       ['name' => 'Create Job Listing', 'slug' => 'job_listings.create', 'module' => 'job_listings', 'action' => 'create'],
       ['name' => 'Store Job Listing', 'slug' => 'job_listings.store', 'module' => 'job_listings', 'action' => 'store'],
@@ -40,7 +40,8 @@ class RBACSeeder extends Seeder
       ['name' => 'Bulk Deactivate Jobs', 'slug' => 'job_listings.bulk_deactivate', 'module' => 'job_listings', 'action' => 'bulk_deactivate'],
       ['name' => 'Bulk Delete Jobs', 'slug' => 'job_listings.bulk_delete', 'module' => 'job_listings', 'action' => 'bulk_delete'],
       ['name' => 'View Job Applications', 'slug' => 'job_listings.applications', 'module' => 'job_listings', 'action' => 'applications'],
-      ['name' => 'View Job Statistics', 'slug' => 'job_listings.statistics', 'module' => 'job_listings', 'action' => 'statistics'],
+      ['name' => 'Job Statistics', 'slug' => 'job_listings.statistics', 'module' => 'job_listings', 'action' => 'statistics'],
+      ['name' => 'Update Job Statuses', 'slug' => 'job_listings.update_statuses', 'module' => 'job_listings', 'action' => 'update_statuses'],
 
       // Public Job Listings Module (7)
       ['name' => 'View Public Jobs', 'slug' => 'public_jobs.view', 'module' => 'public_jobs', 'action' => 'view'],
@@ -70,7 +71,7 @@ class RBACSeeder extends Seeder
       ['name' => 'Export Single Application', 'slug' => 'applications.export_single', 'module' => 'applications', 'action' => 'export_single'],
       ['name' => 'Recalculate ATS', 'slug' => 'applications.recalculate_ats', 'module' => 'applications', 'action' => 'recalculate_ats'],
 
-      // Apply Module (for Job Seekers - Self Service) (13) - ALL NAMES UNIQUE
+      // Apply Module (for Job Seekers - Self Service) (13)
       ['name' => 'View My Applications', 'slug' => 'apply.view', 'module' => 'apply', 'action' => 'view'],
       ['name' => 'View My Own Applications', 'slug' => 'apply.view.own', 'module' => 'apply', 'action' => 'view_own'],
       ['name' => 'Create New Application', 'slug' => 'apply.create', 'module' => 'apply', 'action' => 'create'],
@@ -100,7 +101,7 @@ class RBACSeeder extends Seeder
       ['name' => 'Bulk Force Delete Categories', 'slug' => 'categories.bulk_force_delete', 'module' => 'categories', 'action' => 'bulk_force_delete'],
       ['name' => 'Get Active Categories', 'slug' => 'categories.get_active', 'module' => 'categories', 'action' => 'get_active'],
 
-      // Locations Module (12)
+      // Locations Module (13)
       ['name' => 'View Locations', 'slug' => 'locations.view', 'module' => 'locations', 'action' => 'view'],
       ['name' => 'Create Location', 'slug' => 'locations.create', 'module' => 'locations', 'action' => 'create'],
       ['name' => 'Edit Location', 'slug' => 'locations.edit', 'module' => 'locations', 'action' => 'edit'],
@@ -112,6 +113,7 @@ class RBACSeeder extends Seeder
       ['name' => 'Bulk Restore Locations', 'slug' => 'locations.bulk_restore', 'module' => 'locations', 'action' => 'bulk_restore'],
       ['name' => 'Bulk Activate Locations', 'slug' => 'locations.bulk_activate', 'module' => 'locations', 'action' => 'bulk_activate'],
       ['name' => 'Bulk Deactivate Locations', 'slug' => 'locations.bulk_deactivate', 'module' => 'locations', 'action' => 'bulk_deactivate'],
+      ['name' => 'Bulk Force Delete Locations', 'slug' => 'locations.bulk_force_delete', 'module' => 'locations', 'action' => 'bulk_force_delete'],
       ['name' => 'Get Active Locations', 'slug' => 'locations.get_active', 'module' => 'locations', 'action' => 'get_active'],
 
       // Applicant Profiles Module (28)
@@ -204,20 +206,66 @@ class RBACSeeder extends Seeder
       ['name' => 'Delete Permission', 'slug' => 'permissions.delete', 'module' => 'permissions', 'action' => 'delete'],
       ['name' => 'Bulk Assign Permissions', 'slug' => 'permissions.bulk_assign', 'module' => 'permissions', 'action' => 'bulk_assign'],
 
-      // Statistics Module (2)
+      // Statistics Module (5)
       ['name' => 'View Statistics', 'slug' => 'statistics.view', 'module' => 'statistics', 'action' => 'view'],
       ['name' => 'Export Statistics', 'slug' => 'statistics.export', 'module' => 'statistics', 'action' => 'export'],
+      ['name' => 'ATS Statistics', 'slug' => 'statistics.ats', 'module' => 'statistics', 'action' => 'ats'],
+      ['name' => 'Employer Statistics', 'slug' => 'statistics.employers', 'module' => 'statistics', 'action' => 'employers'],
+      ['name' => 'Job Statistics', 'slug' => 'statistics.jobs', 'module' => 'statistics', 'action' => 'jobs'],
+
+      // ==========================================
+      // MISSING PERMISSIONS FROM CONTROLLER ANALYSIS
+      // ==========================================
+
+      // Additional missing Apply permissions
+      ['name' => 'Manage All Applications', 'slug' => 'applications.manage', 'module' => 'applications', 'action' => 'manage'],
+      ['name' => 'Job Applications View', 'slug' => 'applications.job_applications', 'module' => 'applications', 'action' => 'job_applications'],
+
+      // Additional missing Job Categories permissions
+      ['name' => 'Manage Categories', 'slug' => 'categories.manage', 'module' => 'categories', 'action' => 'manage'],
+
+      // Additional missing Locations permissions
+      ['name' => 'Manage Locations', 'slug' => 'locations.manage', 'module' => 'locations', 'action' => 'manage'],
+
+      // Additional missing Profiles permissions
+      ['name' => 'Manage Profiles', 'slug' => 'profiles.manage', 'module' => 'profiles', 'action' => 'manage'],
+      ['name' => 'Delete Any Profile', 'slug' => 'profiles.delete.any', 'module' => 'profiles', 'action' => 'delete_any'],
+
+      // Additional missing Admin Profile permissions
+      ['name' => 'Manage Admins', 'slug' => 'admin.manage', 'module' => 'admin', 'action' => 'manage'],
+      ['name' => 'View Admins', 'slug' => 'admin.view', 'module' => 'admin', 'action' => 'view'],
+      ['name' => 'Create Admin', 'slug' => 'admin.create', 'module' => 'admin', 'action' => 'create'],
+      ['name' => 'Update Admin', 'slug' => 'admin.update', 'module' => 'admin', 'action' => 'update'],
+      ['name' => 'Delete Admin', 'slug' => 'admin.destroy', 'module' => 'admin', 'action' => 'destroy'],
+
+      // Additional missing Employer permissions
+      ['name' => 'Manage Employers', 'slug' => 'employer.manage', 'module' => 'employer', 'action' => 'manage'],
+      ['name' => 'View Employers', 'slug' => 'employer.view', 'module' => 'employer', 'action' => 'view'],
+      ['name' => 'Update Employer', 'slug' => 'employer.update', 'module' => 'employer', 'action' => 'update'],
+      ['name' => 'Delete Employer', 'slug' => 'employer.destroy', 'module' => 'employer', 'action' => 'destroy'],
+
+      // Additional missing Statistics permissions
+      ['name' => 'Manage Statistics', 'slug' => 'statistics.manage', 'module' => 'statistics', 'action' => 'manage'],
     ];
 
-    // Insert permissions with updateOrInsert to avoid duplicates
+    // Insert permissions with proper duplicate handling
     foreach ($permissions as $permission) {
-      DB::table('permissions')->updateOrInsert(
-        ['slug' => $permission['slug']],
-        array_merge($permission, [
-          'created_at' => now(),
-          'updated_at' => now(),
-        ])
-      );
+      // First, delete any existing permission with the same name or slug to avoid conflicts
+      DB::table('permissions')
+        ->where('slug', $permission['slug'])
+        ->orWhere('name', $permission['name'])
+        ->delete();
+
+      // Then insert fresh
+      DB::table('permissions')->insert([
+        'name' => $permission['name'],
+        'slug' => $permission['slug'],
+        'module' => $permission['module'],
+        'action' => $permission['action'],
+        'is_active' => true,
+        'created_at' => now(),
+        'updated_at' => now(),
+      ]);
     }
 
     // ==========================================
@@ -379,6 +427,9 @@ class RBACSeeder extends Seeder
       'notifications.mark_read',
       'notifications.mark_all_read',
       'statistics.view',
+      'statistics.ats',
+      'statistics.employers',
+      'statistics.jobs',
     ];
 
     foreach ($employerAdminPermissionSlugs as $slug) {
@@ -468,7 +519,7 @@ class RBACSeeder extends Seeder
       }
     }
 
-    // Job Seeker permissions - using the updated unique names
+    // Job Seeker permissions
     $jobSeekerPermissionSlugs = [
       'dashboard.view',
       'public_jobs.view',
@@ -560,7 +611,9 @@ class RBACSeeder extends Seeder
       ['role_id' => $superAdminRoleId, 'module' => 'profiles', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'profile_completion', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'admin_profile', 'access_level' => 'manage'],
+      ['role_id' => $superAdminRoleId, 'module' => 'admin', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'employer_profile', 'access_level' => 'manage'],
+      ['role_id' => $superAdminRoleId, 'module' => 'employer', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'notifications', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'roles', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'users', 'access_level' => 'manage'],
@@ -578,7 +631,9 @@ class RBACSeeder extends Seeder
       ['role_id' => $adminRoleId, 'module' => 'profiles', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'profile_completion', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'admin_profile', 'access_level' => 'manage'],
+      ['role_id' => $adminRoleId, 'module' => 'admin', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'employer_profile', 'access_level' => 'manage'],
+      ['role_id' => $adminRoleId, 'module' => 'employer', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'notifications', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'roles', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'users', 'access_level' => 'manage'],
