@@ -38,11 +38,14 @@ trait HasRoles
       'user_id',
       'role_id'
     )
+      ->select('roles.id', 'roles.name', 'roles.slug', 'roles.level', 'roles.description')
       ->withPivot([
         'assigned_by',
         'assigned_at',
         'expires_at',
         'is_active',
+        'created_at',
+        'updated_at'
       ])
       ->wherePivot('is_active', true)
       ->where(function (Builder $q): void {

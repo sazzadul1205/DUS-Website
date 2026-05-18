@@ -47,11 +47,13 @@ class Role extends Model
 
     /**
      * Users assigned to this role
+     * FIXED: Added explicit foreign key column names to avoid ambiguity
      */
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'user_roles')
-            ->withPivot('assigned_by', 'assigned_at', 'expires_at', 'is_active')
+        return $this->belongsToMany(User::class, 'user_roles', 'role_id', 'user_id')
+            ->select('users.id', 'users.name', 'users.email', 'users.email_verified_at', 'users.created_at')
+            ->withPivot('assigned_by', 'assigned_at', 'expires_at', 'is_active', 'created_at', 'updated_at')
             ->withTimestamps();
     }
 
@@ -60,7 +62,7 @@ class Role extends Model
      */
     public function activeUsers(): BelongsToMany
     {
-        return $this->users()
+        return $this->users() 
             ->wherePivot('is_active', true)
             ->where(function ($q) {
                 $q->whereNull('expires_at')
@@ -70,10 +72,11 @@ class Role extends Model
 
     /**
      * Permissions linked to this role
+     * FIXED: Added explicit foreign key column names
      */
     public function permissions(): BelongsToMany
     {
-        return $this->belongsToMany(Permission::class, 'role_permissions')
+        return $this->belongsToMany(Permission::class, 'role_permissions', 'role_id', 'permission_id')
             ->withPivot('granted')
             ->withTimestamps();
     }
@@ -91,7 +94,7 @@ class Role extends Model
      */
     public function moduleAccess(): HasMany
     {
-        return $this->hasMany(RoleModuleAccess::class);
+        return $this->hasMany(RoleModuleAccess::class, 'role_id');
     }
 
     /**
@@ -207,7 +210,7 @@ class Role extends Model
     }
 
     /**
-     * Check if role can access module at required level - FIXED to reuse constants
+     * Check if role can access module at required level
      */
     public function canAccessModule(
         string $module,
@@ -249,7 +252,9 @@ class Role extends Model
         return $this->grantedPermissions()->pluck('slug')->toArray();
     }
 
-    // Accessors
+    /**
+     * Get users count for this role
+     */
     public function getUsersCountAttribute(): int
     {
         return $this->activeUsers()->count();

@@ -202,10 +202,11 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
   }, [categoryItems, filters]);
 
   // Stats
-  const activeCount = stats?.active || categoryItems.filter(cat => !cat.deleted_at && cat.is_active).length;
-  const inactiveCount = stats?.inactive || categoryItems.filter(cat => !cat.deleted_at && !cat.is_active).length;
-  const deletedCount = stats?.total_deleted || categoryItems.filter(cat => cat.deleted_at).length;
-  const totalCount = stats?.total || categoryItems.length;
+  // Use safe fallbacks with optional chaining
+  const activeCount = initialStats?.active ?? categoryItems.filter(cat => !cat.deleted_at && cat.is_active).length;
+  const inactiveCount = initialStats?.inactive ?? categoryItems.filter(cat => !cat.deleted_at && !cat.is_active).length;
+  const deletedCount = initialStats?.total_deleted ?? categoryItems.filter(cat => cat.deleted_at).length;
+  const totalCount = initialStats?.total ?? categoryItems.length;
 
   // Handle filter change
   const handleFilterChange = (key, value) => {

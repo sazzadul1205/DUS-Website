@@ -1,1009 +1,1688 @@
-// pages/Backend/ApplicantProfile/Show.jsx
+// resources/js/pages/Backend/ApplicantProfile/Index.jsx
 
-// React
-import { useState } from 'react';
-
-// Inertia
-import { Head, Link, router, usePage } from '@inertiajs/react';
-
-// Layout
+import { useState, useEffect, useMemo } from 'react';
+import { Head, router, usePage, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
-
-// Auth
+import { Can } from '../../../components/Auth/Can';
+import { CanRole } from '../../../components/Auth/CanRole';
 import { useAuth } from '../../../hooks/useAuth';
 
 // Icons
-import { FaCakeCandles } from "react-icons/fa6";
 import {
   FaUser,
+  FaBriefcase,
+  FaGraduationCap,
+  FaTrophy,
   FaEnvelope,
   FaPhone,
-  FaEdit,
-  FaTrash,
-  FaTrashRestore,
-  FaFilePdf,
-  FaUserCircle,
-  FaPlusCircle,
-  FaSpinner,
-  FaBirthdayCake,
-  FaIdCard,
-  FaExclamationTriangle,
-  FaFileAlt,
-  FaBriefcase,
-  FaTrophy,
-  FaMapMarkerAlt,
-  FaVenusMars,
-  FaLinkedin,
-  FaGithub,
-  FaTwitter,
-  FaGlobe,
   FaCalendarAlt,
-  FaStar,
-  FaPlus,
-  FaFacebook,
-  FaYoutube,
-  FaMedium,
-  FaDev,
-  FaStackOverflow,
-  FaChartLine,
-  FaUserTie,
-  FaLink,
+  FaMapMarkerAlt,
+  FaFilter,
+  FaSearch,
+  FaChevronDown,
+  FaChevronUp,
+  FaTimes,
+  FaEye,
+  FaTrash,
+  FaUndo,
+  FaSpinner,
   FaCheckCircle,
   FaClock,
-  FaGraduationCap,
-  FaBuilding,
-  FaCalendarDay,
-  FaInfoCircle,
-  FaArrowLeft,
-  FaShieldAlt,
+  FaChartLine,
+  FaUsers,
+  FaChevronLeft,
+  FaChevronRight,
+  FaSort,
+  FaSortUp,
+  FaSortDown,
+  FaDownload,
+  FaFilePdf,
+  FaLinkedin,
+  FaFacebook,
+  FaTwitter,
+  FaUserCheck,
+  FaUserTimes,
+  FaStar,
+  FaRegBuilding,
+  FaBirthdayCake,
+  FaVenusMars,
+  FaTint,
+  FaIdCard,
+  FaLock,
 } from 'react-icons/fa';
-import {
-  MdOutlineBloodtype,
-  MdSchool,
-  MdPending,
-  MdVerified,
-  MdEmail
-} from 'react-icons/md';
 
-// SweetAlert2
 import Swal from 'sweetalert2';
 
-// Modals
-import CVModal from './Modals/CVModal';
-import EducationModal from './Modals/EducationModal';
-import BasicInfoModal from './Modals/BasicInfoModal';
-import AchievementsModal from './Modals/AchievementsModal';
-import WorkExperienceModal from './Modals/WorkExperienceModal';
-import ChangePasswordModal from './Modals/ChangePasswordModal';
-import ProfessionalInfoModal from './Modals/ProfessionalInfoModal';
+export default function Index({
+  profiles: initialProfiles,
+  filters: initialFilters = {},
+  filterOptions = {},
+  statusCounts = {},
+  genderDistribution = {},
+  experienceDistribution = {},
+  totalProfiles = 0,
+}) {
+  const { flash } = usePage().props;
+  const { user, hasPermission, hasAnyPermission, hasRole } = useAuth();
+  const safeInitialFilters = (initialFilters && !Array.isArray(initialFilters)) ? initialFilters : {};
 
-export default function Show({ profile, canEdit = false, canDelete = false }) {
-  // Use centralized auth hook
-  const {
-    user: authUser,
-    isAuthenticated,
-    hasAnyPermission,
-    hasRole,
-  } = useAuth();
+  // States
+  const [profiles, setProfiles] = useState(initialProfiles);
+  const [selectedProfiles, setSelectedProfiles] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [sortField, setSortField] = useState(safeInitialFilters.sort || 'created_at');
+  const [sortDirection, setSortDirection] = useState(safeInitialFilters.direction || 'desc');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Check permissions
-  const isAdmin = hasRole('admin');
-  const isSuperAdmin = hasRole('super-admin');
-  const canViewAllProfiles = hasAnyPermission(['applicant-profiles.view', 'applicant-profiles.manage']);
-  const canEditAnyProfile = hasAnyPermission(['applicant-profiles.update', 'applicant-profiles.manage']);
-  const canDeleteAnyProfile = hasAnyPermission(['applicant-profiles.destroy', 'applicant-profiles.manage']);
+  // Permission checks
+  const canViewProfiles = hasPermission('applicant-profiles.view') || hasRole('admin');
+  const canDeleteProfiles = hasAnyPermission(['applicant-profiles.delete', 'applicant-profiles.bulk-delete']) || hasRole('admin');
+  const canRestoreProfiles = hasAnyPermission(['applicant-profiles.restore', 'applicant-profiles.bulk-restore']) || hasRole('admin');
+  const canViewFilters = hasPermission('applicant-profiles.filter') || hasRole('admin');
+  const canExportProfiles = hasPermission('applicant-profiles.export') || hasRole('admin');
+  const canViewStats = hasPermission('applicant-profiles.stats') || hasRole('admin');
 
-  // Check if current user is the profile owner
-  const isOwner = authUser?.id === profile?.user_id;
+  // Keep local state in sync with Inertia props (e.g. back/forward navigation,
+  // visiting this page from elsewhere, or any navigation that doesn't go through
+  // our explicit router.get onSuccess handlers).
+  useEffect(() => {
+    setProfiles(initialProfiles);
+    setSelectedProfiles([]);
+  }, [initialProfiles]);
 
-  // Check if user has admin role for viewing/editing other profiles
-  const hasAdminRole = isSuperAdmin || isAdmin || canViewAllProfiles || canEditAnyProfile;
+  // Date range options
+  const dateRangeOptions = [
+    { value: '', label: 'Any Time' },
+    { value: 'today', label: 'Today' },
+    { value: 'yesterday', label: 'Yesterday' },
+    { value: 'this_week', label: 'This Week' },
+    { value: 'this_month', label: 'This Month' },
+    { value: 'last_month', label: 'Last Month' },
+    { value: 'this_year', label: 'This Year' },
+  ];
 
-  // State
-  const [deleting, setDeleting] = useState(false);
-  const [imgError, setImgError] = useState(false);
-  const [restoring, setRestoring] = useState(false);
+  // Experience level options
+  const experienceLevelOptions = [
+    { value: '', label: 'Any Level' },
+    { value: 'fresher', label: 'Fresher (0 years)' },
+    { value: 'entry', label: 'Entry Level (0-1 years)' },
+    { value: 'junior', label: 'Junior (1-3 years)' },
+    { value: 'mid', label: 'Mid Level (3-6 years)' },
+    { value: 'senior', label: 'Senior (6-10 years)' },
+    { value: 'expert', label: 'Expert (10+ years)' },
+  ];
 
-  const baseProfilePath = '/backend/applicant/profile';
-  const [activeModal, setActiveModal] = useState(null);
-  const isDeleted = profile?.deleted_at !== null;
+  // Completion status options
+  const completionStatusOptions = [
+    { value: '', label: 'All Profiles' },
+    { value: 'complete', label: 'Complete Profiles' },
+    { value: 'incomplete', label: 'Incomplete Profiles' },
+    { value: 'minimal', label: 'Minimal Profiles' },
+    { value: 'complete_with_cv', label: 'Complete with CV' },
+  ];
 
-  // If user doesn't have permission to view this profile and isn't the owner, show access denied
-  if (!isOwner && !hasAdminRole) {
-    return (
-      <AuthenticatedLayout>
-        <Head title="Access Denied" />
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-          <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaShieldAlt className="text-red-500 text-4xl" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-            <p className="text-gray-600">You don't have permission to view this profile.</p>
-          </div>
-        </div>
-      </AuthenticatedLayout>
-    );
-  }
+  // Trash filter options
+  const trashOptions = [
+    { value: '', label: 'Without Trash' },
+    { value: 'with', label: 'With Trash' },
+    { value: 'only', label: 'Only Trash' },
+  ];
 
-  // Format date
-  const formatDate = (date) => {
-    if (!date) return 'Not specified';
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+  // Boolean options
+  const booleanOptions = [
+    { value: '', label: 'All' },
+    { value: 'yes', label: 'Yes' },
+    { value: 'no', label: 'No' },
+  ];
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    search: safeInitialFilters.search || '',
+    email: safeInitialFilters.email || '',
+    gender: safeInitialFilters.gender || '',
+    blood_type: safeInitialFilters.blood_type || '',
+    phone: safeInitialFilters.phone || '',
+    address: safeInitialFilters.address || '',
+    birth_date_from: safeInitialFilters.birth_date_from || '',
+    birth_date_to: safeInitialFilters.birth_date_to || '',
+    min_age: safeInitialFilters.min_age || '',
+    max_age: safeInitialFilters.max_age || '',
+    created_from: safeInitialFilters.created_from || '',
+    created_to: safeInitialFilters.created_to || '',
+    date_range: safeInitialFilters.date_range || '',
+    min_experience: safeInitialFilters.min_experience || '',
+    max_experience: safeInitialFilters.max_experience || '',
+    experience_level: safeInitialFilters.experience_level || '',
+    current_job_title: safeInitialFilters.current_job_title || '',
+    has_current_job: safeInitialFilters.has_current_job || '',
+    has_experience: safeInitialFilters.has_experience || '',
+    has_cv: safeInitialFilters.has_cv || '',
+    has_primary_cv: safeInitialFilters.has_primary_cv || '',
+    completion_status: safeInitialFilters.completion_status || '',
+    trashed: safeInitialFilters.trashed || '',
+    has_applied: safeInitialFilters.has_applied || '',
+    min_applications: safeInitialFilters.min_applications || '',
+    application_status: safeInitialFilters.application_status || '',
+    min_ats_score: safeInitialFilters.min_ats_score || '',
+    max_ats_score: safeInitialFilters.max_ats_score || '',
+    has_social_links: safeInitialFilters.has_social_links || '',
+    has_linkedin: safeInitialFilters.has_linkedin || '',
+    has_facebook: safeInitialFilters.has_facebook || '',
+    has_twitter: safeInitialFilters.has_twitter || '',
+    has_job_history: safeInitialFilters.has_job_history || '',
+    min_job_history_count: safeInitialFilters.min_job_history_count || '',
+    company_name: safeInitialFilters.company_name || '',
+    position: safeInitialFilters.position || '',
+    has_education: safeInitialFilters.has_education || '',
+    degree: safeInitialFilters.degree || '',
+    institution: safeInitialFilters.institution || '',
+    min_passing_year: safeInitialFilters.min_passing_year || '',
+    max_passing_year: safeInitialFilters.max_passing_year || '',
+    has_achievements: safeInitialFilters.has_achievements || '',
+    min_achievements: safeInitialFilters.min_achievements || '',
+    email_verified: safeInitialFilters.email_verified || '',
+    user_status: safeInitialFilters.user_status || '',
+  });
+
+  // Get profiles array from paginated response
+  const profileItems = profiles?.data || [];
+
+  // Pagination info
+  const pagination = profiles?.data ? {
+    currentPage: profiles.current_page,
+    lastPage: profiles.last_page,
+    perPage: profiles.per_page,
+    total: profiles.total,
+    from: profiles.from,
+    to: profiles.to,
+  } : null;
+
+  // Build query params
+  const buildQueryParams = (pageNumber = 1, additionalParams = {}) => {
+    const params = {
+      page: pageNumber,
+      sort: sortField,
+      direction: sortDirection,
+      ...additionalParams
+    };
+
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== '' && filters[key] !== null && filters[key] !== undefined) {
+        params[key] = filters[key];
+      }
+    });
+
+    return params;
+  };
+
+  // Apply filters
+  const applyFilters = () => {
+    if (!canViewFilters) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Access Denied',
+        text: 'You do not have permission to filter profiles.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
+    router.get(route('backend.applicant-profile.index'), buildQueryParams(1), {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+      onSuccess: (page) => {
+        setProfiles(page.props.profiles);
+        setShowFilters(false);
+        setSelectedProfiles([]);
+      },
     });
   };
 
-  // Calculate age
-  const calculateAge = (birthDate) => {
-    if (!birthDate) return null;
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
+  // Reset filters
+  const resetFilters = () => {
+    setFilters({
+      search: '',
+      email: '',
+      gender: '',
+      blood_type: '',
+      phone: '',
+      address: '',
+      birth_date_from: '',
+      birth_date_to: '',
+      min_age: '',
+      max_age: '',
+      created_from: '',
+      created_to: '',
+      date_range: '',
+      min_experience: '',
+      max_experience: '',
+      experience_level: '',
+      current_job_title: '',
+      has_current_job: '',
+      has_experience: '',
+      has_cv: '',
+      has_primary_cv: '',
+      completion_status: '',
+      trashed: '',
+      has_applied: '',
+      min_applications: '',
+      application_status: '',
+      min_ats_score: '',
+      max_ats_score: '',
+      has_social_links: '',
+      has_linkedin: '',
+      has_facebook: '',
+      has_twitter: '',
+      has_job_history: '',
+      min_job_history_count: '',
+      company_name: '',
+      position: '',
+      has_education: '',
+      degree: '',
+      institution: '',
+      min_passing_year: '',
+      max_passing_year: '',
+      has_achievements: '',
+      min_achievements: '',
+      email_verified: '',
+      user_status: '',
+    });
+    setSortField('created_at');
+    setSortDirection('desc');
+
+    router.get(route('backend.applicant-profile.index'), { page: 1 }, {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+      onSuccess: (page) => {
+        setProfiles(page.props.profiles);
+        setShowFilters(false);
+        setSelectedProfiles([]);
+      },
+    });
   };
 
-  // Open modal
-  const openModal = (modalType) => {
-    if (!isOwner) {
+  // Handle sort
+  const handleSort = (field) => {
+    const newDirection = sortField === field && sortDirection === 'desc' ? 'asc' : 'desc';
+    setSortField(field);
+    setSortDirection(newDirection);
+
+    router.get(route('backend.applicant-profile.index'), buildQueryParams(1, { sort: field, direction: newDirection }), {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+      onSuccess: (page) => {
+        setProfiles(page.props.profiles);
+        setSelectedProfiles([]);
+      },
+    });
+  };
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    if (page === pagination?.currentPage) return;
+    if (page < 1 || page > pagination?.lastPage) return;
+
+    router.get(route('backend.applicant-profile.index'), buildQueryParams(page), {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+      onSuccess: (page) => {
+        setProfiles(page.props.profiles);
+        setSelectedProfiles([]);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+    });
+  };
+
+  // Handle select all
+  const handleSelectAll = () => {
+    if (!canDeleteProfiles && !canRestoreProfiles) return;
+
+    const selectableProfiles = profileItems.filter(p => !p.deleted_at);
+    if (selectedProfiles.length === selectableProfiles.length) {
+      setSelectedProfiles([]);
+    } else {
+      setSelectedProfiles(selectableProfiles.map(p => p.id));
+    }
+  };
+
+  // Handle select single
+  const handleSelectProfile = (profileId) => {
+    if (!canDeleteProfiles && !canRestoreProfiles) return;
+
+    setSelectedProfiles(prev =>
+      prev.includes(profileId)
+        ? prev.filter(id => id !== profileId)
+        : [...prev, profileId]
+    );
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = () => {
+    if (!canDeleteProfiles) {
       Swal.fire({
-        icon: 'warning',
+        icon: 'error',
         title: 'Access Denied',
-        text: 'You can only edit your own profile.',
-        timer: 2000,
-        showConfirmButton: false,
+        text: 'You do not have permission to delete profiles.',
+        confirmButtonColor: '#d33',
       });
       return;
     }
-    if (isDeleted) {
+
+    if (selectedProfiles.length === 0) {
       Swal.fire({
         icon: 'warning',
-        title: 'Cannot Edit',
-        text: 'Please restore your profile before editing.',
-      });
-      return;
-    }
-    setActiveModal(modalType);
-  };
-
-  // Close modal
-  const closeModal = () => {
-    setActiveModal(null);
-  };
-
-  // Delete profile Handler
-  const handleDelete = () => {
-    if (!isOwner && !canDeleteAnyProfile) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Access Denied',
-        text: 'You do not have permission to delete this profile.',
+        title: 'No Profiles Selected',
+        text: 'Please select at least one profile.',
+        confirmButtonColor: '#3b82f6',
       });
       return;
     }
 
     Swal.fire({
-      title: 'Delete Profile?',
-      text: isOwner ? 'Your profile will be soft deleted. You can restore it later.' : 'This profile will be soft deleted.',
+      title: 'Delete Profiles',
+      text: `Are you sure you want to delete ${selectedProfiles.length} profile(s)? This will move them to trash.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
       cancelButtonColor: '#3085d6',
       confirmButtonText: 'Yes, delete',
       cancelButtonText: 'Cancel'
-    }).then(async (result) => {
+    }).then((result) => {
       if (result.isConfirmed) {
-        setDeleting(true);
-        try {
-          const response = await fetch(`${baseProfilePath}/${profile.id}`, {
-            method: 'DELETE',
-            headers: {
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-              'X-Requested-With': 'XMLHttpRequest',
-              'Accept': 'application/json'
-            }
-          });
+        setIsDeleting(true);
 
-          const data = await response.json();
-
-          if (data.success) {
+        router.post(route('backend.applicant-profile.bulk-delete'), {
+          profile_ids: selectedProfiles,
+        }, {
+          preserveScroll: true,
+          onSuccess: () => {
             Swal.fire({
               icon: 'success',
               title: 'Deleted!',
-              text: isOwner ? 'Your profile has been deleted.' : 'Profile has been deleted.',
-              timer: 2000,
-              showConfirmButton: false
+              text: `${selectedProfiles.length} profile(s) moved to trash.`,
+              timer: 1500,
+              showConfirmButton: false,
             });
-
-            // If admin deleted someone else's profile, redirect back to list
-            if (!isOwner && hasAdminRole) {
-              router.visit(route('backend.applicant-profile.index'));
-            } else {
-              router.reload();
-            }
-          } else {
-            throw new Error(data.message || 'Failed to delete');
-          }
-        } catch (error) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error!',
-            text: error.message || 'Failed to delete profile.',
-          });
-        } finally {
-          setDeleting(false);
-        }
+            setSelectedProfiles([]);
+            setIsDeleting(false);
+            router.reload({ preserveScroll: true });
+          },
+          onError: (error) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Delete Failed',
+              text: error?.message || 'Failed to delete profiles.',
+              confirmButtonColor: '#d33',
+            });
+            setIsDeleting(false);
+          },
+        });
       }
     });
   };
 
-  // Restore profile Handler
-  const handleRestore = () => {
-    if (!isOwner && !canDeleteAnyProfile) {
+  // Handle bulk restore
+  const handleBulkRestore = () => {
+    if (!canRestoreProfiles) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Access Denied',
+        text: 'You do not have permission to restore profiles.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
+    if (selectedProfiles.length === 0) {
       Swal.fire({
         icon: 'warning',
-        title: 'Access Denied',
-        text: 'You do not have permission to restore this profile.',
+        title: 'No Profiles Selected',
+        text: 'Please select at least one profile to restore.',
+        confirmButtonColor: '#3b82f6',
       });
       return;
     }
 
     Swal.fire({
-      title: 'Restore Profile?',
-      text: 'The profile will be restored with all its data.',
+      title: 'Restore Profiles',
+      text: `Are you sure you want to restore ${selectedProfiles.length} profile(s)?`,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
+      confirmButtonColor: '#10b981',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Yes, restore',
       cancelButtonText: 'Cancel'
-    }).then(async (result) => {
+    }).then((result) => {
       if (result.isConfirmed) {
-        setRestoring(true);
-        try {
-          const response = await fetch(`${baseProfilePath}/${profile.user_id}/restore`, {
-            method: 'POST',
-            headers: {
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-              'X-Requested-With': 'XMLHttpRequest',
-              'Accept': 'application/json'
-            }
-          });
+        setIsRestoring(true);
 
-          const data = await response.json();
-
-          if (data.success) {
+        router.post(route('backend.applicant-profile.bulk-restore'), {
+          profile_ids: selectedProfiles,
+        }, {
+          preserveScroll: true,
+          onSuccess: () => {
             Swal.fire({
               icon: 'success',
               title: 'Restored!',
-              text: 'Profile has been restored successfully.',
+              text: `${selectedProfiles.length} profile(s) restored successfully.`,
               timer: 1500,
-              showConfirmButton: false
+              showConfirmButton: false,
             });
-
-            // If admin restored someone else's profile, redirect back to list
-            if (!isOwner && hasAdminRole) {
-              router.visit(route('backend.applicant-profile.index'));
-            } else {
-              router.reload();
-            }
-          } else {
-            throw new Error(data.message || 'Failed to restore');
-          }
-        } catch (error) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error!',
-            text: error.message || 'Failed to restore profile.',
-          });
-        } finally {
-          setRestoring(false);
-        }
+            setSelectedProfiles([]);
+            setIsRestoring(false);
+            router.reload({ preserveScroll: true });
+          },
+          onError: (error) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Restore Failed',
+              text: error?.message || 'Failed to restore profiles.',
+              confirmButtonColor: '#d33',
+            });
+            setIsRestoring(false);
+          },
+        });
       }
     });
   };
 
-  // Go back
-  const handleGoBack = () => {
-    // Check if there's a previous page in history
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      // Fallback to profiles list
-      router.visit(route('backend.applicant-profile.index'));
-    }
+  // Helper functions
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
-  // Check if profile exists
-  if (!profile) {
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return null;
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const getCompletionColor = (percentage) => {
+    if (percentage >= 80) return 'text-green-600 bg-green-100';
+    if (percentage >= 60) return 'text-blue-600 bg-blue-100';
+    if (percentage >= 40) return 'text-yellow-600 bg-yellow-100';
+    return 'text-red-600 bg-red-100';
+  };
+
+  const getExperienceBadge = (years) => {
+    if (years === null || years === 0) return 'bg-gray-100 text-gray-600';
+    if (years <= 1) return 'bg-blue-100 text-blue-700';
+    if (years <= 3) return 'bg-cyan-100 text-cyan-700';
+    if (years <= 6) return 'bg-green-100 text-green-700';
+    if (years <= 10) return 'bg-purple-100 text-purple-700';
+    return 'bg-orange-100 text-orange-700';
+  };
+
+  const getSortIcon = (field) => {
+    if (sortField !== field) return <FaSort className="text-gray-400 ml-1" size={12} />;
+    return sortDirection === 'asc' ?
+      <FaSortUp className="text-blue-600 ml-1" size={12} /> :
+      <FaSortDown className="text-blue-600 ml-1" size={12} />;
+  };
+
+  // Check if any filter is active
+  const hasActiveFilters = () => {
+    return Object.keys(filters).some(key =>
+      filters[key] !== '' && filters[key] !== null && filters[key] !== undefined
+    );
+  };
+
+  // Get active filter count
+  const getActiveFilterCount = () => {
+    return Object.keys(filters).filter(key =>
+      filters[key] !== '' && filters[key] !== null && filters[key] !== undefined
+    ).length;
+  };
+
+  // Show flash messages
+  useEffect(() => {
+    if (flash?.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: flash.success,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    }
+    if (flash?.error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: flash.error,
+        confirmButtonColor: '#d33',
+      });
+    }
+  }, [flash]);
+
+  // Pagination component
+  const Pagination = () => {
+    if (!pagination || pagination.lastPage <= 1) return null;
+
+    const pages = [];
+    const maxVisible = 5;
+    let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+
+    if (endPage - startPage + 1 < maxVisible) {
+      startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return (
+      <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-500">
+            Showing <span className="font-medium">{pagination.from || 0}</span> to{' '}
+            <span className="font-medium">{pagination.to || 0}</span> of{' '}
+            <span className="font-medium">{pagination.total}</span> results (per page {pagination.perPage})
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => handlePageChange(pagination.currentPage - 1)}
+            disabled={pagination.currentPage === 1}
+            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === 1
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+              }`}
+          >
+            <FaChevronLeft size={12} />
+            Previous
+          </button>
+
+          {startPage > 1 && (
+            <>
+              <button
+                onClick={() => handlePageChange(1)}
+                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
+              >
+                1
+              </button>
+              {startPage > 2 && <span className="px-2 text-gray-400">...</span>}
+            </>
+          )}
+
+          {pages.map(page => (
+            <button
+              key={page}
+              onClick={() => handlePageChange(page)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${page === pagination.currentPage
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                }`}
+            >
+              {page}
+            </button>
+          ))}
+
+          {endPage < pagination.lastPage && (
+            <>
+              {endPage < pagination.lastPage - 1 && <span className="px-2 text-gray-400">...</span>}
+              <button
+                onClick={() => handlePageChange(pagination.lastPage)}
+                className="px-3 py-1.5 rounded-lg text-sm bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 transition"
+              >
+                {pagination.lastPage}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => handlePageChange(pagination.currentPage + 1)}
+            disabled={pagination.currentPage === pagination.lastPage}
+            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${pagination.currentPage === pagination.lastPage
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+              }`}
+          >
+            Next
+            <FaChevronRight size={12} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // If user doesn't have permission to view profiles, show access denied
+  if (!canViewProfiles) {
     return (
       <AuthenticatedLayout>
-        <Head title="My Profile" />
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-          <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaUserCircle className="text-gray-400 text-5xl" />
+        <Head title="Access Denied" />
+        <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6">
+          <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaLock className="h-10 w-10 text-red-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">No Profile Found</h2>
-            <p className="text-gray-600 mb-6">You haven't created a profile yet. Create one to apply for jobs.</p>
-            <Link
-              href={route('backend.applicant.profile.create')}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              <FaPlusCircle size={18} />
-              Create Profile
-            </Link>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+            <p className="text-gray-600">
+              You don't have permission to view applicant profiles.
+              Please contact your administrator if you believe this is a mistake.
+            </p>
           </div>
         </div>
       </AuthenticatedLayout>
     );
   }
 
-  // Calculate age
-  const age = calculateAge(profile?.birth_date);
-
-  // Get profile stats
-  const stats = profile?.stats || {};
-
-  // Determine if user can edit this profile
-  const canEditProfile = isOwner || canEditAnyProfile;
-
-  // Determine if user can delete/restore this profile
-  const hasAdminAccess = !isOwner && (canDeleteAnyProfile || hasAdminRole);
-
   return (
     <AuthenticatedLayout>
-      <Head title={`${profile.first_name} ${profile.last_name} - Profile`} />
+      <Head title="Applicant Profiles" />
 
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6">
+        <div className="mx-auto">
+          {/* HEADER */}
+          <div className="flex justify-between items-start mb-6 animate-fade-in">
+            <div>
+              <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                Applicant Profiles
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Manage and review all applicant profiles across the platform
+              </p>
+              <div className="flex gap-3 mt-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  Total: {statusCounts.total || 0}
+                </span>
+                <Can permission="applicant-profiles.stats">
+                  <span className="inline-flex items-center gap-1 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    Complete: {statusCounts.complete || 0}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                    Has CV: {statusCounts.has_cv || 0}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                    Has Applied: {statusCounts.has_applied || 0}
+                  </span>
+                </Can>
+                <span className="inline-flex items-center gap-1 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                  Deleted: {statusCounts.deleted || 0}
+                </span>
+                {hasActiveFilters() && (
+                  <span className="inline-flex items-center gap-1 text-xs text-blue-600">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    Filtered ({getActiveFilterCount()})
+                  </span>
+                )}
+                {pagination && (
+                  <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                    <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                    Results: {pagination.total}
+                  </span>
+                )}
+              </div>
+            </div>
 
-          {/* Header with Back Button for Admin */}
-          <div className="mb-6">
-            {/* Back button for admin view */}
-            {!isOwner && hasAdminRole && (
-              <div className="mb-4">
+            <div className="flex gap-3">
+              <Can permission="applicant-profiles.filter">
                 <button
-                  onClick={handleGoBack}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 group"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 ${showFilters || hasActiveFilters()
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                 >
-                  <FaArrowLeft className="group-hover:-translate-x-1 transition-transform duration-200" size={16} />
-                  Back to Profiles
+                  <FaFilter size={14} />
+                  Filters
+                  {hasActiveFilters() && (
+                    <span className="ml-1 bg-white text-blue-600 rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                      {getActiveFilterCount()}
+                    </span>
+                  )}
+                  {showFilters ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
                 </button>
-              </div>
-            )}
+              </Can>
 
-            <div className="flex justify-between items-center flex-wrap gap-3">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {isOwner ? 'My Profile' : `${profile.first_name}'s Profile`}
-                </h1>
-                {!isOwner && (
-                  <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
-                    <FaInfoCircle size={12} />
-                    Viewing profile as {isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin' : 'administrator'}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-3 flex-wrap">
-                {/* Change Password - Only show for profile owner */}
-                {!isDeleted && !isOauthUser && isOwner && (
-                  <button
-                    onClick={() => openModal('change-password')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
-                  >
-                    <FaUser size={16} />
-                    Change Password
-                  </button>
-                )}
-
-                {/* Restore/Delete buttons */}
-                {isDeleted ? (
-                  <button
-                    onClick={handleRestore}
-                    disabled={restoring}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {restoring ? <FaSpinner className="animate-spin" size={16} /> : <FaTrashRestore size={16} />}
-                    Restore Profile
-                  </button>
-                ) : (
-                  <>
-                    {/* Applications - Only show for profile owner */}
-                    {isOwner && (
-                      <Link
-                        href={route('backend.apply.index')}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-                      >
-                        <FaFileAlt size={16} />
-                        My Applications ({stats.total_applications || 0})
-                      </Link>
-                    )}
-
-                    {/* Delete button - Show for owner or admins */}
-                    {(isOwner || hasAdminAccess) && (
-                      <button
-                        onClick={handleDelete}
-                        disabled={deleting}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-                      >
-                        {deleting ? <FaSpinner className="animate-spin" size={16} /> : <FaTrash size={16} />}
-                        Delete
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
+              <Can permission="applicant-profiles.export">
+                <button
+                  onClick={() => {
+                    // Export functionality
+                    Swal.fire({
+                      icon: 'info',
+                      title: 'Export Feature',
+                      text: 'Export functionality will be implemented soon.',
+                      confirmButtonColor: '#3b82f6',
+                    });
+                  }}
+                  className="px-4 py-2.5 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700 transition-all duration-200"
+                >
+                  <FaDownload size={14} />
+                  Export
+                </button>
+              </Can>
             </div>
           </div>
 
-          {/* View-Only Banner */}
-          {!isOwner && !isDeleted && (
-            <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
-              <div className="flex items-center">
-                <FaInfoCircle className="h-5 w-5 text-blue-400 mr-3" />
-                <p className="text-sm text-blue-700">
-                  You are viewing <span className="font-semibold">{profile.first_name}'s</span> profile. Edit buttons are disabled as this is not your profile.
-                </p>
+          {/* FILTERS PANEL */}
+          {showFilters && canViewFilters && (
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-6 animate-fade-in">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Filter Profiles</h3>
+                <button
+                  onClick={resetFilters}
+                  className="text-sm text-red-600 hover:text-red-800 flex items-center gap-1"
+                >
+                  <FaTimes size={12} />
+                  Reset all
+                </button>
+              </div>
+
+              {/* Basic Filters Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {/* Search */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                  <div className="relative">
+                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                    <input
+                      type="text"
+                      value={filters.search}
+                      onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                      placeholder="Name or email..."
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Gender */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                  <select
+                    value={filters.gender}
+                    onChange={(e) => setFilters(prev => ({ ...prev, gender: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">All Genders</option>
+                    {(filterOptions?.genders || ['male', 'female', 'other']).map(gender => (
+                      <option key={gender} value={gender}>
+                        {gender.charAt(0).toUpperCase() + gender.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Blood Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Blood Type</label>
+                  <select
+                    value={filters.blood_type}
+                    onChange={(e) => setFilters(prev => ({ ...prev, blood_type: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">All Types</option>
+                    {(filterOptions?.blood_types || ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Trash Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Show</label>
+                  <select
+                    value={filters.trashed}
+                    onChange={(e) => setFilters(prev => ({ ...prev, trashed: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    {trashOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Advanced Filters Toggle */}
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 mb-4"
+              >
+                {showAdvanced ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                {showAdvanced ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
+              </button>
+
+              {/* Advanced Filters */}
+              {showAdvanced && (
+                <div className="space-y-6">
+                  {/* Professional Info Section */}
+                  <div className="border-t pt-4">
+                    <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <FaBriefcase className="text-blue-500" size={14} />
+                      Professional Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Experience Range */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Experience (years)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            value={filters.min_experience}
+                            onChange={(e) => setFilters(prev => ({ ...prev, min_experience: e.target.value }))}
+                            placeholder={`Min (${filterOptions?.experience?.min || 0})`}
+                            className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="number"
+                            value={filters.max_experience}
+                            onChange={(e) => setFilters(prev => ({ ...prev, max_experience: e.target.value }))}
+                            placeholder={`Max (${filterOptions?.experience?.max || 30})`}
+                            className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Experience Level */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Experience Level</label>
+                        <select
+                          value={filters.experience_level}
+                          onChange={(e) => setFilters(prev => ({ ...prev, experience_level: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {experienceLevelOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Current Job Title */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Current Job Title</label>
+                        <input
+                          type="text"
+                          value={filters.current_job_title}
+                          onChange={(e) => setFilters(prev => ({ ...prev, current_job_title: e.target.value }))}
+                          placeholder="e.g., Software Engineer"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      {/* Has Current Job */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Has Current Job</label>
+                        <select
+                          value={filters.has_current_job}
+                          onChange={(e) => setFilters(prev => ({ ...prev, has_current_job: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {booleanOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CV & Documents Section */}
+                  <div className="border-t pt-4">
+                    <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <FaFilePdf className="text-red-500" size={14} />
+                      CV & Documents
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Has CV</label>
+                        <select
+                          value={filters.has_cv}
+                          onChange={(e) => setFilters(prev => ({ ...prev, has_cv: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {booleanOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Has Primary CV</label>
+                        <select
+                          value={filters.has_primary_cv}
+                          onChange={(e) => setFilters(prev => ({ ...prev, has_primary_cv: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {booleanOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Completion Status</label>
+                        <select
+                          value={filters.completion_status}
+                          onChange={(e) => setFilters(prev => ({ ...prev, completion_status: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {completionStatusOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Application Related Filters */}
+                  <div className="border-t pt-4">
+                    <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <FaChartLine className="text-green-500" size={14} />
+                      Applications
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Has Applied</label>
+                        <select
+                          value={filters.has_applied}
+                          onChange={(e) => setFilters(prev => ({ ...prev, has_applied: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {booleanOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Min Applications</label>
+                        <input
+                          type="number"
+                          value={filters.min_applications}
+                          onChange={(e) => setFilters(prev => ({ ...prev, min_applications: e.target.value }))}
+                          placeholder="Minimum number"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Min ATS Score</label>
+                        <input
+                          type="number"
+                          value={filters.min_ats_score}
+                          onChange={(e) => setFilters(prev => ({ ...prev, min_ats_score: e.target.value }))}
+                          placeholder={`Min (${filterOptions?.ats?.min || 0})`}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Max ATS Score</label>
+                        <input
+                          type="number"
+                          value={filters.max_ats_score}
+                          onChange={(e) => setFilters(prev => ({ ...prev, max_ats_score: e.target.value }))}
+                          placeholder={`Max (${filterOptions?.ats?.max || 100})`}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Social Links Section */}
+                  <div className="border-t pt-4">
+                    <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <FaLinkedin className="text-blue-700" size={14} />
+                      Social Links
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Has Social Links</label>
+                        <select
+                          value={filters.has_social_links}
+                          onChange={(e) => setFilters(prev => ({ ...prev, has_social_links: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {booleanOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Has LinkedIn</label>
+                        <select
+                          value={filters.has_linkedin}
+                          onChange={(e) => setFilters(prev => ({ ...prev, has_linkedin: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {booleanOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Has Facebook</label>
+                        <select
+                          value={filters.has_facebook}
+                          onChange={(e) => setFilters(prev => ({ ...prev, has_facebook: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {booleanOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Has Twitter</label>
+                        <select
+                          value={filters.has_twitter}
+                          onChange={(e) => setFilters(prev => ({ ...prev, has_twitter: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {booleanOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Job History Filters */}
+                  <div className="border-t pt-4">
+                    <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <FaRegBuilding className="text-gray-600" size={14} />
+                      Job History
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Has Job History</label>
+                        <select
+                          value={filters.has_job_history}
+                          onChange={(e) => setFilters(prev => ({ ...prev, has_job_history: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {booleanOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                        <input
+                          type="text"
+                          value={filters.company_name}
+                          onChange={(e) => setFilters(prev => ({ ...prev, company_name: e.target.value }))}
+                          placeholder="Company name"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Position</label>
+                        <input
+                          type="text"
+                          value={filters.position}
+                          onChange={(e) => setFilters(prev => ({ ...prev, position: e.target.value }))}
+                          placeholder="Job position"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Min Job History Count</label>
+                        <input
+                          type="number"
+                          value={filters.min_job_history_count}
+                          onChange={(e) => setFilters(prev => ({ ...prev, min_job_history_count: e.target.value }))}
+                          placeholder="Minimum entries"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Education Filters */}
+                  <div className="border-t pt-4">
+                    <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <FaGraduationCap className="text-green-600" size={14} />
+                      Education
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Has Education</label>
+                        <select
+                          value={filters.has_education}
+                          onChange={(e) => setFilters(prev => ({ ...prev, has_education: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {booleanOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Degree</label>
+                        <input
+                          type="text"
+                          value={filters.degree}
+                          onChange={(e) => setFilters(prev => ({ ...prev, degree: e.target.value }))}
+                          placeholder="e.g., Bachelor's"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Institution</label>
+                        <input
+                          type="text"
+                          value={filters.institution}
+                          onChange={(e) => setFilters(prev => ({ ...prev, institution: e.target.value }))}
+                          placeholder="University name"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Passing Year Range</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            value={filters.min_passing_year}
+                            onChange={(e) => setFilters(prev => ({ ...prev, min_passing_year: e.target.value }))}
+                            placeholder="Min"
+                            className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg"
+                          />
+                          <input
+                            type="number"
+                            value={filters.max_passing_year}
+                            onChange={(e) => setFilters(prev => ({ ...prev, max_passing_year: e.target.value }))}
+                            placeholder="Max"
+                            className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Date Filters */}
+                  <div className="border-t pt-4">
+                    <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <FaCalendarAlt className="text-gray-500" size={14} />
+                      Dates
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Date Range Preset</label>
+                        <select
+                          value={filters.date_range}
+                          onChange={(e) => setFilters(prev => ({ ...prev, date_range: e.target.value, created_from: '', created_to: '' }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          {dateRangeOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Created From</label>
+                        <input
+                          type="date"
+                          value={filters.created_from}
+                          onChange={(e) => setFilters(prev => ({ ...prev, created_from: e.target.value, date_range: '' }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Created To</label>
+                        <input
+                          type="date"
+                          value={filters.created_to}
+                          onChange={(e) => setFilters(prev => ({ ...prev, created_to: e.target.value, date_range: '' }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Birth Date Range</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="date"
+                            value={filters.birth_date_from}
+                            onChange={(e) => setFilters(prev => ({ ...prev, birth_date_from: e.target.value }))}
+                            className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg"
+                          />
+                          <input
+                            type="date"
+                            value={filters.birth_date_to}
+                            onChange={(e) => setFilters(prev => ({ ...prev, birth_date_to: e.target.value }))}
+                            className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={resetFilters}
+                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={applyFilters}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  Apply Filters
+                </button>
               </div>
             </div>
           )}
 
-          {/* Deleted Banner */}
-          {isDeleted && (
-            <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-              <div className="flex items-center">
-                <FaExclamationTriangle className="h-5 w-5 text-yellow-400 mr-3" />
-                <p className="text-sm text-yellow-700">
-                  This profile has been deleted. {isOwner ? 'You can restore it to continue using your profile.' : 'Only administrators can restore it.'}
-                </p>
+          {/* BULK ACTIONS BAR */}
+          {selectedProfiles.length > 0 && (canDeleteProfiles || canRestoreProfiles) && (
+            <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-4 mb-6 animate-fade-in border border-blue-200">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <FaCheckCircle className="text-blue-600" size={20} />
+                  <span className="font-semibold text-gray-900">
+                    {selectedProfiles.length} profile(s) selected
+                  </span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {filters.trashed === 'only' ? (
+                    <Can permission="applicant-profiles.restore">
+                      <button
+                        onClick={handleBulkRestore}
+                        disabled={isRestoring}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
+                      >
+                        {isRestoring ? <FaSpinner className="animate-spin" size={14} /> : <FaUndo size={14} />}
+                        Restore All
+                      </button>
+                    </Can>
+                  ) : (
+                    <Can permission="applicant-profiles.delete">
+                      <button
+                        onClick={handleBulkDelete}
+                        disabled={isDeleting}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-red-700 transition-all duration-200 disabled:opacity-50"
+                      >
+                        {isDeleting ? <FaSpinner className="animate-spin" size={14} /> : <FaTrash size={14} />}
+                        Delete All
+                      </button>
+                    </Can>
+                  )}
+                  <button
+                    onClick={() => setSelectedProfiles([])}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200"
+                  >
+                    Clear Selection
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Main Profile Card */}
-          <div className={`bg-white rounded-xl shadow-lg overflow-hidden ${isDeleted ? 'opacity-75' : ''}`}>
-
-            {/* Banner */}
-            <div className={`h-32 ${isDeleted ? 'bg-gray-400' : 'bg-linear-to-r from-blue-600 to-blue-700'}`} />
-
-            {/* Content */}
-            <div className="px-6 pb-6">
-
-              {/* Profile Photo */}
-              <div className="flex justify-center -mt-16 mb-4">
-                {profile.photo_url && !isDeleted && !imgError ? (
-                  <img
-                    src={profile.photo_url}
-                    alt={profile.full_name}
-                    onError={() => setImgError(true)}
-                    className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
-                  />
-                ) : (
-                  <div className="w-32 h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg flex items-center justify-center">
-                    <FaUser className="text-gray-400 text-5xl" />
-                  </div>
-                )}
-              </div>
-
-              {/* Name & Title */}
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">{profile.full_name}</h2>
-                {profile.current_job_title && (
-                  <p className="text-gray-600 text-sm mt-1">{profile.current_job_title}</p>
-                )}
-                <p className="text-gray-500 text-sm mt-1">Job Seeker</p>
-                {isDeleted && (
-                  <span className="inline-block mt-2 px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">
-                    Deleted
-                  </span>
-                )}
-                {!isOwner && !isDeleted && (
-                  <span className="inline-block mt-2 ml-2 px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full">
-                    View Only
-                  </span>
-                )}
-              </div>
-
-              {/* Basic Information */}
-              <div className="border-t pt-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <FaUser className="text-blue-600" />
-                    Basic Information
-                  </h3>
-                  {!isDeleted && canEditProfile && (
-                    <button
-                      onClick={() => openModal('basic')}
-                      className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm"
-                    >
-                      <FaEdit size={14} /> Edit
-                    </button>
-                  )}
-                  {!isDeleted && !canEditProfile && (
-                    <div className="relative group">
-                      <button
-                        disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
-                      >
-                        <FaEdit size={14} /> Edit
-                      </button>
-                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
-                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
-                          You can only edit your own profile
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <MdEmail className="text-blue-600" size={18} />
-                    <div>
-                      <p className="text-xs text-gray-500">Email</p>
-                      <p className="text-sm font-medium text-gray-900 break-all">{profile?.email}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <FaPhone className="text-blue-600" size={18} />
-                    <div>
-                      <p className="text-xs text-gray-500">Phone</p>
-                      <p className="text-sm font-medium text-gray-900">{profile.phone || 'Not specified'}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <FaBirthdayCake className="text-blue-600" size={18} />
-                    <div>
-                      <p className="text-xs text-gray-500">Birth Date</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {profile.birth_date ? `${formatDate(profile.birth_date)}${age ? ` (${age} years)` : ''}` : 'Not specified'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <FaVenusMars className="text-blue-600" size={18} />
-                    <div>
-                      <p className="text-xs text-gray-500">Gender</p>
-                      <p className="text-sm font-medium text-gray-900">{profile.gender || 'Not specified'}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <MdOutlineBloodtype className="text-red-500" size={18} />
-                    <div>
-                      <p className="text-xs text-gray-500">Blood Type</p>
-                      <p className="text-sm font-medium text-gray-900">{profile.blood_type || 'Not specified'}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <FaMapMarkerAlt className="text-blue-600" size={18} />
-                    <div>
-                      <p className="text-xs text-gray-500">Address</p>
-                      <p className="text-sm font-medium text-gray-900">{profile.address || 'Not specified'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Professional Information */}
-              <div className="border-t pt-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <FaBriefcase className="text-purple-600" />
-                    Professional Information
-                  </h3>
-                  {!isDeleted && canEditProfile && (
-                    <button
-                      onClick={() => openModal('professional')}
-                      className="text-purple-600 hover:text-purple-700 flex items-center gap-1 text-sm"
-                    >
-                      <FaEdit size={14} /> Edit
-                    </button>
-                  )}
-                  {!isDeleted && !canEditProfile && (
-                    <div className="relative group">
-                      <button
-                        disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
-                      >
-                        <FaEdit size={14} /> Edit
-                      </button>
-                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
-                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
-                          You can only edit your own profile
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {(!profile.experience_years && profile.experience_years !== 0) && !profile.current_job_title && (!profile.social_links || Object.keys(profile.social_links).length === 0) ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <FaBriefcase className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No professional information added yet</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                          <FaChartLine className="text-purple-600" size={18} />
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Years of Experience</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {profile.experience_years !== null && profile.experience_years !== undefined
-                              ? (profile.experience_years === 0 ? 'Fresher' : `${profile.experience_years} year${profile.experience_years > 1 ? 's' : ''}`)
-                              : 'Not specified'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                          <FaUserTie className="text-purple-600" size={18} />
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Current Job Title</p>
-                          <p className="text-sm font-medium text-gray-900">{profile.current_job_title || 'Not specified'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Social Links */}
-                    {profile.social_links && Object.keys(profile.social_links).length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                          <FaLink className="h-4 w-4 text-gray-400" />
-                          Social Links
-                        </p>
-                        <div className="flex flex-wrap gap-3">
-                          {Object.entries(profile.social_links).map(([platform, url]) => {
-                            const platformConfig = {
-                              linkedin: { icon: FaLinkedin, color: "text-blue-600", bg: "bg-blue-50", name: "LinkedIn" },
-                              github: { icon: FaGithub, color: "text-gray-800", bg: "bg-gray-100", name: "GitHub" },
-                              twitter: { icon: FaTwitter, color: "text-sky-500", bg: "bg-sky-50", name: "Twitter" },
-                              facebook: { icon: FaFacebook, color: "text-blue-700", bg: "bg-blue-50", name: "Facebook" },
-                              youtube: { icon: FaYoutube, color: "text-red-600", bg: "bg-red-50", name: "YouTube" },
-                              medium: { icon: FaMedium, color: "text-gray-700", bg: "bg-gray-100", name: "Medium" },
-                              devto: { icon: FaDev, color: "text-gray-800", bg: "bg-gray-100", name: "Dev.to" },
-                              stackoverflow: { icon: FaStackOverflow, color: "text-orange-600", bg: "bg-orange-50", name: "Stack Overflow" },
-                              portfolio: { icon: FaGlobe, color: "text-green-600", bg: "bg-green-50", name: "Portfolio" }
-                            };
-                            const config = platformConfig[platform] || { icon: FaGlobe, color: "text-gray-600", bg: "bg-gray-50", name: platform };
-                            const Icon = config.icon;
-
-                            return (
-                              <a
-                                key={platform}
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`flex items-center gap-2 px-3 py-2 ${config.bg} rounded-lg hover:shadow-md transition-all group`}
-                              >
-                                <Icon className={`${config.color} transition-transform group-hover:scale-110`} size={16} />
-                                <span className="text-sm text-gray-700 capitalize font-medium">{config.name}</span>
-                              </a>
-                            );
-                          })}
-                        </div>
-                      </div>
+          {/* TABLE CARD */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-linear-to-r from-gray-50 to-gray-100">
+                  <tr>
+                    {(canDeleteProfiles || canRestoreProfiles) && (
+                      <th className="px-4 py-4 text-left">
+                        <input
+                          type="checkbox"
+                          checked={profileItems.length > 0 && selectedProfiles.length === profileItems.filter(p => !p.deleted_at).length}
+                          onChange={handleSelectAll}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          disabled={profileItems.filter(p => !p.deleted_at).length === 0}
+                        />
+                      </th>
                     )}
-                  </>
-                )}
-              </div>
-
-              {/* Work Experience */}
-              <div className="border-t pt-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <FaBriefcase className="text-orange-600" />
-                    Work Experience ({profile.job_histories?.length || 0})
-                  </h3>
-                  {!isDeleted && canEditProfile && (
-                    <button
-                      onClick={() => openModal('work')}
-                      className="text-orange-600 hover:text-orange-700 flex items-center gap-1 text-sm"
+                    <th
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
+                      onClick={() => handleSort('full_name')}
                     >
-                      <FaEdit size={14} /> Edit
-                    </button>
-                  )}
-                  {!isDeleted && !canEditProfile && (
-                    <div className="relative group">
-                      <button
-                        disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
-                      >
-                        <FaEdit size={14} /> Edit
-                      </button>
-                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
-                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
-                          You can only edit your own profile
-                        </div>
+                      <div className="flex items-center">
+                        Applicant
+                        {getSortIcon('full_name')}
                       </div>
-                    </div>
-                  )}
-                </div>
-                {profile.job_histories && profile.job_histories.length > 0 ? (
-                  <div className="space-y-4">
-                    {profile.job_histories.map((job, index) => (
-                      <div key={job.id || index} className="p-4 bg-gray-50 rounded-lg">
-                        <div className="flex justify-between items-start mb-2 flex-wrap gap-2">
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{job.position}</h4>
-                            <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                              <FaBuilding className="h-3 w-3 text-gray-400" />
-                              {job.company_name}
-                            </p>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Contact
+                    </th>
+                    <th
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
+                      onClick={() => handleSort('experience_years')}
+                    >
+                      <div className="flex items-center">
+                        Experience
+                        {getSortIcon('experience_years')}
+                      </div>
+                    </th>
+                    <th
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
+                      onClick={() => handleSort('completion_percentage')}
+                    >
+                      <div className="flex items-center">
+                        Profile Complete
+                        {getSortIcon('completion_percentage')}
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      CV
+                    </th>
+                    <th
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
+                      onClick={() => handleSort('created_at')}
+                    >
+                      <div className="flex items-center">
+                        Joined
+                        {getSortIcon('created_at')}
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {profileItems.length === 0 && (
+                    <tr>
+                      <td colSpan="9" className="text-center py-16">
+                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <FaUser className="h-10 w-10 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900">No profiles found</h3>
+                        <p className="mt-1 text-sm text-gray-500">
+                          {hasActiveFilters() ? 'Try adjusting your filters.' : 'No applicant profiles available yet.'}
+                        </p>
+                        {hasActiveFilters() && (
+                          <div className="mt-6">
+                            <button
+                              onClick={resetFilters}
+                              className="inline-flex items-center px-5 py-2.5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700"
+                            >
+                              <FaTimes className="mr-2" size={16} />
+                              Clear Filters
+                            </button>
                           </div>
-                          {job.is_current && (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1">
-                              <FaStar size={12} /> Current
+                        )}
+                      </td>
+                    </tr>
+                  )}
+
+                  {profileItems.map((profile, index) => {
+                    const trashed = profile.deleted_at !== null;
+                    const age = calculateAge(profile.birth_date);
+                    const completionPercentage = profile.completion_percentage || 0;
+
+                    return (
+                      <tr
+                        key={profile.id}
+                        className={`hover:bg-gray-50 transition-all duration-200 animate-fade-in ${trashed ? 'bg-gray-50 opacity-75' : ''} ${selectedProfiles.includes(profile.id) ? 'bg-blue-50' : ''}`}
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        {(canDeleteProfiles || canRestoreProfiles) && (
+                          <td className="px-4 py-4">
+                            {!trashed && (
+                              <input
+                                type="checkbox"
+                                checked={selectedProfiles.includes(profile.id)}
+                                onChange={() => handleSelectProfile(profile.id)}
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                            )}
+                          </td>
+                        )}
+
+                        {/* APPLICANT */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+                              {profile.first_name?.charAt(0)?.toUpperCase() || '?'}
+                              {profile.last_name?.charAt(0)?.toUpperCase() || ''}
+                            </div>
+                            <div>
+                              <div className={`font-semibold ${trashed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                                {profile.full_name || `${profile.first_name} ${profile.last_name}`}
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {age && (
+                                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                                    <FaBirthdayCake size={10} />
+                                    {age} years
+                                  </span>
+                                )}
+                                {profile.gender && (
+                                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                                    <FaVenusMars size={10} />
+                                    {profile.gender}
+                                  </span>
+                                )}
+                                {profile.blood_type && (
+                                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                                    <FaTint size={10} />
+                                    {profile.blood_type}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* CONTACT */}
+                        <td className="px-6 py-4">
+                          <div className="space-y-1">
+                            <div className={`flex items-center gap-1 text-sm ${trashed ? 'text-gray-400' : 'text-gray-600'}`}>
+                              <FaEnvelope size={12} className="text-gray-400" />
+                              <a href={`mailto:${profile.email}`} className={`hover:text-blue-600 truncate max-w-36 ${trashed ? 'pointer-events-none' : ''}`}>
+                                {profile.email}
+                              </a>
+                            </div>
+                            {profile.phone && (
+                              <div className={`flex items-center gap-1 text-sm ${trashed ? 'text-gray-400' : 'text-gray-600'}`}>
+                                <FaPhone size={12} className="text-gray-400" />
+                                {profile.phone}
+                              </div>
+                            )}
+                            {profile.address && (
+                              <div className={`flex items-center gap-1 text-xs ${trashed ? 'text-gray-400' : 'text-gray-400'}`}>
+                                <FaMapMarkerAlt size={10} />
+                                <span className="truncate max-w-36">{profile.address}</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* EXPERIENCE */}
+                        <td className="px-6 py-4">
+                          <div>
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getExperienceBadge(profile.experience_years)}`}>
+                              <FaBriefcase size={10} />
+                              {profile.experience_years !== null && profile.experience_years !== undefined
+                                ? `${profile.experience_years} ${profile.experience_years === 1 ? 'year' : 'years'}`
+                                : 'Not specified'}
+                            </span>
+                            {profile.current_job_title && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {profile.current_job_title}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* COMPLETION */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 max-w-24">
+                              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{
+                                    width: `${completionPercentage}%`,
+                                    backgroundColor: completionPercentage >= 80 ? '#10b981' :
+                                      completionPercentage >= 60 ? '#3b82f6' :
+                                        completionPercentage >= 40 ? '#eab308' : '#ef4444'
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${getCompletionColor(completionPercentage)}`}>
+                              {completionPercentage}%
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* CV STATUS */}
+                        <td className="px-6 py-4">
+                          {profile.active_cvs_count > 0 ? (
+                            <div className="flex items-center gap-1">
+                              <FaFilePdf className="text-red-500" size={14} />
+                              <span className="text-xs text-gray-600">{profile.active_cvs_count} CV(s)</span>
+                              {profile.primaryCv && (
+                                <FaStar className="text-yellow-500 ml-1" size={10} title="Primary CV" />
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">No CV</span>
+                          )}
+                        </td>
+
+                        {/* JOINED */}
+                        <td className="px-6 py-4">
+                          <div className={`text-sm ${trashed ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {formatDate(profile.created_at)}
+                          </div>
+                          {profile.applications_count > 0 && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              {profile.applications_count} application(s)
+                            </div>
+                          )}
+                        </td>
+
+                        {/* STATUS */}
+                        <td className="px-6 py-4">
+                          {!trashed ? (
+                            <div className="flex flex-col gap-1">
+                              {profile.email_verified ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  <FaCheckCircle size={10} />
+                                  Verified
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  <FaClock size={10} />
+                                  Unverified
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-500">
+                              Deleted
                             </span>
                           )}
-                        </div>
-                        <p className="text-xs text-gray-500 flex items-center gap-2 mt-2">
-                          <FaCalendarAlt size={12} />
-                          {job.starting_year} - {job.is_current ? 'Present' : (job.ending_year || 'Present')}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <FaBriefcase className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No work experience added yet</p>
-                  </div>
-                )}
-              </div>
+                        </td>
 
-              {/* Education */}
-              <div className="border-t pt-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <MdSchool className="text-green-600" />
-                    Education ({profile.education_histories?.length || 0})
-                  </h3>
-                  {!isDeleted && canEditProfile && (
-                    <button
-                      onClick={() => openModal('education')}
-                      className="text-green-600 hover:text-green-700 flex items-center gap-1 text-sm"
-                    >
-                      <FaEdit size={14} /> Edit
-                    </button>
-                  )}
-                  {!isDeleted && !canEditProfile && (
-                    <div className="relative group">
-                      <button
-                        disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
-                      >
-                        <FaEdit size={14} /> Edit
-                      </button>
-                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
-                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
-                          You can only edit your own profile
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {profile.education_histories && profile.education_histories.length > 0 ? (
-                  <div className="space-y-4">
-                    {profile.education_histories.map((edu, index) => (
-                      <div key={edu.id || index} className="p-4 bg-gray-50 rounded-lg">
-                        <h4 className="font-semibold text-gray-900">{edu.degree}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{edu.institution_name}</p>
-                        <p className="text-xs text-gray-500 mt-2">Passing Year: {edu.passing_year}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <MdSchool className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No education added yet</p>
-                  </div>
-                )}
-              </div>
+                        {/* ACTIONS */}
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="flex justify-end gap-2">
+                            <Link
+                              href={route('backend.applicant-profile.show', profile.id)}
+                              className="p-2 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                              title="View Profile"
+                            >
+                              <FaEye size={18} />
+                            </Link>
 
-              {/* Achievements */}
-              <div className="border-t pt-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <FaTrophy className="text-yellow-600" />
-                    Achievements & Certifications ({profile.achievements?.length || 0})
-                  </h3>
-                  {!isDeleted && canEditProfile && (
-                    <button
-                      onClick={() => openModal('achievements')}
-                      className="text-yellow-600 hover:text-yellow-700 flex items-center gap-1 text-sm"
-                    >
-                      <FaEdit size={14} /> Edit
-                    </button>
-                  )}
-                  {!isDeleted && !canEditProfile && (
-                    <div className="relative group">
-                      <button
-                        disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
-                      >
-                        <FaEdit size={14} /> Edit
-                      </button>
-                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
-                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
-                          You can only edit your own profile
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {profile.achievements && profile.achievements.length > 0 ? (
-                  <div className="space-y-4">
-                    {profile.achievements.map((achievement, index) => (
-                      <div key={achievement.id || index} className="p-4 bg-yellow-50 rounded-lg border border-yellow-100">
-                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                          <FaTrophy className="text-yellow-600" size={16} />
-                          {achievement.achievement_name}
-                        </h4>
-                        {achievement.achievement_details && (
-                          <p className="text-sm text-gray-600 mt-2 ml-6">{achievement.achievement_details}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <FaTrophy className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No achievements added yet</p>
-                  </div>
-                )}
-              </div>
+                            {trashed && canRestoreProfiles && (
+                              <button
+                                onClick={() => {
+                                  // Handle restore for single profile
+                                  setSelectedProfiles([profile.id]);
+                                  handleBulkRestore();
+                                }}
+                                className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200"
+                                title="Restore"
+                              >
+                                <FaUndo size={18} />
+                              </button>
+                            )}
 
-              {/* CV Section */}
-              <div className="border-t pt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <FaFileAlt className="text-red-600" />
-                    CV / Resume ({profile.cvs?.length || 0})
-                  </h3>
-                  {!isDeleted && canEditProfile && (
-                    <button
-                      onClick={() => openModal('cv')}
-                      className="text-red-600 hover:text-red-700 flex items-center gap-1 text-sm"
-                    >
-                      <FaEdit size={14} /> Manage CVs
-                    </button>
-                  )}
-                  {!isDeleted && !canEditProfile && (
-                    <div className="relative group">
-                      <button
-                        disabled
-                        className="text-gray-400 flex items-center gap-1 text-sm cursor-not-allowed"
-                      >
-                        <FaEdit size={14} /> Manage CVs
-                      </button>
-                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
-                        <div className="bg-gray-800 text-white text-xs rounded-lg py-1 px-2 whitespace-nowrap">
-                          You can only manage your own CVs
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {profile.cvs && profile.cvs.length > 0 ? (
-                  <div className="space-y-3">
-                    {profile.cvs.map((cv) => (
-                      <div key={cv.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg flex-wrap gap-3">
-                        <div className="flex items-center gap-3">
-                          <FaFilePdf className="text-red-500" size={24} />
-                          <div>
-                            <p className="font-medium text-gray-900">{cv.original_name}</p>
-                            <p className="text-xs text-gray-500 flex items-center gap-2 flex-wrap">
-                              <span>Uploaded: {new Date(cv.created_at).toLocaleDateString()}</span>
-                              {cv.status === 'pending' && (
-                                <span className="inline-flex items-center gap-1 text-orange-600">
-                                  <MdPending size={12} /> Pending
-                                </span>
-                              )}
-                              {cv.is_primary && (
-                                <span className="inline-flex items-center gap-1 text-yellow-600">
-                                  <FaStar size={12} /> Primary
-                                </span>
-                              )}
-                            </p>
+                            {!trashed && canDeleteProfiles && (
+                              <button
+                                onClick={() => {
+                                  // Handle delete for single profile
+                                  setSelectedProfiles([profile.id]);
+                                  handleBulkDelete();
+                                }}
+                                className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200"
+                                title="Delete"
+                              >
+                                <FaTrash size={18} />
+                              </button>
+                            )}
                           </div>
-                        </div>
-                        <a
-                          href={cv.cv_url || `/storage/${cv.cv_path}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition"
-                        >
-                          View CV
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <FaFilePdf className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No CV uploaded yet</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Member Since */}
-              <div className="border-t pt-6 mt-6">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <FaIdCard className="text-blue-600" size={18} />
-                  <div>
-                    <p className="text-xs text-gray-500">Member Since</p>
-                    <p className="text-sm font-medium text-gray-900">{formatDate(profile.created_at)}</p>
-                  </div>
-                </div>
-              </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
+
+            {/* PAGINATION */}
+            <Pagination />
           </div>
         </div>
       </div>
 
-      {/* Modals - Only render if owner */}
-      {canEditProfile && (
-        <>
-          <BasicInfoModal
-            isOpen={activeModal === 'basic'}
-            onClose={closeModal}
-            profile={profile}
-          />
-
-          <ProfessionalInfoModal
-            isOpen={activeModal === 'professional'}
-            onClose={closeModal}
-            profile={profile}
-          />
-
-          <WorkExperienceModal
-            isOpen={activeModal === 'work'}
-            onClose={closeModal}
-            profile={profile}
-          />
-
-          <EducationModal
-            isOpen={activeModal === 'education'}
-            onClose={closeModal}
-            profile={profile}
-          />
-
-          <AchievementsModal
-            isOpen={activeModal === 'achievements'}
-            onClose={closeModal}
-            profile={profile}
-          />
-
-          <CVModal
-            isOpen={activeModal === 'cv'}
-            onClose={closeModal}
-            profile={profile}
-          />
-
-          <ChangePasswordModal
-            isOpen={activeModal === 'change-password'}
-            onClose={closeModal}
-            profile={profile}
-          />
-        </>
-      )}
+      <style>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
     </AuthenticatedLayout>
   );
 }

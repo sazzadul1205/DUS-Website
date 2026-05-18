@@ -1,4 +1,4 @@
-// resources/js/Components/Sidebar.jsx (Updated version)
+// resources/js/Components/Sidebar.jsx (FULLY FIXED VERSION)
 
 // React
 import { useState, useEffect, useMemo } from 'react';
@@ -53,6 +53,9 @@ const Sidebar = () => {
   // Get user's roles from the authenticated user
   const userRoles = user?.roles || [];
   const userPermissions = user?.permissions || [];
+
+  // Check if user has an applicant profile (passed from backend)
+  const hasApplicantProfile = user?.has_applicant_profile || false;
 
   // Check if user has specific role
   const hasRole = (roleSlug) => {
@@ -250,8 +253,8 @@ const Sidebar = () => {
       });
     }
 
-    // My Profile
-    if (hasAnyPermission(['profile.view.own', 'profile.edit.own'])) {
+    // My Profile (Job Seeker)
+    if (hasAnyPermission(['profiles.view.own', 'profiles.edit.own'])) {
       items.push({
         name: 'My Profile',
         routeName: 'backend.applicant.profile.show',
@@ -411,12 +414,22 @@ const Sidebar = () => {
     }
 
     // Company Profile
-    if (hasPermission('profile.edit.own')) {
+    if (hasPermission('employer_profile.edit')) {
       items.push({
         name: 'Company Profile',
         routeName: 'backend.employer.profile.edit',
         icon: HiOutlineBuildingOffice2,
         description: 'Company settings',
+      });
+    }
+
+    // My Profile (if employer also has applicant profile - hybrid user)
+    if (hasApplicantProfile && hasPermission('profiles.view.own')) {
+      items.push({
+        name: 'My Job Seeker Profile',
+        routeName: 'backend.applicant.profile.show',
+        icon: FiUser,
+        description: 'View my job seeker profile',
       });
     }
 
@@ -432,7 +445,7 @@ const Sidebar = () => {
     }
 
     return items;
-  }, [notificationMeta.unread_count]);
+  }, [notificationMeta.unread_count, hasApplicantProfile]);
 
   // ==========================================
   // ADMIN MENU (Roles: super-admin, admin)
@@ -510,13 +523,13 @@ const Sidebar = () => {
       }
     }
 
-    // Applicant Profiles - Single Link
-    if (hasPermission('profile.view.any')) {
+    // Applicant Profiles - Single Link (View all profiles)
+    if (hasAnyPermission(['profiles.view.any', 'applicant-profiles.manage'])) {
       items.push({
         name: 'Applicant Profiles',
         routeName: 'backend.applicant-profile.index',
-        icon: FiUser,
-        description: 'Manage applicant profiles',
+        icon: FiUsers,
+        description: 'Manage all applicant profiles',
       });
     }
 
@@ -627,13 +640,25 @@ const Sidebar = () => {
       }
     }
 
-    // Admin Profile (Edit Profile)
-    if (hasPermission('profile.edit.own')) {
+    // MY PROFILE SECTION - FIXED
+    // This handles both admin-only users and admin+job-seeker hybrid users
+    if (hasApplicantProfile && hasPermission('profiles.view.own')) {
+      // User has an applicant profile (they are also a job seeker)
       items.push({
-        name: 'My Profile',
+        name: 'My Job Seeker Profile',
+        routeName: 'backend.applicant.profile.show',
+        icon: FiUser,
+        description: 'View my job seeker profile',
+      });
+    }
+
+    // Admin Settings (for editing admin account settings)
+    if (hasPermission('admin_profile.edit') || hasPermission('admin_profile.update')) {
+      items.push({
+        name: 'Admin Settings',
         routeName: 'backend.admin-profile.edit',
         icon: FiSettings,
-        description: 'Edit your profile',
+        description: 'Edit admin account settings',
       });
     }
 
@@ -649,7 +674,7 @@ const Sidebar = () => {
     }
 
     return items;
-  }, [notificationMeta.unread_count]);
+  }, [notificationMeta.unread_count, hasApplicantProfile]);
 
   // Get menu items based on user's roles and permissions
   const menuItems = useMemo(() => {
