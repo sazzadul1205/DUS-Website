@@ -1,8 +1,16 @@
 // resources/js/Pages/Backend/Apply/Edit.jsx
 
+// React
 import { useState, useEffect } from 'react';
+
+// Inertia
 import { Head, router, usePage } from '@inertiajs/react';
+
+// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
 
 // Icons
 import {
@@ -27,6 +35,7 @@ import {
   FaChartLine,
   FaTimesCircle,
   FaLightbulb,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
 // SweetAlert
@@ -35,6 +44,23 @@ import Swal from 'sweetalert2';
 export default function ApplyEdit({ application, jobListing, cvs, currentCvId }) {
   const { flash } = usePage().props;
 
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    isAuthenticated,
+    hasRole,
+    hasAnyPermission,
+  } = useAuth();
+
+  // Check if user is the owner of this application
+  const isJobSeeker = hasRole('job_seeker');
+  const isOwner = currentUser?.id === application?.user_id;
+  const canEditApplications = hasAnyPermission(['applications.update', 'applications.manage']);
+
+  // Authorization check - only the applicant or admin can edit
+  const canEdit = isOwner || canEditApplications;
+
+  // Form state
   const [formData, setFormData] = useState({
     cv_id: currentCvId || cvs.find(cv => cv.is_primary)?.id || cvs[0]?.id || '',
     name: application.name || '',
@@ -45,12 +71,94 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     facebook_link: application.facebook_link || '',
   });
 
+  // States
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [originalCvId, setOriginalCvId] = useState(currentCvId);
-  const [showAtsPreview, setShowAtsPreview] = useState(false);
   const [atsPreview, setAtsPreview] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingAts, setIsLoadingAts] = useState(false);
+  const [showAtsPreview, setShowAtsPreview] = useState(false);
+  const [originalCvId, setOriginalCvId] = useState(currentCvId);
+
+  // If user is not authenticated, show access denied
+  if (!isAuthenticated) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Login Required</h2>
+            <p className="text-gray-500 mt-2">Please login to edit your application.</p>
+            <button
+              onClick={() => router.visit(route('login', { redirect: route('backend.apply.edit', application.id) }))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Login Now
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // If user doesn't have permission to edit this application, show access denied
+  if (!canEdit) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">
+              You don't have permission to edit this application.
+            </p>
+            <button
+              onClick={() => router.visit(route('backend.apply.show', application.id))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Back to Application
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // If application is not pending, show warning
+  if (application.status !== 'pending') {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Cannot Edit Application" />
+        <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-8 px-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden animate-fade-in">
+              <div className="bg-linear-to-r from-orange-600 to-red-600 px-6 py-5">
+                <h1 className="text-xl font-bold text-white">Application Cannot Be Edited</h1>
+              </div>
+              <div className="p-8 text-center">
+                <FaExclamationTriangle className="text-orange-500 text-5xl mx-auto mb-4" />
+                <p className="text-gray-600 mb-6">
+                  Your application has already been {application.status}.
+                  You cannot edit it after it has been reviewed by the employer.
+                </p>
+                <button
+                  onClick={() => router.visit(route('backend.apply.show', application.id))}
+                  className="px-6 py-2 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+                >
+                  Back to Application
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
 
   // Show flash messages
   useEffect(() => {
@@ -105,6 +213,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     return true;
   };
 
+  // Format date
   const formatDate = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -114,6 +223,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     });
   };
 
+  // Get job type label
   const getJobTypeLabel = (type) => {
     const types = {
       'full-time': 'Full Time',
@@ -126,6 +236,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     return types[type] || type;
   };
 
+  // Get salary display
   const getSalaryDisplay = () => {
     if (jobListing.as_per_companies_policy) return 'As per company policy';
     if (jobListing.is_salary_negotiable) return 'Negotiable';
@@ -137,6 +248,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     return 'Not specified';
   };
 
+  // Get ATS score color
   const getAtsScoreColor = (score) => {
     if (!score) return 'text-gray-500';
     if (score >= 80) return 'text-green-600';
@@ -145,6 +257,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     return 'text-red-600';
   };
 
+  // Get ATS score background
   const getAtsScoreBg = (score) => {
     if (!score) return 'bg-gray-100';
     if (score >= 80) return 'bg-green-100';
@@ -153,6 +266,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     return 'bg-red-100';
   };
 
+  // Handle form changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -161,6 +275,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     }
   };
 
+  // Handle CV selection
   const handleCvSelect = (cvId) => {
     setFormData(prev => ({ ...prev, cv_id: cvId }));
     setAtsPreview(null);
@@ -182,6 +297,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     setIsLoadingAts(true);
     setShowAtsPreview(true);
 
+    // Simulate API call - replace with actual endpoint
     setTimeout(() => {
       setIsLoadingAts(false);
       setAtsPreview({
@@ -204,6 +320,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     }, 1500);
   };
 
+  // Validate form
   const validateForm = () => {
     const newErrors = {};
 
@@ -250,6 +367,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     return Object.keys(newErrors).length === 0;
   };
 
+  // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -337,13 +455,16 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     });
   };
 
+  // Format currency
   const formatCurrency = (amount) => {
     if (!amount) return null;
     return new Intl.NumberFormat('en-US').format(amount) + ' BDT';
   };
 
+  // Check if job is expired
   const isExpired = new Date(jobListing.application_deadline) < new Date();
 
+  // Show ATS preview
   const AtsPreviewCard = () => (
     <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6 transition-all duration-300 animate-fade-in">
       <div className="px-6 py-4 bg-linear-to-r from-purple-600 to-indigo-600">
@@ -464,6 +585,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
     </div>
   );
 
+  // Check if job is expired
   if (isExpired) {
     return (
       <AuthenticatedLayout>
@@ -498,8 +620,8 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
       <Head title={`Edit Application for ${jobListing.title}`} />
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-        <div className=" mx-auto">
-          {/* Back Button with History */}
+        <div className="max-w-6xl mx-auto">
+          {/* Back Button */}
           <button
             onClick={() => window.history.back()}
             className="group flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-all duration-200"
@@ -513,6 +635,11 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
             <div className="bg-linear-to-r from-blue-600 to-indigo-700 px-6 py-5">
               <h1 className="text-xl font-bold text-white">Edit Application</h1>
               <p className="text-blue-100 text-sm mt-1">Update your application for {jobListing.title}</p>
+              {!isOwner && canEditApplications && (
+                <p className="text-blue-200 text-xs mt-2">
+                  ⚡ Admin mode: Editing application for {application.name}
+                </p>
+              )}
             </div>
           </div>
 
@@ -749,45 +876,49 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
                   </div>
 
                   {/* Social Links */}
-                  {jobListing.required_linkedin_link && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        LinkedIn Profile <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <FaLinkedin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-700" size={16} />
-                        <input
-                          type="url"
-                          name="linkedin_link"
-                          value={formData.linkedin_link}
-                          onChange={handleChange}
-                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.linkedin_link ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                          placeholder="https://linkedin.com/in/username"
-                        />
-                      </div>
-                      {errors.linkedin_link && <p className="text-red-500 text-xs mt-1">{errors.linkedin_link}</p>}
-                    </div>
-                  )}
+                  {(jobListing.required_linkedin_link || jobListing.required_facebook_link) && (
+                    <div className="space-y-4">
+                      {jobListing.required_linkedin_link && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            LinkedIn Profile <span className="text-red-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <FaLinkedin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-700" size={16} />
+                            <input
+                              type="url"
+                              name="linkedin_link"
+                              value={formData.linkedin_link}
+                              onChange={handleChange}
+                              className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.linkedin_link ? 'border-red-500' : 'border-gray-300'
+                                }`}
+                              placeholder="https://linkedin.com/in/username"
+                            />
+                          </div>
+                          {errors.linkedin_link && <p className="text-red-500 text-xs mt-1">{errors.linkedin_link}</p>}
+                        </div>
+                      )}
 
-                  {jobListing.required_facebook_link && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Facebook Profile <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <FaFacebook className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" size={16} />
-                        <input
-                          type="url"
-                          name="facebook_link"
-                          value={formData.facebook_link}
-                          onChange={handleChange}
-                          className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.facebook_link ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                          placeholder="https://facebook.com/username"
-                        />
-                      </div>
-                      {errors.facebook_link && <p className="text-red-500 text-xs mt-1">{errors.facebook_link}</p>}
+                      {jobListing.required_facebook_link && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Facebook Profile <span className="text-red-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <FaFacebook className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600" size={16} />
+                            <input
+                              type="url"
+                              name="facebook_link"
+                              value={formData.facebook_link}
+                              onChange={handleChange}
+                              className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.facebook_link ? 'border-red-500' : 'border-gray-300'
+                                }`}
+                              placeholder="https://facebook.com/username"
+                            />
+                          </div>
+                          {errors.facebook_link && <p className="text-red-500 text-xs mt-1">{errors.facebook_link}</p>}
+                        </div>
+                      )}
                     </div>
                   )}
 

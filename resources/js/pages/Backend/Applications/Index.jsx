@@ -1,10 +1,23 @@
 // resources/js/pages/Backend/Applications/Index.jsx
 
+// React
 import { useState, useEffect, useMemo } from 'react';
+
+// Inertia
 import { Head, router, usePage, Link } from '@inertiajs/react';
+
+// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Components
 import EmailModal from '../../../components/EmailModal';
+
+// Hooks
 import useEmailModal from '../../../hooks/useEmailModal';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+import { Can } from '../../../components/Auth/Can';
 
 // Icons
 import {
@@ -41,6 +54,7 @@ import {
   FaSort,
   FaSortUp,
   FaSortDown,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
 // SweetAlert2
@@ -59,6 +73,43 @@ export default function Index({
   filterOptions = {}
 }) {
   const { flash } = usePage().props;
+
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    isAuthenticated,
+    hasAnyPermission,
+    hasRole,
+  } = useAuth();
+
+  // Check permissions for application management
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewApplications = hasAnyPermission(['applications.view', 'applications.manage']);
+  const canEmailApplicants = hasAnyPermission(['applications.email', 'applications.manage']);
+  const canDownloadResumes = hasAnyPermission(['applications.download', 'applications.manage']);
+  const canUpdateApplications = hasAnyPermission(['applications.update', 'applications.manage']);
+  const canDeleteApplications = hasAnyPermission(['applications.destroy', 'applications.manage']);
+  const canRestoreApplications = hasAnyPermission(['applications.restore', 'applications.manage']);
+
+  // If user doesn't have permission to view applications, show access denied
+  if (!canViewApplications) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view applications.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // Safe initial filters
   const safeInitialFilters = (initialFilters && !Array.isArray(initialFilters)) ? initialFilters : {};
 
   // Use the email modal hook
@@ -71,13 +122,13 @@ export default function Index({
   } = useEmailModal();
 
   // States
-  const [applications, setApplications] = useState(initialApplications);
   const [selectedApps, setSelectedApps] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [applications, setApplications] = useState(initialApplications);
   const [sortField, setSortField] = useState(safeInitialFilters.sort || 'created_at');
   const [sortDirection, setSortDirection] = useState(safeInitialFilters.direction || 'desc');
 
@@ -133,6 +184,16 @@ export default function Index({
 
   // Open email modal for bulk
   const handleOpenBulkEmail = () => {
+    if (!canEmailApplicants) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to send emails.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     if (selectedApps.length === 0) {
       Swal.fire({
         icon: 'warning',
@@ -280,7 +341,7 @@ export default function Index({
 
   // Handle select all applications
   const handleSelectAll = () => {
-    const selectableApps = applicationItems.filter(app => !app.deleted_at);
+    const selectableApps = applicationItems.filter(app => !app.deleted_at && canUpdateApplications);
     if (selectedApps.length === selectableApps.length) {
       setSelectedApps([]);
     } else {
@@ -299,6 +360,16 @@ export default function Index({
 
   // Handle bulk status update
   const handleBulkStatusUpdate = (newStatus) => {
+    if (!canUpdateApplications) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to update application statuses.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     if (selectedApps.length === 0) {
       Swal.fire({
         icon: 'warning',
@@ -356,6 +427,16 @@ export default function Index({
 
   // Handle bulk delete
   const handleBulkDelete = () => {
+    if (!canDeleteApplications) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to delete applications.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     if (selectedApps.length === 0) {
       Swal.fire({
         icon: 'warning',
@@ -410,6 +491,16 @@ export default function Index({
 
   // Handle bulk restore
   const handleBulkRestore = () => {
+    if (!canRestoreApplications) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to restore applications.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     if (selectedApps.length === 0) {
       Swal.fire({
         icon: 'warning',
@@ -463,8 +554,18 @@ export default function Index({
     });
   };
 
-  // Handle bulk download resumes (MERGED PDF)
+  // Handle bulk download resumes
   const handleBulkDownload = async () => {
+    if (!canDownloadResumes) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to download resumes.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     if (selectedApps.length === 0) {
       Swal.fire({
         icon: 'warning',
@@ -558,11 +659,30 @@ export default function Index({
 
   // Handle single resume download
   const handleDownloadResume = (appId) => {
+    if (!canDownloadResumes) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to download resumes.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
     window.location.href = route('backend.applications.download', appId);
   };
 
   // Handle single delete
   const handleDelete = (id, name) => {
+    if (!canDeleteApplications) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to delete applications.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Delete Application?',
       text: `Are you sure you want to delete application from "${name}"?`,
@@ -601,6 +721,16 @@ export default function Index({
 
   // Handle restore
   const handleRestore = (id, name) => {
+    if (!canRestoreApplications) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to restore applications.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Restore Application?',
       text: `Restore application from "${name}"?`,
@@ -647,6 +777,7 @@ export default function Index({
     });
   };
 
+  // Get status badge
   const getStatusBadge = (status) => {
     const badges = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -657,6 +788,7 @@ export default function Index({
     return badges[status] || 'bg-gray-100 text-gray-800';
   };
 
+  // Get status icon
   const getStatusIcon = (status) => {
     const icons = {
       pending: <FaHourglassHalf className="text-yellow-500" size={14} />,
@@ -667,6 +799,7 @@ export default function Index({
     return icons[status] || <FaBriefcase className="text-gray-500" size={14} />;
   };
 
+  // Get status text
   const getStatusText = (status) => {
     const texts = {
       pending: 'Pending',
@@ -677,6 +810,7 @@ export default function Index({
     return texts[status] || status;
   };
 
+  // Get ATS score color
   const getAtsScoreColor = (score) => {
     if (score === undefined || score === null) return 'text-gray-500';
     if (score >= 80) return 'text-green-600';
@@ -685,6 +819,7 @@ export default function Index({
     return 'text-red-600';
   };
 
+  // Get ATS score background
   const getAtsScoreBg = (score) => {
     if (score === undefined || score === null) return 'bg-gray-100';
     if (score >= 80) return 'bg-green-100';
@@ -693,6 +828,7 @@ export default function Index({
     return 'bg-red-100';
   };
 
+  // Format salary
   const formatSalary = (salary) => {
     if (!salary) return null;
     return new Intl.NumberFormat('en-US').format(salary) + ' BDT';
@@ -733,6 +869,7 @@ export default function Index({
     }
   }, [flash]);
 
+  // Get status counts
   const pendingCount = statusCounts?.pending || 0;
   const shortlistedCount = statusCounts?.shortlisted || 0;
   const rejectedCount = statusCounts?.rejected || 0;
@@ -747,6 +884,13 @@ export default function Index({
       <FaSortUp className="text-blue-600 ml-1" size={12} /> :
       <FaSortDown className="text-blue-600 ml-1" size={12} />;
   };
+
+  // Check if any bulk action is possible
+  const canBulkUpdate = canUpdateApplications && selectedApps.length > 0;
+  const canBulkEmail = canEmailApplicants && selectedApps.length > 0;
+  const canBulkDownload = canDownloadResumes && selectedApps.length > 0;
+  const canBulkDelete = canDeleteApplications && selectedApps.length > 0;
+  const canBulkRestore = canRestoreApplications && selectedApps.length > 0 && filters.trashed === 'only';
 
   // Pagination component
   const Pagination = () => {
@@ -937,16 +1081,18 @@ export default function Index({
                   </span>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  {/* Email Button - Added */}
-                  <button
-                    onClick={handleOpenBulkEmail}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-green-700 transition-all duration-200"
-                  >
-                    <FaEnvelope size={14} />
-                    Send Email
-                  </button>
+                  {/* Email Button */}
+                  {canBulkEmail && (
+                    <button
+                      onClick={handleOpenBulkEmail}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-green-700 transition-all duration-200"
+                    >
+                      <FaEnvelope size={14} />
+                      Send Email
+                    </button>
+                  )}
 
-                  {filters.trashed === 'only' ? (
+                  {canBulkRestore ? (
                     <button
                       onClick={handleBulkRestore}
                       disabled={isRestoring}
@@ -956,7 +1102,7 @@ export default function Index({
                       Restore All
                     </button>
                   ) : (
-                    <>
+                    canBulkUpdate && (
                       <select
                         onChange={(e) => handleBulkStatusUpdate(e.target.value)}
                         disabled={isUpdatingStatus}
@@ -970,24 +1116,31 @@ export default function Index({
                           </option>
                         ))}
                       </select>
-                      <button
-                        onClick={handleBulkDownload}
-                        disabled={isDownloading}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-purple-700 transition-all duration-200 disabled:opacity-50"
-                      >
-                        {isDownloading ? <FaSpinner className="animate-spin" size={14} /> : <FaDownload size={14} />}
-                        Download Resumes
-                      </button>
-                      <button
-                        onClick={handleBulkDelete}
-                        disabled={isDeleting}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-red-700 transition-all duration-200 disabled:opacity-50"
-                      >
-                        {isDeleting ? <FaSpinner className="animate-spin" size={14} /> : <FaTrash size={14} />}
-                        Delete All
-                      </button>
-                    </>
+                    )
                   )}
+
+                  {canBulkDownload && (
+                    <button
+                      onClick={handleBulkDownload}
+                      disabled={isDownloading}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-purple-700 transition-all duration-200 disabled:opacity-50"
+                    >
+                      {isDownloading ? <FaSpinner className="animate-spin" size={14} /> : <FaDownload size={14} />}
+                      Download Resumes
+                    </button>
+                  )}
+
+                  {canBulkDelete && (
+                    <button
+                      onClick={handleBulkDelete}
+                      disabled={isDeleting}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-red-700 transition-all duration-200 disabled:opacity-50"
+                    >
+                      {isDeleting ? <FaSpinner className="animate-spin" size={14} /> : <FaTrash size={14} />}
+                      Delete All
+                    </button>
+                  )}
+
                   <button
                     onClick={() => setSelectedApps([])}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200"
@@ -1280,10 +1433,10 @@ export default function Index({
                     <th className="px-4 py-4 text-left">
                       <input
                         type="checkbox"
-                        checked={applicationItems.length > 0 && selectedApps.length === applicationItems.filter(app => !app.deleted_at).length}
+                        checked={applicationItems.length > 0 && selectedApps.length === applicationItems.filter(app => !app.deleted_at && canUpdateApplications).length}
                         onChange={handleSelectAll}
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        disabled={applicationItems.filter(app => !app.deleted_at).length === 0}
+                        disabled={applicationItems.filter(app => !app.deleted_at && canUpdateApplications).length === 0}
                       />
                     </th>
                     <th
@@ -1380,7 +1533,7 @@ export default function Index({
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <td className="px-4 py-4">
-                          {!trashed && (
+                          {!trashed && canUpdateApplications && (
                             <input
                               type="checkbox"
                               checked={selectedApps.includes(app.id)}
@@ -1500,7 +1653,7 @@ export default function Index({
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex justify-end gap-2">
                             {/* Email Button - Individual */}
-                            {!trashed && (
+                            {!trashed && canEmailApplicants && (
                               <button
                                 onClick={() => {
                                   const applicant = {
@@ -1528,7 +1681,7 @@ export default function Index({
                               </Link>
                             )}
 
-                            {!trashed && (
+                            {!trashed && canDownloadResumes && (
                               <button
                                 onClick={() => handleDownloadResume(app.id)}
                                 className="p-2 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded-lg transition-all duration-200"
@@ -1538,7 +1691,7 @@ export default function Index({
                               </button>
                             )}
 
-                            {trashed && (
+                            {trashed && canRestoreApplications && (
                               <button
                                 onClick={() => handleRestore(app.id, app.name)}
                                 className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all duration-200"
@@ -1548,7 +1701,7 @@ export default function Index({
                               </button>
                             )}
 
-                            {!trashed && (
+                            {!trashed && canDeleteApplications && (
                               <button
                                 onClick={() => handleDelete(app.id, app.name)}
                                 className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200"
@@ -1573,24 +1726,27 @@ export default function Index({
       </div>
 
       {/* Email Modal */}
-      <EmailModal
-        isOpen={isEmailModalOpen}
-        onClose={closeEmailModal}
-        recipients={emailRecipients}
-        title={emailModalTitle}
-        jobTitle="Job Application"
-        onSuccess={() => {
-          Swal.fire({
-            icon: 'success',
-            title: 'Email Sent!',
-            text: 'The email has been sent successfully.',
-            timer: 2000,
-            showConfirmButton: false
-          });
-        }}
-      />
+      {canEmailApplicants && (
+        <EmailModal
+          isOpen={isEmailModalOpen}
+          onClose={closeEmailModal}
+          recipients={emailRecipients}
+          title={emailModalTitle}
+          jobTitle="Job Application"
+          onSuccess={() => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Email Sent!',
+              text: 'The email has been sent successfully.',
+              timer: 2000,
+              showConfirmButton: false
+            });
+          }}
+        />
+      )}
 
-      <style>{`
+      <style>
+        {`
           @keyframes fade-in {
             from {
               opacity: 0;
@@ -1605,7 +1761,8 @@ export default function Index({
           .animate-fade-in {
             animation: fade-in 0.3s ease-out;
           }
-        `}</style>
+        `}
+      </style>
     </AuthenticatedLayout>
   );
 }

@@ -1,8 +1,16 @@
 // resources/js/Pages/Backend/Apply/Index.jsx
 
+// React
 import { useState, useEffect } from 'react';
+
+// Inertia
 import { Head, router, usePage, Link } from '@inertiajs/react';
+
+// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
 
 // Icons
 import {
@@ -27,23 +35,92 @@ import {
   FaChevronRight,
   FaRegClock,
   FaFilter,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
 // SweetAlert2
 import Swal from 'sweetalert2';
 
 export default function ApplyIndex({ applications: initialApplications, stats: initialStats }) {
+  // 
   const { flash } = usePage().props;
 
-  const [withdrawingId, setWithdrawingId] = useState(null);
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    isAuthenticated,
+    hasRole,
+    hasAnyPermission,
+  } = useAuth();
+
+  // Check user role and permissions
+  const isJobSeeker = hasRole('job_seeker');
+  const canViewAllApplications = hasAnyPermission(['applications.view', 'applications.manage']);
+  const isAdmin = canViewAllApplications;
+
+  // If user is not authenticated, show access denied
+  if (!isAuthenticated) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Login Required</h2>
+            <p className="text-gray-500 mt-2">Please login to view your applications.</p>
+            <button
+              onClick={() => router.visit(route('login'))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Login Now
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // If user is employer (not job seeker), show message
+  if (!isJobSeeker && !isAdmin) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto p-6">
+            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaBriefcase className="w-10 h-10 text-yellow-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Employer Account</h2>
+            <p className="text-gray-500 mt-2">
+              Employer accounts cannot submit job applications. Please create a job seeker account to apply for jobs.
+            </p>
+            <button
+              onClick={() => router.visit(route('dashboard'))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // state
   const [restoringId, setRestoringId] = useState(null);
-  const [recalculatingId, setRecalculatingId] = useState(null);
   const [showTrashed, setShowTrashed] = useState(false);
+  const [withdrawingId, setWithdrawingId] = useState(null);
+  const [recalculatingId, setRecalculatingId] = useState(null);
   const [applications, setApplications] = useState(initialApplications);
+
+  // stats
   const [stats, setStats] = useState(initialStats || {
     total: 0, total_deleted: 0, pending: 0, shortlisted: 0, rejected: 0, hired: 0, average_ats_score: 0,
   });
 
+  // pagination
   const applicationItems = applications?.data || [];
   const pagination = applications?.data ? {
     currentPage: applications.current_page,
@@ -53,6 +130,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     to: applications.to,
   } : null;
 
+  // Show trashed applications handler
   const toggleShowTrashed = () => {
     const newValue = !showTrashed;
     setShowTrashed(newValue);
@@ -67,6 +145,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     });
   };
 
+  // Handle page change
   const handlePageChange = (page) => {
     if (page === pagination?.currentPage || page < 1 || page > pagination?.lastPage) return;
     router.get(route('backend.apply.index'), {
@@ -84,6 +163,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     });
   };
 
+  // Handle withdraw
   const handleWithdraw = (id) => {
     Swal.fire({
       title: 'Withdraw Application?',
@@ -112,6 +192,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     });
   };
 
+  // Handle restore
   const handleRestore = (id) => {
     Swal.fire({
       title: 'Restore Application?',
@@ -139,6 +220,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     });
   };
 
+  // Handle force delete
   const handleForceDelete = (id, jobTitle) => {
     Swal.fire({
       title: 'Permanently Delete?',
@@ -164,6 +246,8 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     });
   };
 
+
+  // Handle recalculate
   const handleRecalculateAts = (id) => {
     Swal.fire({
       title: 'Recalculate ATS Score?',
@@ -191,12 +275,13 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     });
   };
 
-  // Helper functions
+  // format date
   const formatDate = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
+  // Get status badge
   const getStatusBadge = (status) => {
     const badges = {
       pending: 'bg-amber-100 text-amber-800',
@@ -207,11 +292,13 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     return badges[status] || 'bg-gray-100 text-gray-800';
   };
 
+  // Get status text
   const getStatusText = (status) => {
     const texts = { pending: 'Pending', shortlisted: 'Shortlisted', rejected: 'Rejected', hired: 'Hired' };
     return texts[status] || status;
   };
 
+  // Get status icon
   const getStatusIcon = (status) => {
     const icons = {
       pending: <FaRegClock className="text-amber-500" size={14} />,
@@ -222,6 +309,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     return icons[status] || <FaBriefcase className="text-gray-500" size={14} />;
   };
 
+  // Get ATS score color
   const getAtsScoreColor = (score) => {
     if (!score) return 'text-gray-500';
     if (score >= 80) return 'text-emerald-600';
@@ -230,6 +318,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     return 'text-rose-600';
   };
 
+  // Get ATS score background
   const getAtsScoreBg = (score) => {
     if (!score) return 'bg-gray-100';
     if (score >= 80) return 'bg-emerald-100';
@@ -238,11 +327,13 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     return 'bg-rose-100';
   };
 
+  // Format salary
   const formatSalary = (salary) => {
     if (!salary) return null;
     return new Intl.NumberFormat('en-US').format(salary) + ' BDT';
   };
 
+  // Get stats cards
   const statsCards = [
     { title: 'Total', value: stats.total, icon: <FaBriefcase size={18} />, color: 'blue', key: 'total' },
     { title: 'Pending', value: stats.pending, icon: <FaHourglassHalf size={18} />, color: 'amber', key: 'pending' },
@@ -253,6 +344,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     { title: 'Avg. ATS', value: stats.average_ats_score ? `${Math.round(stats.average_ats_score)}%` : 'N/A', icon: <FaChartLine size={18} />, color: 'purple', key: 'ats' },
   ];
 
+  // Flash message
   useEffect(() => {
     if (flash?.success) {
       Swal.fire({ icon: 'success', title: 'Success!', text: flash.success, timer: 2000, showConfirmButton: false });
@@ -262,6 +354,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     }
   }, [flash]);
 
+  // Pagination
   const Pagination = () => {
     if (!pagination || pagination.lastPage <= 1) return null;
 
@@ -334,12 +427,15 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
     );
   };
 
+  // Admin can see all applications, job seekers only see their own
+  const applicationsCount = applicationItems.length;
+
   return (
     <AuthenticatedLayout>
       <Head title={showTrashed ? "Withdrawn Applications" : "My Applications"} />
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100/50 p-4 md:p-6">
-        <div className=" mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
@@ -349,6 +445,11 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
               <p className="text-sm text-gray-500 mt-1">
                 {showTrashed ? 'View and manage your withdrawn applications' : 'Track and manage all your active job applications'}
               </p>
+              {isAdmin && !showTrashed && (
+                <p className="text-xs text-blue-600 mt-1">
+                  👑 Admin view - Showing all applications
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <button
@@ -373,7 +474,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
             </div>
           </div>
 
-          {/* Stats Cards - Simplified */}
+          {/* Stats Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 mb-6">
             {statsCards.map((card) => {
               const colorMap = {
@@ -409,7 +510,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
 
           {/* Applications Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-            {applicationItems.length === 0 && (
+            {applicationsCount === 0 && (
               <div className="col-span-full text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <FaBriefcase className="text-gray-400 text-2xl" />
@@ -435,6 +536,8 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
               const trashed = !!app.deleted_at;
               const isPending = !trashed && app.status === 'pending';
               const isProcessing = app.ats_calculation_status === 'processing';
+              // For admin, check if this is the user's own application
+              const isOwnApplication = currentUser?.id === app.user_id;
 
               return (
                 <div
@@ -457,6 +560,15 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
                       <FaBuilding size={10} />
                       {app.employer_name}
                     </div>
+
+                    {/* Admin indicator for other user's applications */}
+                    {isAdmin && !isOwnApplication && !trashed && (
+                      <div className="mt-1">
+                        <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                          Applicant: {app.name}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Stats Row */}
                     <div className="flex items-center justify-between mt-3">

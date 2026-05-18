@@ -1,6 +1,17 @@
+// resources/js/pages/Backend/Applications/Show.jsx
+
+// React
 import { useState } from 'react';
+
+// Inertia
 import { Head, router, Link } from '@inertiajs/react';
+
+// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+import { Can } from '../../../components/Auth/Can';
 
 // Icons
 import {
@@ -39,6 +50,7 @@ import {
   FaUserCircle,
   FaFileAlt,
   FaIdCard,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
 // SweetAlert2
@@ -56,6 +68,7 @@ const safeFilename = (name) => {
     : 'resume';
 };
 
+// Helper function to extract filename from Content-Disposition header
 const extractFilenameFromDisposition = (header) => {
   if (!header) return null;
   const match = header.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
@@ -69,12 +82,75 @@ const extractFilenameFromDisposition = (header) => {
 };
 
 export default function Show({ application, atsAnalysis }) {
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    isAuthenticated,
+    hasAnyPermission,
+    hasRole,
+  } = useAuth();
+
+  // Check permissions for application management
+  const isSuperAdmin = hasRole('super-admin');
+  const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const canViewApplications = hasAnyPermission(['applications.view', 'applications.manage']);
+  const canRecalculateAts = hasAnyPermission(['applications.update', 'applications.manage']);
+  const canDownloadResumes = hasAnyPermission(['applications.download', 'applications.manage']);
+  const canUpdateApplications = hasAnyPermission(['applications.update', 'applications.manage']);
+
+  // Check if user is the applicant owner
+  const isApplicantOwner = currentUser?.id === application?.user_id;
+
+  // Check if user owns the job this application is for
+  const isJobOwner = isEmployer && currentUser?.employer_id === application?.job_listing?.employer_id;
+
+  // Determine if user can view this application
+  const canView = canViewApplications || isApplicantOwner || isJobOwner;
+
+  // Determine if user can update status
+  const canUpdateStatus = canUpdateApplications || isJobOwner;
+
+  // Determine if user can download resume
+  const canDownload = canDownloadResumes || isJobOwner || isApplicantOwner;
+
+  // Determine if user can recalculate ATS
+  const canRecalcAts = canRecalculateAts || isJobOwner;
+
+  // State
+  const [isDownloadingCv, setIsDownloadingCv] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState(application.status);
-  const [isDownloadingCv, setIsDownloadingCv] = useState(false);
 
+  // Statuses
   const statuses = ['pending', 'shortlisted', 'rejected', 'hired'];
 
+  // If user doesn't have permission to view this application, show access denied
+  if (!canView) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">
+              You don't have permission to view this application.
+            </p>
+            <button
+              onClick={() => router.visit(route('dashboard'))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // Get status badge
   const getStatusBadge = (status) => {
     const badges = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -85,6 +161,7 @@ export default function Show({ application, atsAnalysis }) {
     return badges[status] || 'bg-gray-100 text-gray-800';
   };
 
+  // Get status icon
   const getStatusIcon = (status) => {
     const icons = {
       pending: <FaHourglassHalf className="text-yellow-500" size={20} />,
@@ -95,6 +172,7 @@ export default function Show({ application, atsAnalysis }) {
     return icons[status] || <FaBriefcase className="text-gray-500" size={20} />;
   };
 
+  // Get status text
   const getStatusText = (status) => {
     const texts = {
       pending: 'Pending',
@@ -105,6 +183,7 @@ export default function Show({ application, atsAnalysis }) {
     return texts[status] || status;
   };
 
+  // Get ATS score color
   const getAtsScoreColor = (score) => {
     if (score === undefined || score === null) return 'text-gray-500';
     if (score >= 80) return 'text-green-600';
@@ -113,6 +192,7 @@ export default function Show({ application, atsAnalysis }) {
     return 'text-red-600';
   };
 
+  // Get ATS score background
   const getAtsScoreBg = (score) => {
     if (score === undefined || score === null) return 'bg-gray-100';
     if (score >= 80) return 'bg-green-100';
@@ -121,6 +201,7 @@ export default function Show({ application, atsAnalysis }) {
     return 'bg-red-100';
   };
 
+  // Format date
   const formatDate = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -130,6 +211,7 @@ export default function Show({ application, atsAnalysis }) {
     });
   };
 
+  // Format date and time
   const formatDateTime = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -141,12 +223,24 @@ export default function Show({ application, atsAnalysis }) {
     });
   };
 
+  // Format salary
   const formatSalary = (salary) => {
     if (!salary) return 'Not specified';
     return new Intl.NumberFormat('en-US').format(salary) + ' BDT';
   };
 
+  // Handle status update
   const handleStatusUpdate = () => {
+    if (!canUpdateStatus) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to update application status.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     if (selectedStatus === application.status) return;
 
     Swal.fire({
@@ -194,7 +288,18 @@ export default function Show({ application, atsAnalysis }) {
     });
   };
 
+  // Handle download resume
   const handleDownloadResume = async (app) => {
+    if (!canDownload) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to download this resume.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     setIsDownloadingCv(true);
 
     try {
@@ -249,7 +354,18 @@ export default function Show({ application, atsAnalysis }) {
     }
   };
 
+  // Handle recalculate ATS
   const handleRecalculateAts = () => {
+    if (!canRecalcAts) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to recalculate ATS score.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Recalculate ATS Score?',
       text: 'This will re-analyze the resume against the job requirements.',
@@ -295,6 +411,7 @@ export default function Show({ application, atsAnalysis }) {
     });
   };
 
+  // Get application data
   const job = application.job_listing;
   const profile = application.applicant_profile;
   const user = profile?.user;
@@ -319,38 +436,60 @@ export default function Show({ application, atsAnalysis }) {
     // Use route that serves the file from the public disk (avoids storage symlink issues)
     return route('profile.photo', { path });
   };
-  
+
+  // Determine which role is viewing
+  const isAdminView = canViewApplications;
+  const isEmployerView = isJobOwner && !isAdminView;
+  const isApplicantView = isApplicantOwner && !isAdminView && !isEmployerView;
+
   return (
     <AuthenticatedLayout>
       <Head title={`Application: ${application.name} - ${job?.title}`} />
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6">
-        <div className=" mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex justify-between items-start mb-6">
             <div>
-              <Link
+              <button
                 onClick={() => window.history.back()}
                 className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-3 transition-colors group"
               >
                 <FaArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-                <span className="text-sm">Back to Applications</span>
-              </Link>
+                <span className="text-sm">Back</span>
+              </button>
               <h1 className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Application Details
               </h1>
               <p className="text-sm text-gray-500 mt-1">
                 {application.name} - {job?.title}
               </p>
+              {isAdminView && (
+                <p className="text-xs text-blue-600 mt-1">
+                  👑 Admin view
+                </p>
+              )}
+              {isEmployerView && (
+                <p className="text-xs text-green-600 mt-1">
+                  🏢 Employer view - You own this job
+                </p>
+              )}
+              {isApplicantView && (
+                <p className="text-xs text-purple-600 mt-1">
+                  👤 Your application
+                </p>
+              )}
             </div>
 
-            <button
-              onClick={() => handleDownloadResume(application)}
-              className="px-5 py-2.5 bg-linear-to-r from-purple-600 to-purple-700 text-white rounded-xl flex items-center gap-2 hover:from-purple-700 hover:to-purple-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
-            >
-              <FaDownload size={14} />
-              Download Resume
-            </button>
+            {canDownload && (
+              <button
+                onClick={() => handleDownloadResume(application)}
+                className="px-5 py-2.5 bg-linear-to-r from-purple-600 to-purple-700 text-white rounded-xl flex items-center gap-2 hover:from-purple-700 hover:to-purple-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+              >
+                {isDownloadingCv ? <FaSpinner className="animate-spin" size={14} /> : <FaDownload size={14} />}
+                Download Resume
+              </button>
+            )}
           </div>
 
           {/* Two Column Layout - 80/20 */}
@@ -413,19 +552,21 @@ export default function Show({ application, atsAnalysis }) {
                       <p className="text-sm text-gray-500">{user?.email || application.email}</p>
 
                       {/* Download CV Button - Visible and Working */}
-                      <div className="mt-4 w-full">
-                        <button
-                          onClick={() => handleDownloadResume(application)}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-linear-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl transition-all duration-200 group shadow-md hover:shadow-lg"
-                        >
-                          <FaFilePdf size={18} />
-                          <span className="font-medium">Download CV</span>
-                          <FaDownload size={14} className="group-hover:translate-y-0.5 transition-transform" />
-                        </button>
-                        <p className="text-xs text-gray-400 text-center mt-2">
-                          CV submitted with this application
-                        </p>
-                      </div>
+                      {canDownload && (
+                        <div className="mt-4 w-full">
+                          <button
+                            onClick={() => handleDownloadResume(application)}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-linear-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl transition-all duration-200 group shadow-md hover:shadow-lg"
+                          >
+                            {isDownloadingCv ? <FaSpinner className="animate-spin" size={18} /> : <FaFilePdf size={18} />}
+                            <span className="font-medium">Download CV</span>
+                            {!isDownloadingCv && <FaDownload size={14} className="group-hover:translate-y-0.5 transition-transform" />}
+                          </button>
+                          <p className="text-xs text-gray-400 text-center mt-2">
+                            CV submitted with this application
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -532,13 +673,15 @@ export default function Show({ application, atsAnalysis }) {
                       </div>
                       ATS Score Analysis
                     </h2>
-                    <button
-                      onClick={handleRecalculateAts}
-                      className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1 px-3 py-1.5 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-all"
-                    >
-                      <FaSpinner size={12} />
-                      Recalculate
-                    </button>
+                    {canRecalcAts && (
+                      <button
+                        onClick={handleRecalculateAts}
+                        className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1 px-3 py-1.5 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-all"
+                      >
+                        <FaSpinner size={12} />
+                        Recalculate
+                      </button>
+                    )}
                   </div>
 
                   {/* Score Display - Enhanced */}
@@ -639,12 +782,14 @@ export default function Show({ application, atsAnalysis }) {
                     <FaChartLine className="text-gray-400 text-3xl" />
                   </div>
                   <p className="text-gray-500">ATS score not calculated yet</p>
-                  <button
-                    onClick={handleRecalculateAts}
-                    className="mt-4 px-5 py-2.5 bg-linear-to-r from-indigo-600 to-indigo-700 text-white rounded-xl text-sm hover:from-indigo-700 hover:to-indigo-800 transition-all transform hover:scale-105"
-                  >
-                    Calculate ATS Score
-                  </button>
+                  {canRecalcAts && (
+                    <button
+                      onClick={handleRecalculateAts}
+                      className="mt-4 px-5 py-2.5 bg-linear-to-r from-indigo-600 to-indigo-700 text-white rounded-xl text-sm hover:from-indigo-700 hover:to-indigo-800 transition-all transform hover:scale-105"
+                    >
+                      Calculate ATS Score
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -672,29 +817,31 @@ export default function Show({ application, atsAnalysis }) {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-700">Change Status</label>
-                  <select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                    disabled={isUpdatingStatus}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                  >
-                    {statuses.map(status => (
-                      <option key={status} value={status}>
-                        {getStatusText(status)}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={handleStatusUpdate}
-                    disabled={selectedStatus === application.status || isUpdatingStatus}
-                    className="w-full px-4 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl text-sm font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 disabled:opacity-50 transform hover:scale-[1.02]"
-                  >
-                    {isUpdatingStatus ? <FaSpinner className="animate-spin inline mr-2" size={14} /> : null}
-                    Update Status
-                  </button>
-                </div>
+                {canUpdateStatus && (
+                  <div className="space-y-3">
+                    <label className="block text-sm font-semibold text-gray-700">Change Status</label>
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      disabled={isUpdatingStatus}
+                      className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    >
+                      {statuses.map(status => (
+                        <option key={status} value={status}>
+                          {getStatusText(status)}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleStatusUpdate}
+                      disabled={selectedStatus === application.status || isUpdatingStatus}
+                      className="w-full px-4 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl text-sm font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 disabled:opacity-50 transform hover:scale-[1.02]"
+                    >
+                      {isUpdatingStatus ? <FaSpinner className="animate-spin inline mr-2" size={14} /> : null}
+                      Update Status
+                    </button>
+                  </div>
+                )}
 
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <p className="text-xs text-gray-400 flex items-center gap-1">

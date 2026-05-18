@@ -1,8 +1,16 @@
 // resources/js/Pages/Backend/Apply/Create.jsx
 
+// React
 import { useState, useEffect } from 'react';
+
+// Inertia
 import { Head, router } from '@inertiajs/react';
+
+// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
 
 // Icons
 import {
@@ -26,27 +34,90 @@ import {
   FaShieldAlt,
   FaRocket,
   FaStar,
+  FaExclamationTriangle,
 } from 'react-icons/fa';
 
 // SweetAlert
 import Swal from 'sweetalert2';
 
 export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    isAuthenticated,
+    hasRole,
+    hasAnyPermission,
+  } = useAuth();
+
+  // Check if user is authenticated
+  const isJobSeeker = hasRole('job_seeker') || hasAnyPermission(['applications.create']);
+
   // Simplified form state
   const [formData, setFormData] = useState({
     cv_id: cvs.find(cv => cv.is_primary)?.id || cvs[0]?.id || '',
-    name: `${applicantProfile.first_name || ''} ${applicantProfile.last_name || ''}`.trim(),
-    email: applicantProfile.email || '',
-    phone: applicantProfile.phone || '',
+    name: `${applicantProfile?.first_name || ''} ${applicantProfile?.last_name || ''}`.trim() || currentUser?.name || '',
+    email: applicantProfile?.email || currentUser?.email || '',
+    phone: applicantProfile?.phone || '',
     expected_salary: '',
     linkedin_link: '',
     facebook_link: '',
   });
 
+  // States
   const [errors, setErrors] = useState({});
+  const [atsPreview, setAtsPreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPreviewingAts, setIsPreviewingAts] = useState(false);
-  const [atsPreview, setAtsPreview] = useState(null);
+
+  // If user is not authenticated, show access denied
+  if (!isAuthenticated) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Login Required</h2>
+            <p className="text-gray-500 mt-2">Please login to apply for this job.</p>
+            <button
+              onClick={() => router.visit(route('login', { redirect: route('public.jobs.show', jobListing.slug) }))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Login Now
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // If user is employer, show message
+  if (hasRole('employer') || hasRole('employer-admin')) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Cannot Apply" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto p-6">
+            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaExclamationTriangle className="w-10 h-10 text-yellow-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Employer Accounts Cannot Apply</h2>
+            <p className="text-gray-500 mt-2">
+              Employer accounts are for posting jobs, not applying for them. Please create a job seeker account to apply.
+            </p>
+            <button
+              onClick={() => router.visit(route('dashboard'))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
 
   // Helper functions
   const formatDate = (date) => {
@@ -58,6 +129,7 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
     });
   };
 
+  // Get days left
   const getDaysLeft = () => {
     const daysLeft = Math.ceil((new Date(jobListing.application_deadline) - new Date()) / (1000 * 60 * 60 * 24));
     if (daysLeft < 0) return 'Expired';
@@ -66,6 +138,7 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
     return `${daysLeft} days left`;
   };
 
+  // Get job type label
   const getJobTypeLabel = (type) => {
     const types = {
       'full-time': 'Full Time',
@@ -78,6 +151,7 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
     return types[type] || type;
   };
 
+  // Get salary display
   const getSalaryDisplay = () => {
     if (jobListing.as_per_companies_policy) return 'As per company policy';
     if (jobListing.is_salary_negotiable) return 'Negotiable';
@@ -89,12 +163,14 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
     return 'Not specified';
   };
 
+  // Check if salary input should be shown
   const showSalaryInput = () => {
     if (jobListing.as_per_companies_policy) return false;
     if (jobListing.is_salary_negotiable) return false;
     return !!(jobListing.salary_min || jobListing.salary_max);
   };
 
+  // Validate salary
   const validateSalary = (salary) => {
     const numSalary = parseFloat(salary);
     if (isNaN(numSalary)) return false;
@@ -103,6 +179,7 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
     return true;
   };
 
+  // Handle form changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -144,6 +221,7 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
     }, 1200);
   };
 
+  // Get ATS score color
   const getScoreColor = (score) => {
     if (score >= 80) return 'text-emerald-600';
     if (score >= 60) return 'text-blue-600';
@@ -151,6 +229,7 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
     return 'text-rose-600';
   };
 
+  // Validate form
   const validateForm = () => {
     const newErrors = {};
 
@@ -189,6 +268,7 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -229,6 +309,8 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
               text: 'Your application has been submitted successfully.',
               timer: 2000,
               showConfirmButton: false,
+            }).then(() => {
+              router.visit(route('backend.applications.my'));
             });
           },
           onError: (err) => {
@@ -246,8 +328,10 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
     });
   };
 
+  // Check if job is expired
   const isExpired = new Date(jobListing.application_deadline) < new Date();
 
+  // Job Expired Screen
   if (isExpired) {
     return (
       <AuthenticatedLayout>
@@ -271,12 +355,15 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
     );
   }
 
+  // Check if profile is incomplete
+  const isProfileIncomplete = !applicantProfile || (!applicantProfile.first_name && !applicantProfile.last_name);
+
   return (
     <AuthenticatedLayout>
       <Head title={`Apply for ${jobListing.title}`} />
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-6 px-4 sm:px-6 lg:px-8">
-        <div className=" mx-auto">
+        <div className="max-w-6xl mx-auto">
           {/* Back Button */}
           <button
             onClick={() => window.history.back()}
@@ -291,6 +378,27 @@ export default function ApplyCreate({ jobListing, applicantProfile, cvs }) {
             <h1 className="text-xl font-bold text-white">Apply for Position</h1>
             <p className="text-blue-100 text-sm mt-1">Complete the form below to submit your application</p>
           </div>
+
+          {/* Profile Incomplete Warning */}
+          {isProfileIncomplete && (
+            <div className="bg-amber-50 border-l-4 border-amber-400 rounded-lg p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <FaExclamationTriangle className="text-amber-600 mt-0.5" size={18} />
+                <div>
+                  <p className="text-sm font-medium text-amber-800">Profile Incomplete</p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    Please complete your profile information to improve your application quality.
+                  </p>
+                  <button
+                    onClick={() => router.visit(route('backend.applicant.profile.show'))}
+                    className="mt-2 text-xs text-amber-800 underline hover:text-amber-900"
+                  >
+                    Complete Profile →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Main Form */}

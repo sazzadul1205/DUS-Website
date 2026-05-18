@@ -1,8 +1,16 @@
 // resources/js/Pages/Backend/Apply/Show.jsx
 
+// React
 import { useState, useEffect } from 'react';
+
+// Inertia
 import { Head, router, Link } from '@inertiajs/react';
+
+// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
 
 // Icons
 import {
@@ -30,16 +38,114 @@ import {
   FaThumbsUp,
   FaLightbulb,
   FaExternalLinkAlt,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
 // SweetAlert
 import Swal from 'sweetalert2';
 
 export default function ApplyShow({ application, jobListing, statusTimeline, atsDetails, atsStatus, isDeleted }) {
-  const [recalculating, setRecalculating] = useState(false);
-  const [withdrawing, setWithdrawing] = useState(false);
-  const [restoring, setRestoring] = useState(false);
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    isAuthenticated,
+    hasRole,
+    hasAnyPermission,
+  } = useAuth();
 
+  // Check permissions
+  const isJobSeeker = hasRole('job_seeker');
+  const canViewAllApplications = hasAnyPermission(['applications.view', 'applications.manage']);
+  const isAdmin = canViewAllApplications;
+
+  // Check if user is the owner of this application
+  const isOwner = currentUser?.id === application?.user_id;
+
+  // Determine if user can view this application
+  const canView = isOwner || isAdmin;
+
+  // Loading state
+  const [restoring, setRestoring] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+
+  // If user is not authenticated, show access denied
+  if (!isAuthenticated) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Login Required</h2>
+            <p className="text-gray-500 mt-2">Please login to view application details.</p>
+            <button
+              onClick={() => router.visit(route('login', { redirect: route('backend.apply.show', application?.id) }))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Login Now
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // If user doesn't have permission to view this application, show access denied
+  if (!canView) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">
+              You don't have permission to view this application.
+            </p>
+            <button
+              onClick={() => router.visit(route('backend.apply.index'))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Back to Applications
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // If user is employer (not job seeker) and not admin, show message
+  if (!isJobSeeker && !isAdmin) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto p-6">
+            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaBriefcase className="w-10 h-10 text-yellow-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Employer Account</h2>
+            <p className="text-gray-500 mt-2">
+              Employer accounts cannot view application details. Please use the employer panel to manage applications for your jobs.
+            </p>
+            <button
+              onClick={() => router.visit(route('dashboard'))}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // Format dates
   const formatDate = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -51,6 +157,7 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     });
   };
 
+  // Format short dates
   const formatShortDate = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -60,6 +167,7 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     });
   };
 
+  // Get status badge
   const getStatusBadge = (status) => {
     const badges = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -70,6 +178,7 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     return badges[status] || 'bg-gray-100 text-gray-800';
   };
 
+  // Get status icon
   const getStatusIcon = (status) => {
     const icons = {
       pending: <FaHourglassHalf className="text-yellow-500" size={24} />,
@@ -80,6 +189,7 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     return icons[status] || <FaBriefcase className="text-gray-500" size={24} />;
   };
 
+  // Get status text
   const getStatusText = (status) => {
     const texts = {
       pending: 'Pending Review',
@@ -90,6 +200,7 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     return texts[status] || status;
   };
 
+  // Get ATS score color
   const getAtsScoreColor = (score) => {
     if (!score) return 'text-gray-500';
     if (score >= 80) return 'text-green-600';
@@ -98,6 +209,7 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     return 'text-red-600';
   };
 
+  // Get ATS score background
   const getAtsScoreBg = (score) => {
     if (!score) return 'bg-gray-100';
     if (score >= 80) return 'bg-green-100';
@@ -106,6 +218,7 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     return 'bg-red-100';
   };
 
+  // Get ATS score message
   const getAtsScoreMessage = (score) => {
     if (!score) return 'Not calculated yet';
     if (score >= 80) return 'Excellent match! Your CV aligns very well with this position.';
@@ -114,12 +227,23 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     return 'Low match. Try customizing your CV for this position.';
   };
 
+  // Format salary
   const formatSalary = (salary) => {
     if (!salary) return 'Not specified';
     return new Intl.NumberFormat('en-US').format(salary) + ' BDT';
   };
 
+  // Recalculate ATS handler
   const handleRecalculateAts = () => {
+    if (!isOwner && !isAdmin) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to recalculate ATS score.',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Recalculate ATS Score?',
       text: 'This will re-analyze your CV against the job requirements.',
@@ -159,7 +283,17 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     });
   };
 
+  // Withdraw handler
   const handleWithdraw = () => {
+    if (!isOwner) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to withdraw this application.',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Withdraw Application?',
       text: 'This will move your application to trash. You can restore it later.',
@@ -199,7 +333,17 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     });
   };
 
+  // Restore handler
   const handleRestore = () => {
+    if (!isOwner && !isAdmin) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to restore this application.',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Restore Application?',
       text: 'This will restore your application from trash.',
@@ -239,7 +383,17 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     });
   };
 
+  // Force delete handler
   const handleForceDelete = () => {
+    if (!isOwner && !isAdmin) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to permanently delete this application.',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Permanently Delete?',
       html: `Are you sure you want to permanently delete this application?<br><br><strong>This action cannot be undone.</strong>`,
@@ -276,17 +430,24 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     });
   };
 
-  const canEdit = !isDeleted && application.status === 'pending';
-  const canWithdraw = !isDeleted && application.status === 'pending';
-  const canRestore = isDeleted;
-  const canRecalculate = !isDeleted && atsStatus?.can_recalculate;
+  // Determine if user can edit this application
+  const canEdit = !isDeleted && application.status === 'pending' && (isOwner || isAdmin);
+
+  // Determine if user can withdraw this application
+  const canWithdraw = !isDeleted && application.status === 'pending' && isOwner;
+
+  // Determine if user can restore this application
+  const canRestore = isDeleted && (isOwner || isAdmin);
+
+  // Determine if user can force delete this application
+  const canRecalculate = !isDeleted && atsStatus?.can_recalculate && (isOwner || isAdmin);
 
   return (
     <AuthenticatedLayout>
       <Head title={`Application for ${jobListing.title}`} />
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-        <div className=" mx-auto">
+        <div className="max-w-6xl mx-auto">
           {/* Back Button */}
           <button
             onClick={() => router.get(route('backend.apply.index'))}
@@ -303,6 +464,11 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
                 <div>
                   <h1 className="text-xl font-bold text-white">Application Details</h1>
                   <p className="text-blue-100 text-sm mt-1">Review your application information</p>
+                  {isAdmin && !isOwner && (
+                    <p className="text-blue-200 text-xs mt-2">
+                      👑 Admin view - Viewing application for {application.name}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   {canEdit && (
@@ -334,7 +500,7 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
                       Restore
                     </button>
                   )}
-                  {isDeleted && (
+                  {isDeleted && (isOwner || isAdmin) && (
                     <button
                       onClick={handleForceDelete}
                       className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-100 rounded-lg flex items-center gap-2 transition-all duration-200"
@@ -682,7 +848,7 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
               </div>
 
               {/* Quick Actions Card */}
-              {!isDeleted && (
+              {!isDeleted && (canEdit || canWithdraw || application.resume_url) && (
                 <div className="bg-white rounded-xl shadow-md overflow-hidden">
                   <div className="px-6 py-4 bg-linear-to-r from-gray-700 to-gray-800">
                     <h3 className="font-semibold text-white flex items-center gap-2">

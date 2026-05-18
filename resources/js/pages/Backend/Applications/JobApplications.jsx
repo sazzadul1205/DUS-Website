@@ -1,10 +1,22 @@
 // resources/js/pages/Backend/Applications/JobApplications.jsx
 
+// React
 import { useState, useEffect } from 'react';
+
+// Inertia
 import { Head, router, usePage, Link } from '@inertiajs/react';
+
+// Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
+
+// Components
 import EmailModal from '../../../components/EmailModal';
+
+// Hooks
 import useEmailModal from '../../../hooks/useEmailModal';
+
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
 
 // Icons
 import {
@@ -45,6 +57,7 @@ import {
   FaSortUp,
   FaSortDown,
   FaSearch,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
 import Swal from 'sweetalert2';
@@ -56,7 +69,49 @@ export default function JobApplications({
   statusCounts: initialStatusCounts = {},
   filterOptions = {},
 }) {
+  // Auth
   const { flash } = usePage().props;
+
+  // Use centralized auth hook
+  const {
+    user: currentUser,
+    isAuthenticated,
+    hasAnyPermission,
+    hasRole,
+  } = useAuth();
+
+  // Check permissions for application management
+  const isSuperAdmin = hasRole('super-admin');
+  const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const canViewApplications = hasAnyPermission(['applications.view', 'applications.manage']);
+  const canEmailApplicants = hasAnyPermission(['applications.email', 'applications.manage']);
+  const canDownloadResumes = hasAnyPermission(['applications.download', 'applications.manage']);
+  const canUpdateApplications = hasAnyPermission(['applications.update', 'applications.manage']);
+  const canExportApplications = hasAnyPermission(['applications.export', 'applications.manage']);
+  const canDeleteApplications = hasAnyPermission(['applications.destroy', 'applications.manage']);
+
+  // Check if user owns this job
+  const isJobOwner = isEmployer && currentUser?.employer_id === job?.employer_id;
+
+  // If user doesn't have permission to view applications and doesn't own the job, show access denied
+  if (!canViewApplications && !isJobOwner) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
+            <p className="text-gray-500 mt-2">You don't have permission to view applications for this job.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // Safe initial filters
   const safeInitialFilters = (initialFilters && !Array.isArray(initialFilters)) ? initialFilters : {};
 
   // Use the email modal hook
@@ -69,16 +124,16 @@ export default function JobApplications({
   } = useEmailModal();
 
   // States
-  const [applications, setApplications] = useState(initialApplications);
-  const [selectedApps, setSelectedApps] = useState([]);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedApps, setSelectedApps] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState({});
   const [pendingDeletes, setPendingDeletes] = useState({});
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [applications, setApplications] = useState(initialApplications);
   const [sortField, setSortField] = useState(safeInitialFilters.sort || 'created_at');
   const [sortDirection, setSortDirection] = useState(safeInitialFilters.direction || 'desc');
 
@@ -245,9 +300,9 @@ export default function JobApplications({
     });
   };
 
-  // Handle select all applications
+  // Handle select all applications (only if user has update permission)
   const handleSelectAll = () => {
-    const selectableApps = applicationItems.filter(app => !pendingDeletes[app.id]);
+    const selectableApps = applicationItems.filter(app => !pendingDeletes[app.id] && canUpdateApplications);
     if (selectedApps.length === selectableApps.length) {
       setSelectedApps([]);
     } else {
@@ -266,6 +321,16 @@ export default function JobApplications({
 
   // Open email modal for bulk
   const handleOpenBulkEmail = () => {
+    if (!canEmailApplicants) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to send emails to applicants.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     if (selectedApps.length === 0) {
       Swal.fire({
         icon: 'warning',
@@ -282,6 +347,15 @@ export default function JobApplications({
 
   // Open email modal for single applicant
   const handleOpenSingleEmail = (applicant) => {
+    if (!canEmailApplicants) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to send emails to applicants.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
     openEmailModal(applicant, `Send Email to ${applicant.name}`);
   };
 
@@ -315,6 +389,16 @@ export default function JobApplications({
 
   // Handle bulk export
   const handleExport = (format) => {
+    if (!canExportApplications) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to export applications.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     if (applicationItems.length === 0) {
       Swal.fire({
         icon: 'warning',
@@ -387,6 +471,16 @@ export default function JobApplications({
 
   // Handle bulk delete with optimistic update
   const handleBulkDelete = () => {
+    if (!canDeleteApplications) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to delete applications.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     if (selectedApps.length === 0) {
       Swal.fire({
         icon: 'warning',
@@ -466,6 +560,16 @@ export default function JobApplications({
 
   // Handle single delete with optimistic update
   const handleDeleteSingle = (appId, applicantName) => {
+    if (!canDeleteApplications) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to delete applications.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     Swal.fire({
       title: 'Delete Application?',
       text: `Are you sure you want to delete ${applicantName}'s application? This action cannot be undone.`,
@@ -527,6 +631,16 @@ export default function JobApplications({
 
   // Handle bulk status update with optimistic update
   const handleBulkStatusUpdate = (newStatus) => {
+    if (!canUpdateApplications) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to update application statuses.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     if (selectedApps.length === 0) {
       Swal.fire({
         icon: 'warning',
@@ -610,6 +724,16 @@ export default function JobApplications({
 
   // Handle bulk download resumes (MERGED PDF)
   const handleBulkDownload = async () => {
+    if (!canDownloadResumes) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to download resumes.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     if (selectedApps.length === 0) {
       Swal.fire({
         icon: 'warning',
@@ -703,6 +827,16 @@ export default function JobApplications({
 
   // Handle single resume download
   const handleDownloadResume = async (app) => {
+    if (!canDownloadResumes) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to download resumes.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     try {
       const url = route('backend.applications.download', app.id);
       const response = await fetch(url, {
@@ -744,6 +878,16 @@ export default function JobApplications({
 
   // Handle single status update with optimistic update
   const handleStatusUpdate = (appId, newStatus) => {
+    if (!canUpdateApplications) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Permission Denied',
+        text: 'You do not have permission to update application statuses.',
+        confirmButtonColor: '#d33',
+      });
+      return;
+    }
+
     const originalApplications = JSON.parse(JSON.stringify(applications));
 
     setPendingUpdates(prev => ({ ...prev, [appId]: newStatus }));
@@ -803,6 +947,7 @@ export default function JobApplications({
     });
   };
 
+  // Get status badge
   const getStatusBadge = (status, isPending = false) => {
     if (isPending) {
       return (
@@ -822,6 +967,7 @@ export default function JobApplications({
     return badges[status] || 'bg-gray-100 text-gray-800';
   };
 
+  // Get status icon
   const getStatusIcon = (status) => {
     const icons = {
       pending: <FaHourglassHalf className="text-yellow-500" size={14} />,
@@ -832,6 +978,7 @@ export default function JobApplications({
     return icons[status] || <FaBriefcase className="text-gray-500" size={14} />;
   };
 
+  // Get status text
   const getStatusText = (status) => {
     const texts = {
       pending: 'Pending',
@@ -842,6 +989,7 @@ export default function JobApplications({
     return texts[status] || status;
   };
 
+  // Get ATS score color
   const getAtsScoreColor = (score) => {
     if (score === undefined || score === null) return 'text-gray-500';
     if (score >= 80) return 'text-green-600';
@@ -850,6 +998,7 @@ export default function JobApplications({
     return 'text-red-600';
   };
 
+  // Get ATS score background
   const getAtsScoreBg = (score) => {
     if (score === undefined || score === null) return 'bg-gray-100';
     if (score >= 80) return 'bg-green-100';
@@ -858,6 +1007,7 @@ export default function JobApplications({
     return 'bg-red-100';
   };
 
+  // Format salary
   const formatSalary = (salary) => {
     if (!salary) return null;
     return new Intl.NumberFormat('en-US').format(salary) + ' BDT';
@@ -894,6 +1044,12 @@ export default function JobApplications({
   const rejectedCount = visibleApplications.filter(app => app.status === 'rejected').length;
   const hiredCount = visibleApplications.filter(app => app.status === 'hired').length;
   const totalCount = visibleApplications.length;
+
+  // Check if user can perform bulk actions
+  const canBulkEmail = canEmailApplicants && selectedApps.length > 0;
+  const canBulkStatusUpdate = canUpdateApplications && selectedApps.length > 0;
+  const canBulkDownload = canDownloadResumes && selectedApps.length > 0;
+  const canBulkDelete = canDeleteApplications && selectedApps.length > 0;
 
   // Show flash messages
   useEffect(() => {
@@ -1014,7 +1170,7 @@ export default function JobApplications({
       <Head title={`Applications for ${job.title}`} />
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6">
-        <div className="mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* HEADER */}
           <div className="mb-6">
             <Link
@@ -1039,6 +1195,11 @@ export default function JobApplications({
                     <FaCalendarAlt size={12} />
                     Posted: {formatDate(job.created_at)}
                   </span>
+                  {isJobOwner && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                      Your Job
+                    </span>
+                  )}
                 </div>
                 <div className="flex gap-3 mt-2 flex-wrap">
                   <span className="inline-flex items-center gap-1 text-xs">
@@ -1078,46 +1239,48 @@ export default function JobApplications({
 
               <div className="flex gap-2">
                 {/* Export Dropdown Button */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowExportMenu(!showExportMenu)}
-                    disabled={isExporting || applicationItems.length === 0}
-                    className="px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {isExporting ? (
-                      <FaSpinner className="animate-spin" size={14} />
-                    ) : (
-                      <FaFileExcel size={14} />
-                    )}
-                    Export Data
-                    <FaChevronDown size={12} />
-                  </button>
+                {canExportApplications && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowExportMenu(!showExportMenu)}
+                      disabled={isExporting || applicationItems.length === 0}
+                      className="px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {isExporting ? (
+                        <FaSpinner className="animate-spin" size={14} />
+                      ) : (
+                        <FaFileExcel size={14} />
+                      )}
+                      Export Data
+                      <FaChevronDown size={12} />
+                    </button>
 
-                  {showExportMenu && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setShowExportMenu(false)}
-                      />
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-20 border border-gray-200 overflow-hidden">
-                        <button
-                          onClick={() => handleExport('xlsx')}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors"
-                        >
-                          <FaFileExcel className="text-green-600" size={16} />
-                          Export as Excel (.xlsx)
-                        </button>
-                        <button
-                          onClick={() => handleExport('csv')}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100 transition-colors"
-                        >
-                          <FaFileCsv className="text-blue-600" size={16} />
-                          Export as CSV (.csv)
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                    {showExportMenu && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setShowExportMenu(false)}
+                        />
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-20 border border-gray-200 overflow-hidden">
+                          <button
+                            onClick={() => handleExport('xlsx')}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                          >
+                            <FaFileExcel className="text-green-600" size={16} />
+                            Export as Excel (.xlsx)
+                          </button>
+                          <button
+                            onClick={() => handleExport('csv')}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100 transition-colors"
+                          >
+                            <FaFileCsv className="text-blue-600" size={16} />
+                            Export as CSV (.csv)
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 <button
                   onClick={() => setShowFilters(!showFilters)}
@@ -1139,7 +1302,7 @@ export default function JobApplications({
             </div>
           </div>
 
-          {/* FILTERS PANEL - Comprehensive like Index page */}
+          {/* FILTERS PANEL */}
           {showFilters && (
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6 animate-fade-in">
               <div className="flex justify-between items-center mb-4">
@@ -1338,53 +1501,65 @@ export default function JobApplications({
                   </span>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={handleOpenBulkEmail}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-green-700 transition-all duration-200"
-                  >
-                    <FaEnvelope size={14} />
-                    Send Email
-                  </button>
-                  <select
-                    onChange={(e) => handleBulkStatusUpdate(e.target.value)}
-                    disabled={isUpdatingStatus}
-                    className="px-4 py-2 text-sm border border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Bulk Update Status</option>
-                    {statuses.map(status => (
-                      <option key={status} value={status}>
-                        Mark as {getStatusText(status)}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={handleBulkDownload}
-                    disabled={isDownloading}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-purple-700 transition-all duration-200 disabled:opacity-50"
-                  >
-                    {isDownloading ? (
-                      <FaSpinner className="animate-spin" size={14} />
-                    ) : selectedApps.length > 1 ? (
-                      <FaFilePdf size={14} />
-                    ) : (
-                      <FaDownload size={14} />
-                    )}
-                    {isDownloading
-                      ? 'Downloading...'
-                      : selectedApps.length > 1
-                        ? 'Download Merged PDF'
-                        : 'Download Resume'
-                    }
-                  </button>
-                  <button
-                    onClick={handleBulkDelete}
-                    disabled={isDeleting}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-red-700 transition-all duration-200 disabled:opacity-50"
-                  >
-                    {isDeleting ? <FaSpinner className="animate-spin" size={14} /> : <FaTrash size={14} />}
-                    Delete All
-                  </button>
+                  {canBulkEmail && (
+                    <button
+                      onClick={handleOpenBulkEmail}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-green-700 transition-all duration-200"
+                    >
+                      <FaEnvelope size={14} />
+                      Send Email
+                    </button>
+                  )}
+                  
+                  {canBulkStatusUpdate && (
+                    <select
+                      onChange={(e) => handleBulkStatusUpdate(e.target.value)}
+                      disabled={isUpdatingStatus}
+                      className="px-4 py-2 text-sm border border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Bulk Update Status</option>
+                      {statuses.map(status => (
+                        <option key={status} value={status}>
+                          Mark as {getStatusText(status)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  
+                  {canBulkDownload && (
+                    <button
+                      onClick={handleBulkDownload}
+                      disabled={isDownloading}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-purple-700 transition-all duration-200 disabled:opacity-50"
+                    >
+                      {isDownloading ? (
+                        <FaSpinner className="animate-spin" size={14} />
+                      ) : selectedApps.length > 1 ? (
+                        <FaFilePdf size={14} />
+                      ) : (
+                        <FaDownload size={14} />
+                      )}
+                      {isDownloading
+                        ? 'Downloading...'
+                        : selectedApps.length > 1
+                          ? 'Download Merged PDF'
+                          : 'Download Resume'
+                      }
+                    </button>
+                  )}
+                  
+                  {canBulkDelete && (
+                    <button
+                      onClick={handleBulkDelete}
+                      disabled={isDeleting}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-red-700 transition-all duration-200 disabled:opacity-50"
+                    >
+                      {isDeleting ? <FaSpinner className="animate-spin" size={14} /> : <FaTrash size={14} />}
+                      Delete All
+                    </button>
+                  )}
+                  
                   <button
                     onClick={() => setSelectedApps([])}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200"
@@ -1403,13 +1578,15 @@ export default function JobApplications({
                 <thead className="bg-linear-to-r from-gray-50 to-gray-100">
                   <tr>
                     <th className="px-4 py-4 text-left">
-                      <input
-                        type="checkbox"
-                        checked={visibleApplications.length > 0 && selectedApps.length === visibleApplications.length}
-                        onChange={handleSelectAll}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        disabled={visibleApplications.length === 0}
-                      />
+                      {canUpdateApplications && (
+                        <input
+                          type="checkbox"
+                          checked={visibleApplications.length > 0 && selectedApps.length === visibleApplications.length}
+                          onChange={handleSelectAll}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          disabled={visibleApplications.length === 0}
+                        />
+                      )}
                     </th>
                     <th
                       className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900"
@@ -1512,13 +1689,15 @@ export default function JobApplications({
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <td className="px-4 py-4">
-                          <input
-                            type="checkbox"
-                            checked={selectedApps.includes(app.id)}
-                            onChange={() => handleSelectApp(app.id)}
-                            disabled={isPending}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
-                          />
+                          {canUpdateApplications && (
+                            <input
+                              type="checkbox"
+                              checked={selectedApps.includes(app.id)}
+                              onChange={() => handleSelectApp(app.id)}
+                              disabled={isPending}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
+                            />
+                          )}
                         </td>
 
                         {/* APPLICANT */}
@@ -1621,27 +1800,31 @@ export default function JobApplications({
                         {/* ACTIONS */}
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex justify-end gap-2">
-                            <select
-                              value={displayStatus}
-                              onChange={(e) => handleStatusUpdate(app.id, e.target.value)}
-                              disabled={isPending}
-                              className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
-                            >
-                              {statuses.map(status => (
-                                <option key={status} value={status}>
-                                  {getStatusText(status)}
-                                </option>
-                              ))}
-                            </select>
+                            {canUpdateApplications && (
+                              <select
+                                value={displayStatus}
+                                onChange={(e) => handleStatusUpdate(app.id, e.target.value)}
+                                disabled={isPending}
+                                className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
+                              >
+                                {statuses.map(status => (
+                                  <option key={status} value={status}>
+                                    {getStatusText(status)}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
 
-                            <button
-                              onClick={() => handleOpenSingleEmail(app)}
-                              disabled={isPending}
-                              className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                              title="Send Email"
-                            >
-                              <FaEnvelope size={16} />
-                            </button>
+                            {canEmailApplicants && (
+                              <button
+                                onClick={() => handleOpenSingleEmail(app)}
+                                disabled={isPending}
+                                className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200 disabled:opacity-50"
+                                title="Send Email"
+                              >
+                                <FaEnvelope size={16} />
+                              </button>
+                            )}
 
                             <Link
                               href={route('backend.applications.show', app.id)}
@@ -1651,23 +1834,27 @@ export default function JobApplications({
                               <FaEye size={16} />
                             </Link>
 
-                            <button
-                              onClick={() => handleDownloadResume(app)}
-                              disabled={isPending}
-                              className="p-2 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                              title="Download Resume"
-                            >
-                              <FaFilePdf size={16} />
-                            </button>
+                            {canDownloadResumes && (
+                              <button
+                                onClick={() => handleDownloadResume(app)}
+                                disabled={isPending}
+                                className="p-2 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded-lg transition-all duration-200 disabled:opacity-50"
+                                title="Download Resume"
+                              >
+                                <FaFilePdf size={16} />
+                              </button>
+                            )}
 
-                            <button
-                              onClick={() => handleDeleteSingle(app.id, app.name)}
-                              disabled={isPending}
-                              className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                              title="Delete"
-                            >
-                              <FaTrash size={16} />
-                            </button>
+                            {canDeleteApplications && (
+                              <button
+                                onClick={() => handleDeleteSingle(app.id, app.name)}
+                                disabled={isPending}
+                                className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50"
+                                title="Delete"
+                              >
+                                <FaTrash size={16} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
