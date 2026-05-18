@@ -1,3 +1,5 @@
+// resources/js/Pages/Backend/ApplicantProfile/Modals/WorkExperienceModal.jsx
+
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import {
@@ -13,6 +15,22 @@ import { GiSuitcase } from 'react-icons/gi';
 import { MdWork, MdBusinessCenter } from 'react-icons/md';
 import Modal from './Modal';
 
+/**
+ * WorkExperienceModal Component
+ * 
+ * Allows users to manage their work history.
+ * Features:
+ * - Add multiple work experiences (max 3)
+ * - Edit company name, position, start/end years
+ * - Mark current job
+ * - Delete existing entries
+ * - Preview of added experience
+ * 
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether modal is open
+ * @param {Function} props.onClose - Callback when modal closes
+ * @param {Object} props.profile - User profile data containing job histories
+ */
 const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
   const [saving, setSaving] = useState(false);
   const currentYear = new Date().getFullYear();
@@ -30,6 +48,9 @@ const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
     })) || [],
   });
 
+  /**
+   * Add a new empty work experience entry
+   */
   const addWorkExperience = () => {
     setModalData({
       ...modalData,
@@ -48,25 +69,42 @@ const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
     });
   };
 
+  /**
+   * Update a specific work experience field
+   * @param {number} index - Index of experience to update
+   * @param {string} field - Field name
+   * @param {string|number|boolean} value - New value
+   */
   const updateWorkExperience = (index, field, value) => {
     const updatedJobs = [...modalData.job_histories];
     updatedJobs[index][field] = value;
+    // Clear ending year if marked as current
     if (field === 'is_current' && value) {
       updatedJobs[index].ending_year = null;
     }
     setModalData({ ...modalData, job_histories: updatedJobs });
   };
 
+  /**
+   * Remove work experience entry (soft delete for existing, hard delete for new)
+   * @param {number} index - Index of experience to remove
+   */
   const removeWorkExperience = (index) => {
     const updatedJobs = [...modalData.job_histories];
     if (updatedJobs[index].id) {
+      // Mark existing job for deletion
       updatedJobs[index].to_delete = true;
     } else {
+      // Remove unsaved job immediately
       updatedJobs.splice(index, 1);
     }
     setModalData({ ...modalData, job_histories: updatedJobs });
   };
 
+  /**
+   * Save work experience data to server
+   * Sends PUT request to update endpoint
+   */
   const handleSave = async () => {
     setSaving(true);
 
@@ -116,6 +154,7 @@ const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
   return (
     <Modal title="Edit Work Experience" onClose={onClose} onSave={handleSave} saving={saving}>
       <div className="space-y-6">
+        {/* Header */}
         <div className="border-b border-gray-200 pb-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -128,6 +167,7 @@ const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
           </div>
         </div>
 
+        {/* Empty State */}
         {activeJobs.length === 0 && (
           <div className="text-center py-12 bg-linear-to-b from-gray-50 to-gray-100 rounded-xl">
             <div className="p-4 bg-white rounded-full w-20 h-20 mx-auto mb-4 shadow-md flex items-center justify-center">
@@ -138,15 +178,19 @@ const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
           </div>
         )}
 
+        {/* Work Experience List */}
         {activeJobs.map((job, index) => (
           <div key={job.id} className="border border-gray-200 rounded-xl p-5 relative hover:shadow-lg transition-all duration-200 bg-white">
+            {/* Delete Button */}
             <button
               onClick={() => removeWorkExperience(index)}
               className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-lg transition-colors duration-200"
+              aria-label="Delete work experience"
             >
               <FaTrashAlt className="h-4 w-4" />
             </button>
 
+            {/* Experience Header */}
             <div className="flex items-center space-x-2 mb-4 pb-2 border-b border-gray-100">
               <MdBusinessCenter className="h-5 w-5 text-blue-500" />
               <span className="text-sm font-semibold text-gray-600">Experience #{index + 1}</span>
@@ -158,6 +202,7 @@ const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
               )}
             </div>
 
+            {/* Company & Position */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -191,6 +236,7 @@ const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
               </div>
             </div>
 
+            {/* Start & End Years */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -234,6 +280,7 @@ const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
               </div>
             </div>
 
+            {/* Current Job Checkbox */}
             <div className="mt-5 pt-2">
               <label className="flex items-center space-x-3 cursor-pointer">
                 <input
@@ -251,6 +298,7 @@ const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
           </div>
         ))}
 
+        {/* Add Work Experience Button */}
         <button
           onClick={addWorkExperience}
           disabled={activeJobs.length >= 3}
@@ -261,6 +309,7 @@ const WorkExperienceModal = ({ isOpen, onClose, profile }) => {
           Add Work Experience
         </button>
 
+        {/* Tips Section */}
         {activeJobs.length > 0 && (
           <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
             <div className="flex items-center justify-center gap-2">

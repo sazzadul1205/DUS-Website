@@ -1,7 +1,35 @@
+// resources/js/Pages/Backend/ApplicantProfile/Modals/ChangePasswordModal.jsx
+
+// React
 import { useState } from 'react';
+
+// Icons
 import { FaLock, FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
+
+// Components
 import Modal from './Modal';
 
+// SweetAlert
+import Swal from 'sweetalert2';
+
+/**
+ * ChangePasswordModal Component
+ * 
+ * Allows authenticated users to change their password.
+ * Features:
+ * - Current password verification
+ * - New password with confirmation
+ * - Password visibility toggle
+ * - Validation error display
+ * 
+ * Note: This modal should only be available to the profile owner,
+ * not to admins viewing other profiles.
+ * 
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether modal is open
+ * @param {Function} props.onClose - Callback when modal closes
+ * @param {Object} props.profile - User profile data (unused but kept for consistency)
+ */
 const ChangePasswordModal = ({ isOpen, onClose, profile }) => {
   const [formData, setFormData] = useState({
     current_password: '',
@@ -16,6 +44,10 @@ const ChangePasswordModal = ({ isOpen, onClose, profile }) => {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
+  /**
+   * Handle input field changes
+   * @param {Event} e - Input change event
+   */
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     // Clear error for this field when user starts typing
@@ -24,10 +56,18 @@ const ChangePasswordModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
+  /**
+   * Toggle password visibility for a specific field
+   * @param {string} field - Field name ('current', 'new', or 'confirm')
+   */
   const togglePasswordVisibility = (field) => {
     setShowPassword({ ...showPassword, [field]: !showPassword[field] });
   };
 
+  /**
+   * Submit password change request
+   * Sends POST request to change password endpoint
+   */
   const handleSubmit = async () => {
     setSaving(true);
     setErrors({});
@@ -64,6 +104,7 @@ const ChangePasswordModal = ({ isOpen, onClose, profile }) => {
       });
 
       onClose();
+      // Reset form
       setFormData({
         current_password: '',
         new_password: '',
@@ -99,7 +140,7 @@ const ChangePasswordModal = ({ isOpen, onClose, profile }) => {
         </div>
 
         <div className="space-y-4">
-          {/* Current Password */}
+          {/* Current Password Field */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Current Password
@@ -134,7 +175,7 @@ const ChangePasswordModal = ({ isOpen, onClose, profile }) => {
             )}
           </div>
 
-          {/* New Password */}
+          {/* New Password Field */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               New Password
@@ -170,7 +211,7 @@ const ChangePasswordModal = ({ isOpen, onClose, profile }) => {
             <p className="mt-1 text-xs text-gray-500">Password must be at least 8 characters long</p>
           </div>
 
-          {/* Confirm New Password */}
+          {/* Confirm New Password Field */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Confirm New Password

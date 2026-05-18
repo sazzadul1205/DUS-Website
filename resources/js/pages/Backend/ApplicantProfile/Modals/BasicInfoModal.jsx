@@ -1,6 +1,9 @@
-// page/Backend/ApplicantProfile/Modals/BasicInfoModal.jsx
+// resources/js/Pages/Backend/ApplicantProfile/Modals/BasicInfoModal.jsx
 
+// React
 import { useState, useRef, useEffect } from 'react';
+
+// Icons
 import {
   FaPhone,
   FaCalendarAlt,
@@ -15,12 +18,49 @@ import {
   FaImage,
 } from 'react-icons/fa';
 import { MdOutlineBloodtype } from 'react-icons/md';
+
+// SweetAlert
 import Swal from 'sweetalert2';
+
+// Components
 import Modal from './Modal';
 
+/**
+ * BasicInfoModal Component
+ * 
+ * Allows users to edit their personal information including:
+ * - Name (first and last)
+ * - Profile photo (upload, preview, delete)
+ * - Phone number
+ * - Birth date
+ * - Gender
+ * - Blood type
+ * - Address
+ * 
+ * Features:
+ * - Drag-and-drop photo upload
+ * - Image preview before upload
+ * - Photo deletion
+ * - Form validation for required fields
+ * 
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether modal is open
+ * @param {Function} props.onClose - Callback when modal closes
+ * @param {Object} props.profile - User profile data
+ */
 const BasicInfoModal = ({ isOpen, onClose, profile }) => {
   const [dragActive, setDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  const genders = ['Male', 'Female', 'Other'];
+
+  /**
+   * Normalize date string to YYYY-MM-DD format for date input
+   * @param {string|Date} value - Date value to normalize
+   * @returns {string} - Formatted date string
+   */
   const normalizeDate = (value) => {
     if (!value) return '';
     if (typeof value === 'string') {
@@ -44,11 +84,11 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     photoPreview: null,
     remove_photo: false,
   });
-  const fileInputRef = useRef(null);
 
-  const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-  const genders = ['Male', 'Female', 'Other'];
-
+  /**
+   * Handle drag events for photo upload area
+   * @param {DragEvent} e - Drag event
+   */
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -59,6 +99,10 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
+  /**
+   * Handle dropped file for photo upload
+   * @param {DragEvent} e - Drop event
+   */
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -69,15 +113,22 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
+  /**
+   * Handle file input change for photo upload
+   * @param {Event} e - Change event
+   */
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       validateAndSetPhoto(file);
     }
-    // Allow re-selecting the same file next time
-    e.target.value = '';
+    e.target.value = ''; // Allow re-selecting the same file next time
   };
 
+  /**
+   * Validate uploaded photo and set it to state
+   * @param {File} file - Uploaded file
+   */
   const validateAndSetPhoto = (file) => {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
     if (!validTypes.includes(file.type)) {
@@ -96,6 +147,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
       });
       return;
     }
+    // Revoke previous preview URL to avoid memory leaks
     if (modalData.photoPreview) {
       URL.revokeObjectURL(modalData.photoPreview);
     }
@@ -103,6 +155,9 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     setModalData({ ...modalData, photo: file, photoPreview: newPreviewUrl, remove_photo: false });
   };
 
+  /**
+   * Delete current profile photo
+   */
   const handleDeletePhoto = () => {
     if (modalData.photoPreview) {
       URL.revokeObjectURL(modalData.photoPreview);
@@ -113,10 +168,18 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
+  /**
+   * Handle input field changes
+   * @param {Event} e - Input change event
+   */
   const handleInputChange = (e) => {
     setModalData({ ...modalData, [e.target.name]: e.target.value });
   };
 
+  /**
+   * Save basic information to server
+   * Sends PATCH request with FormData (supports file upload)
+   */
   const handleSave = async () => {
     setSaving(true);
 
@@ -134,7 +197,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
 
     try {
       const response = await fetch(route('backend.applicant.profile.update-basic-info', profile.id), {
-        method: 'POST',
+        method: 'POST', // Using POST with _method=PATCH for file upload support
         headers: {
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
           'X-Requested-With': 'XMLHttpRequest',
@@ -146,7 +209,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
       const data = await response.json();
 
       if (data.success) {
-        // Clean up preview URL after save
+        // Clean up preview URL after successful save
         if (modalData.photoPreview) {
           URL.revokeObjectURL(modalData.photoPreview);
         }
@@ -174,6 +237,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
+  // Reset modal data when opened
   useEffect(() => {
     if (!isOpen) return;
 
@@ -203,12 +267,12 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Profile Photo */}
           <div className="lg:col-span-1">
-            {/* Profile Photo */}
             <div className="sticky top-6">
               <label className="block text-sm font-semibold text-gray-700 mb-3">
                 Profile Photo
               </label>
 
+              {/* Photo Upload Area */}
               <div
                 className={`relative border-2 border-dashed rounded-2xl transition-all duration-200 cursor-pointer ${dragActive
                   ? 'border-blue-500 bg-blue-50 scale-105'
@@ -229,14 +293,15 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                   aria-label="Upload profile photo"
                 />
 
+                {/* Photo Preview or Placeholder */}
                 {modalData.photoPreview || profile?.photo_url ? (
                   <img
                     src={modalData.photoPreview || profile?.photo_url}
                     alt={profile?.full_name || 'Profile'}
                     className="w-full h-64 object-cover rounded-2xl shadow-lg"
                     onError={(e) => {
-                      e.target.onerror = null; // prevent infinite loop
-                      e.target.src = ''; // force fallback
+                      e.target.onerror = null;
+                      e.target.src = '';
                       setModalData({ ...modalData, photoPreview: null });
                     }}
                   />
@@ -256,7 +321,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
                   </div>
                 )}
 
-                {/* Change/Delete buttons */}
+                {/* Photo Action Overlay (Change/Delete) */}
                 {(modalData.photoPreview || profile?.photo_url) && (
                   <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition flex items-end justify-center pb-6 gap-3 rounded-2xl">
                     <button
@@ -288,6 +353,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
 
           {/* Right Column - Form Fields */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Name Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -322,6 +388,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
               </div>
             </div>
 
+            {/* Phone & Birth Date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -367,6 +434,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
               </div>
             </div>
 
+            {/* Gender & Blood Type */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -413,6 +481,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
               </div>
             </div>
 
+            {/* Address Field */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <span className="flex items-center gap-2">
@@ -437,6 +506,7 @@ const BasicInfoModal = ({ isOpen, onClose, profile }) => {
           </div>
         </div>
 
+        {/* Info Note */}
         <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">

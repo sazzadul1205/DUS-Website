@@ -9,6 +9,9 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 // Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 
+// Auth
+import { useAuth } from '../../../hooks/useAuth';
+
 // Icons
 import { FaCakeCandles } from "react-icons/fa6";
 import {
@@ -52,6 +55,7 @@ import {
   FaCalendarDay,
   FaInfoCircle,
   FaArrowLeft,
+  FaShieldAlt,
 } from 'react-icons/fa';
 import {
   MdOutlineBloodtype,
@@ -74,26 +78,59 @@ import ChangePasswordModal from './Modals/ChangePasswordModal';
 import ProfessionalInfoModal from './Modals/ProfessionalInfoModal';
 
 export default function Show({ profile, canEdit = false, canDelete = false }) {
-  const authUser = usePage().props?.auth?.user || null;
+  // Use centralized auth hook
+  const {
+    user: authUser,
+    isAuthenticated,
+    hasAnyPermission,
+    hasRole,
+  } = useAuth();
+
+  // Check if user is OAuth user (Google login)
   const isOauthUser = !!authUser?.google_id;
+
+  // Check permissions using the auth hook
+  const isAdmin = hasRole('admin');
+  const isSuperAdmin = hasRole('super-admin');
+  const canViewAllProfiles = hasAnyPermission(['applicant-profiles.view', 'applicant-profiles.manage']);
+  const canEditAnyProfile = hasAnyPermission(['applicant-profiles.update', 'applicant-profiles.manage']);
+  const canDeleteAnyProfile = hasAnyPermission(['applicant-profiles.destroy', 'applicant-profiles.manage']);
 
   // Check if current user is the profile owner
   const isOwner = authUser?.id === profile?.user_id;
 
-  // Check if user has admin role (super-admin or admin)
-  const userRoles = authUser?.roles?.map(role => role.slug) || [];
-  const isSuperAdmin = userRoles.includes('super-admin');
-  const isAdmin = userRoles.includes('admin');
-  const hasAdminRole = isSuperAdmin || isAdmin;
+  // Check if user has admin role for viewing/editing other profiles
+  const hasAdminRole = isSuperAdmin || isAdmin || canViewAllProfiles || canEditAnyProfile;
 
+  // State
   const [deleting, setDeleting] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
+  // Base path for profile images
   const baseProfilePath = '/backend/applicant/profile';
   const [activeModal, setActiveModal] = useState(null);
   const isDeleted = profile?.deleted_at !== null;
 
+  // If user doesn't have permission to view this profile and isn't the owner, show access denied
+  if (!isOwner && !hasAdminRole) {
+    return (
+      <AuthenticatedLayout>
+        <Head title="Access Denied" />
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+          <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaShieldAlt className="text-red-500 text-4xl" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600">You don't have permission to view this profile.</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  // Function to format date
   const formatDate = (date) => {
     if (!date) return 'Not specified';
     return new Date(date).toLocaleDateString('en-US', {
@@ -103,6 +140,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
     });
   };
 
+  // Function to calculate age
   const calculateAge = (birthDate) => {
     if (!birthDate) return null;
     const today = new Date();
@@ -115,6 +153,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
     return age;
   };
 
+  // Open modal
   const openModal = (modalType) => {
     if (!isOwner) {
       Swal.fire({
@@ -137,12 +176,14 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
     setActiveModal(modalType);
   };
 
+  // Close modal
   const closeModal = () => {
     setActiveModal(null);
   };
 
+  // Delete profile Handler
   const handleDelete = () => {
-    if (!isOwner && !canDelete) {
+    if (!isOwner && !canDeleteAnyProfile) {
       Swal.fire({
         icon: 'warning',
         title: 'Access Denied',
@@ -206,8 +247,9 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
     });
   };
 
+  // Restore profile Handler
   const handleRestore = () => {
-    if (!isOwner && !canDelete) {
+    if (!isOwner && !canDeleteAnyProfile) {
       Swal.fire({
         icon: 'warning',
         title: 'Access Denied',
@@ -271,6 +313,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
     });
   };
 
+  // Go back 
   const handleGoBack = () => {
     // Check if there's a previous page in history
     if (window.history.length > 1) {
@@ -281,6 +324,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
     }
   };
 
+  // Check if profile exists
   if (!profile) {
     return (
       <AuthenticatedLayout>
@@ -305,18 +349,24 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
     );
   }
 
+  // Calculate age
   const age = calculateAge(profile?.birth_date);
+
+  // Get profile stats
   const stats = profile?.stats || {};
 
-  // Determine if user has admin permissions (for delete/restore actions)
-  const hasAdminAccess = canDelete || !isOwner;
+  // Determine if user can edit this profile
+  const canEditProfile = isOwner || canEditAnyProfile;
+
+  // Determine if user can delete/restore this profile
+  const hasAdminAccess = !isOwner && (canDeleteAnyProfile || hasAdminRole);
 
   return (
     <AuthenticatedLayout>
       <Head title={`${profile.first_name} ${profile.last_name} - Profile`} />
 
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Header with Back Button for Admin */}
           <div className="mb-6">
@@ -341,12 +391,12 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                 {!isOwner && (
                   <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
                     <FaInfoCircle size={12} />
-                    Viewing profile as {hasAdminRole ? (isSuperAdmin ? 'Super Admin' : 'Admin') : 'administrator'}
+                    Viewing profile as {isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin' : 'administrator'}
                   </p>
                 )}
               </div>
               <div className="flex gap-3 flex-wrap">
-                {/* Change Password - Only show for profile owner */}
+                {/* Change Password - Only show for profile owner (non-OAuth) */}
                 {!isDeleted && !isOauthUser && isOwner && (
                   <button
                     onClick={() => openModal('change-password')}
@@ -472,7 +522,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                     <FaUser className="text-blue-600" />
                     Basic Information
                   </h3>
-                  {!isDeleted && isOwner && (
+                  {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('basic')}
                       className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm"
@@ -480,7 +530,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                       <FaEdit size={14} /> Edit
                     </button>
                   )}
-                  {!isDeleted && !isOwner && (
+                  {!isDeleted && !canEditProfile && (
                     <div className="relative group">
                       <button
                         disabled
@@ -557,7 +607,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                     <FaBriefcase className="text-purple-600" />
                     Professional Information
                   </h3>
-                  {!isDeleted && isOwner && (
+                  {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('professional')}
                       className="text-purple-600 hover:text-purple-700 flex items-center gap-1 text-sm"
@@ -565,7 +615,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                       <FaEdit size={14} /> Edit
                     </button>
                   )}
-                  {!isDeleted && !isOwner && (
+                  {!isDeleted && !canEditProfile && (
                     <div className="relative group">
                       <button
                         disabled
@@ -665,7 +715,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                     <FaBriefcase className="text-orange-600" />
                     Work Experience ({profile.job_histories?.length || 0})
                   </h3>
-                  {!isDeleted && isOwner && (
+                  {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('work')}
                       className="text-orange-600 hover:text-orange-700 flex items-center gap-1 text-sm"
@@ -673,7 +723,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                       <FaEdit size={14} /> Edit
                     </button>
                   )}
-                  {!isDeleted && !isOwner && (
+                  {!isDeleted && !canEditProfile && (
                     <div className="relative group">
                       <button
                         disabled
@@ -729,7 +779,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                     <MdSchool className="text-green-600" />
                     Education ({profile.education_histories?.length || 0})
                   </h3>
-                  {!isDeleted && isOwner && (
+                  {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('education')}
                       className="text-green-600 hover:text-green-700 flex items-center gap-1 text-sm"
@@ -737,7 +787,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                       <FaEdit size={14} /> Edit
                     </button>
                   )}
-                  {!isDeleted && !isOwner && (
+                  {!isDeleted && !canEditProfile && (
                     <div className="relative group">
                       <button
                         disabled
@@ -778,7 +828,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                     <FaTrophy className="text-yellow-600" />
                     Achievements & Certifications ({profile.achievements?.length || 0})
                   </h3>
-                  {!isDeleted && isOwner && (
+                  {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('achievements')}
                       className="text-yellow-600 hover:text-yellow-700 flex items-center gap-1 text-sm"
@@ -786,7 +836,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                       <FaEdit size={14} /> Edit
                     </button>
                   )}
-                  {!isDeleted && !isOwner && (
+                  {!isDeleted && !canEditProfile && (
                     <div className="relative group">
                       <button
                         disabled
@@ -831,7 +881,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                     <FaFileAlt className="text-red-600" />
                     CV / Resume ({profile.cvs?.length || 0})
                   </h3>
-                  {!isDeleted && isOwner && (
+                  {!isDeleted && canEditProfile && (
                     <button
                       onClick={() => openModal('cv')}
                       className="text-red-600 hover:text-red-700 flex items-center gap-1 text-sm"
@@ -839,7 +889,7 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
                       <FaEdit size={14} /> Manage CVs
                     </button>
                   )}
-                  {!isDeleted && !isOwner && (
+                  {!isDeleted && !canEditProfile && (
                     <div className="relative group">
                       <button
                         disabled
@@ -912,8 +962,8 @@ export default function Show({ profile, canEdit = false, canDelete = false }) {
         </div>
       </div>
 
-      {/* Modals - Only render if owner */}
-      {isOwner && (
+      {/* Modals - Only render if user can edit the profile */}
+      {canEditProfile && (
         <>
           <BasicInfoModal
             isOpen={activeModal === 'basic'}

@@ -1,3 +1,5 @@
+// resources/js/Pages/Backend/ApplicantProfile/Modals/EducationModal.jsx
+
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import {
@@ -15,6 +17,21 @@ import { MdSchool } from 'react-icons/md';
 import { GiBookshelf } from 'react-icons/gi';
 import Modal from './Modal';
 
+/**
+ * EducationModal Component
+ * 
+ * Allows users to manage their education history.
+ * Features:
+ * - Add multiple education entries (max 3)
+ * - Edit institution name, degree, and passing year
+ * - Delete existing entries
+ * - Preview of added education
+ * 
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether modal is open
+ * @param {Function} props.onClose - Callback when modal closes
+ * @param {Object} props.profile - User profile data containing education histories
+ */
 const EducationModal = ({ isOpen, onClose, profile }) => {
   const [saving, setSaving] = useState(false);
   const currentYear = new Date().getFullYear();
@@ -30,6 +47,9 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
     })) || [],
   });
 
+  /**
+   * Add a new empty education entry
+   */
   const addEducation = () => {
     setModalData({
       ...modalData,
@@ -46,22 +66,38 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
     });
   };
 
+  /**
+   * Update a specific education field
+   * @param {number} index - Index of education to update
+   * @param {string} field - Field name ('institution_name', 'degree', or 'passing_year')
+   * @param {string|number} value - New value
+   */
   const updateEducation = (index, field, value) => {
     const updatedEducations = [...modalData.education_histories];
     updatedEducations[index][field] = value;
     setModalData({ ...modalData, education_histories: updatedEducations });
   };
 
+  /**
+   * Remove education entry (soft delete for existing, hard delete for new)
+   * @param {number} index - Index of education to remove
+   */
   const removeEducation = (index) => {
     const updatedEducations = [...modalData.education_histories];
     if (updatedEducations[index].id) {
+      // Mark existing education for deletion
       updatedEducations[index].to_delete = true;
     } else {
+      // Remove unsaved education immediately
       updatedEducations.splice(index, 1);
     }
     setModalData({ ...modalData, education_histories: updatedEducations });
   };
 
+  /**
+   * Save education data to server
+   * Sends PUT request to update education endpoint
+   */
   const handleSave = async () => {
     setSaving(true);
 
@@ -104,6 +140,11 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
+  /**
+   * Get appropriate icon based on degree type
+   * @param {string} degree - Degree name
+   * @returns {JSX.Element} - Icon component
+   */
   const getDegreeIcon = (degree) => {
     if (degree?.toLowerCase().includes('bachelor')) return <FaBookOpen className="h-4 w-4 text-green-500" />;
     if (degree?.toLowerCase().includes('master')) return <FaAward className="h-4 w-4 text-purple-500" />;
@@ -118,6 +159,7 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
   return (
     <Modal title="Edit Education" onClose={onClose} onSave={handleSave} saving={saving}>
       <div className="space-y-6">
+        {/* Header */}
         <div className="border-b border-gray-200 pb-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -130,6 +172,7 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
           </div>
         </div>
 
+        {/* Empty State */}
         {activeEducations.length === 0 && (
           <div className="text-center py-12 bg-linear-to-b from-gray-50 to-gray-100 rounded-xl">
             <div className="p-4 bg-white rounded-full w-20 h-20 mx-auto mb-4 shadow-md flex items-center justify-center">
@@ -140,15 +183,19 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
           </div>
         )}
 
+        {/* Education List */}
         {activeEducations.map((edu, index) => (
           <div key={edu.id} className="border border-gray-200 rounded-xl p-5 relative hover:shadow-lg transition-all duration-200 bg-white">
+            {/* Delete Button */}
             <button
               onClick={() => removeEducation(index)}
               className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-lg transition-colors duration-200"
+              aria-label="Delete education"
             >
               <FaTrashAlt className="h-4 w-4" />
             </button>
 
+            {/* Education Header */}
             <div className="flex items-center space-x-2 mb-4 pb-2 border-b border-gray-100">
               <FaUniversity className="h-5 w-5 text-blue-500" />
               <span className="text-sm font-semibold text-gray-600">Education #{index + 1}</span>
@@ -159,6 +206,7 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
               )}
             </div>
 
+            {/* Institution & Degree */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -192,6 +240,7 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
               </div>
             </div>
 
+            {/* Passing Year */}
             <div className="mt-5">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Passing Year
@@ -212,6 +261,7 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
               </div>
             </div>
 
+            {/* Preview Section */}
             {(edu.institution_name || edu.degree) && (
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">Preview:</p>
@@ -226,6 +276,7 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
           </div>
         ))}
 
+        {/* Add Education Button */}
         <button
           onClick={addEducation}
           disabled={activeEducations.length >= 3}
@@ -236,6 +287,7 @@ const EducationModal = ({ isOpen, onClose, profile }) => {
           Add Education
         </button>
 
+        {/* Tips Section */}
         {activeEducations.length > 0 && (
           <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
             <div className="flex items-center justify-center gap-2">

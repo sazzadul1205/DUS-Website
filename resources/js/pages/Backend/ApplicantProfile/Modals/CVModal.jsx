@@ -1,3 +1,5 @@
+// resources/js/Pages/Backend/ApplicantProfile/Modals/CVModal.jsx
+
 import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import Swal from 'sweetalert2';
@@ -17,6 +19,7 @@ import { BiCloudUpload } from 'react-icons/bi';
 import Modal from './Modal';
 import { Document, Page, pdfjs } from 'react-pdf';
 
+// Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.js',
   import.meta.url
@@ -24,6 +27,22 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 const MAX_CVS = 3;
 
+/**
+ * CVModal Component
+ * 
+ * Allows users to manage their CV/resume files.
+ * Features:
+ * - Upload multiple CVs (max 3)
+ * - Set primary CV
+ * - Preview PDF files
+ * - Delete CVs
+ * - Drag-and-drop upload
+ * 
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether modal is open
+ * @param {Function} props.onClose - Callback when modal closes
+ * @param {Object} props.profile - User profile data containing CVs
+ */
 const CVModal = ({ isOpen, onClose, profile }) => {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -33,13 +52,17 @@ const CVModal = ({ isOpen, onClose, profile }) => {
   const [pdfError, setPdfError] = useState(false);
   const [cvs, setCvs] = useState([]);
 
-  // Helper function to get CSRF token
+  /**
+   * Helper function to get CSRF token from meta tag
+   * @returns {string} CSRF token
+   */
   const getCsrfToken = () => {
     const tokenMeta = document.querySelector('meta[name="csrf-token"]');
     const tokenInput = document.querySelector('input[name="_token"]');
     return tokenMeta?.getAttribute('content') || tokenInput?.value || '';
   };
 
+  // Initialize CV list from profile data
   useEffect(() => {
     if (profile?.cvs) {
       setCvs(profile.cvs.map(cv => ({
@@ -57,6 +80,10 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     }
   }, [profile]);
 
+  /**
+   * Handle drag events for CV upload area
+   * @param {DragEvent} e - Drag event
+   */
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -67,6 +94,10 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
+  /**
+   * Handle dropped file for CV upload
+   * @param {DragEvent} e - Drop event
+   */
   const handleDrop = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -77,6 +108,10 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
+  /**
+   * Handle file input change for CV upload
+   * @param {Event} e - Change event
+   */
   const handleFileSelect = async (e) => {
     const files = e.target.files;
     if (files && files[0]) {
@@ -84,6 +119,11 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
+  /**
+   * Read file as Data URL for preview
+   * @param {File} file - File to read
+   * @returns {Promise<string>} Data URL
+   */
   const readFileAsDataURL = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -93,7 +133,12 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     });
   };
 
+  /**
+   * Upload CV file to server
+   * @param {File} file - CV file to upload
+   */
   const uploadCV = async (file) => {
+    // Check maximum CV limit
     if (cvs.length >= MAX_CVS) {
       Swal.fire({
         icon: 'warning',
@@ -104,6 +149,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
       return;
     }
 
+    // Check file size
     if (file.size > 5 * 1024 * 1024) {
       Swal.fire({
         icon: 'error',
@@ -113,6 +159,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
       return;
     }
 
+    // Validate file type
     const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!validTypes.includes(file.type)) {
       Swal.fire({
@@ -128,7 +175,6 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     try {
       const formData = new FormData();
       formData.append('cv', file);
-      // Add CSRF token to form data
       formData.append('_token', getCsrfToken());
 
       const response = await fetch(route('backend.applicant-profile.cv.upload'), {
@@ -137,7 +183,6 @@ const CVModal = ({ isOpen, onClose, profile }) => {
         headers: {
           'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
-          // Don't set Content-Type header when using FormData - browser will set it with boundary
         },
       });
 
@@ -187,6 +232,10 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
+  /**
+   * Remove CV from server
+   * @param {number} index - Index of CV to remove
+   */
   const removeCV = (index) => {
     Swal.fire({
       title: 'Remove CV?',
@@ -227,6 +276,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
         const newCVs = cvs.filter((_, i) => i !== index);
         setCvs(newCVs);
 
+        // Clear preview if the removed CV was being previewed
         if (previewCv?.id === cvs[index].id) {
           setPreviewCv(null);
           setNumPages(null);
@@ -244,6 +294,10 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     });
   };
 
+  /**
+   * Set a CV as primary (default)
+   * @param {number} index - Index of CV to set as primary
+   */
   const setPrimaryCV = async (index) => {
     const newCVs = cvs.map((cv, idx) => ({
       ...cv,
@@ -291,18 +345,30 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     }
   };
 
+  /**
+   * Open PDF preview modal
+   * @param {Object} cv - CV object to preview
+   */
   const previewCV = (cv) => {
     setPreviewCv(cv);
     setNumPages(null);
     setPdfError(false);
   };
 
+  /**
+   * Close PDF preview modal
+   */
   const closePreview = () => {
     setPreviewCv(null);
     setNumPages(null);
     setPdfError(false);
   };
 
+  /**
+   * Get appropriate icon based on file extension
+   * @param {string} fileName - File name
+   * @returns {JSX.Element} - Icon component
+   */
   const getFileIcon = (fileName) => {
     const extension = fileName?.split('.').pop().toLowerCase();
     if (extension === 'pdf') return <FaFilePdf className="h-8 w-8 text-red-500" />;
@@ -310,6 +376,11 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     return <FaFileAlt className="h-8 w-8 text-gray-500" />;
   };
 
+  /**
+   * Format file size for display
+   * @param {number} bytes - File size in bytes
+   * @returns {string} - Formatted file size
+   */
   const formatFileSize = (bytes) => {
     if (!bytes) return 'Unknown size';
     if (bytes < 1024) return bytes + ' B';
@@ -317,22 +388,36 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  /**
+   * Handle successful PDF document load
+   * @param {Object} pdf - PDF document object
+   */
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
     setPdfError(false);
   };
 
+  /**
+   * Handle PDF document load error
+   * @param {Error} error - Error object
+   */
   const onDocumentLoadError = (error) => {
     console.error('PDF load error:', error);
     setPdfError(true);
   };
 
+  /**
+   * Handle save action (refreshes page)
+   */
   const handleSave = async () => {
     setSaving(true);
     closeModal();
     setSaving(false);
   };
 
+  /**
+   * Close modal and refresh page
+   */
   const closeModal = () => {
     setPreviewCv(null);
     setNumPages(null);
@@ -349,6 +434,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
     <>
       <Modal title="Manage CVs & Resumes" onClose={closeModal} onSave={handleSave} saving={saving}>
         <div className="space-y-6">
+          {/* Header */}
           <div className="border-b border-gray-200 pb-4">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -361,6 +447,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
             </div>
           </div>
 
+          {/* Progress Indicator */}
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">
               {cvs.length} of {MAX_CVS} CVs uploaded
@@ -370,6 +457,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
             </span>
           </div>
 
+          {/* Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-blue-600 rounded-full h-2 transition-all duration-300"
@@ -377,6 +465,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
             />
           </div>
 
+          {/* Upload Area */}
           {cvs.length < MAX_CVS ? (
             <div
               className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${dragActive ? 'border-blue-500 bg-blue-50 scale-[1.01]' : 'border-gray-300 bg-gray-50'
@@ -424,6 +513,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
             </div>
           )}
 
+          {/* CV List */}
           {cvs.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -487,6 +577,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
             </div>
           )}
 
+          {/* Info Note */}
           <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
             <div className="flex items-center justify-center gap-2">
               <FaCloudUploadAlt className="h-5 w-5 text-blue-500" />
@@ -573,7 +664,7 @@ const CVModal = ({ isOpen, onClose, profile }) => {
         </div>
       )}
 
-      {/* Non-PDF Preview */}
+      {/* Non-PDF Preview (Download only) */}
       {previewCv && previewCv.type !== 'application/pdf' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-4" onClick={closePreview}>
           <div className="bg-white rounded-xl max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>

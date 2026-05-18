@@ -1,3 +1,5 @@
+// resources/js/Pages/Backend/ApplicantProfile/Modals/ProfessionalInfoModal.jsx
+
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import Modal from './Modal';
@@ -20,6 +22,24 @@ import {
   FaSpinner
 } from 'react-icons/fa';
 
+/**
+ * ProfessionalInfoModal Component
+ * 
+ * Allows users to manage their professional information including:
+ * - Years of experience
+ * - Current job title
+ * - Social media/professional profile links
+ * 
+ * Features:
+ * - Add/remove social links from multiple platforms
+ * - Edit experience level and job title
+ * - Preview added social links
+ * 
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether modal is open
+ * @param {Function} props.onClose - Callback when modal closes
+ * @param {Object} props.profile - User profile data
+ */
 const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
   const [saving, setSaving] = useState(false);
   const [modalData, setModalData] = useState({
@@ -31,7 +51,9 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
   const [socialUrl, setSocialUrl] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Available platforms
+  /**
+   * Available social media platforms
+   */
   const platforms = [
     { id: 'linkedin', name: 'LinkedIn', icon: FaLinkedin, color: 'text-blue-600', placeholder: 'https://linkedin.com/in/username' },
     { id: 'github', name: 'GitHub', icon: FaGithub, color: 'text-gray-800', placeholder: 'https://github.com/username' },
@@ -44,12 +66,19 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
     { id: 'portfolio', name: 'Portfolio', icon: FaGlobe, color: 'text-green-600', placeholder: 'https://your-portfolio.com' }
   ];
 
+  /**
+   * Handle basic field input changes
+   * @param {Event} e - Input change event
+   */
   const handleInputChange = (e) => {
     setModalData({ ...modalData, [e.target.name]: e.target.value });
   };
 
   const socialLinks = modalData.social_links || {};
 
+  /**
+   * Add a new social link to the profile
+   */
   const addSocialLink = () => {
     if (selectedPlatform && socialUrl && socialUrl.trim()) {
       const platformId = selectedPlatform;
@@ -62,12 +91,17 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
         social_links: updatedLinks
       });
 
+      // Reset form
       setSelectedPlatform('');
       setSocialUrl('');
       setShowAddForm(false);
     }
   };
 
+  /**
+   * Remove a social link from the profile
+   * @param {string} platformId - Platform identifier
+   */
   const removeSocialLink = (platformId) => {
     const updatedLinks = { ...socialLinks };
     delete updatedLinks[platformId];
@@ -77,6 +111,11 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
     });
   };
 
+  /**
+   * Get platform details by ID
+   * @param {string} platformId - Platform identifier
+   * @returns {Object} Platform details
+   */
   const getPlatformDetails = (platformId) => {
     return platforms.find(p => p.id === platformId) || {
       name: platformId,
@@ -85,6 +124,10 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
     };
   };
 
+  /**
+   * Save professional information to server
+   * Sends PATCH request to update endpoint
+   */
   const handleSave = async () => {
     setSaving(true);
 
@@ -134,6 +177,7 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
   return (
     <Modal title="Edit Professional Information" onClose={onClose} onSave={handleSave} saving={saving}>
       <div className="space-y-6">
+        {/* Header */}
         <div className="border-b border-gray-200 pb-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -146,6 +190,7 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
           </div>
         </div>
 
+        {/* Experience & Job Title */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -189,6 +234,7 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
           </div>
         </div>
 
+        {/* Social Links Section */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <span className="flex items-center gap-2">
@@ -197,6 +243,7 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
             </span>
           </label>
 
+          {/* Existing Social Links */}
           {Object.keys(socialLinks).length > 0 && (
             <div className="space-y-2 mb-4">
               {Object.entries(socialLinks).map(([platformId, url]) => {
@@ -221,6 +268,7 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
                     <button
                       onClick={() => removeSocialLink(platformId)}
                       className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                      aria-label="Remove social link"
                     >
                       <FaTrash className="h-4 w-4" />
                     </button>
@@ -230,6 +278,7 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
             </div>
           )}
 
+          {/* Add Social Link Button / Form */}
           {!showAddForm ? (
             <button
               onClick={() => setShowAddForm(true)}
@@ -241,6 +290,7 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
           ) : (
             <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
               <div className="space-y-3">
+                {/* Platform Selection */}
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Select Platform
@@ -259,6 +309,7 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
                   </select>
                 </div>
 
+                {/* URL Input */}
                 {selectedPlatform && (
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -274,6 +325,7 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
                   </div>
                 )}
 
+                {/* Action Buttons */}
                 <div className="flex gap-2">
                   <button
                     onClick={addSocialLink}
@@ -297,6 +349,7 @@ const ProfessionalInfoModal = ({ isOpen, onClose, profile }) => {
             </div>
           )}
 
+          {/* Platform Info */}
           <div className="mt-3 p-3 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-500 mb-2">Popular platforms you can add:</p>
             <div className="flex flex-wrap gap-3">
