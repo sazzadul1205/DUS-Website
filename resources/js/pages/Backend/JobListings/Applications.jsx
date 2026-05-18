@@ -266,14 +266,12 @@ export default function Applications({ jobListing, applications, filters: initia
   // Check permissions for application management
   const isSuperAdmin = hasRole('super-admin');
   const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const isHRManager = hasRole('hr-manager');
   const canSendEmails = hasAnyPermission(['applications.email', 'applications.manage']);
   const canViewApplications = hasAnyPermission(['applications.view', 'applications.manage']);
   const canDownloadResumes = hasAnyPermission(['applications.download', 'applications.manage']);
   const canUpdateApplications = hasAnyPermission(['applications.update', 'applications.manage']);
   const canDeleteApplications = hasAnyPermission(['applications.destroy', 'applications.manage']);
-
-  // Check if user owns this job listing
-  const isJobOwner = isEmployer && currentUser?.employer_id === jobListing?.employer_id;
 
   // State
   const [showFilters, setShowFilters] = useState(false);
@@ -292,7 +290,7 @@ export default function Applications({ jobListing, applications, filters: initia
   });
 
   // If user doesn't have permission to view applications, show access denied
-  if (!canViewApplications && !isJobOwner) {
+  if (!canViewApplications) {
     return (
       <AuthenticatedLayout>
         <Head title="Access Denied" />
@@ -721,7 +719,7 @@ export default function Applications({ jobListing, applications, filters: initia
       <Head title={`Applications - ${jobListing.title}`} />
 
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className=" mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-6">
             <Link

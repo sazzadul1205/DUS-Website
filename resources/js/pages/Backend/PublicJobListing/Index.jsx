@@ -349,21 +349,6 @@ export default function PublicJobListingsIndex({
     }
   }, [flash]);
 
-  // Load saved jobs on mount if authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      // Fetch saved jobs from API
-      router.get(route('public.jobs.saved'), {}, {
-        preserveState: true,
-        onSuccess: (page) => {
-          if (page.props.savedJobIds) {
-            setSavedJobs(page.props.savedJobIds);
-          }
-        },
-      });
-    }
-  }, [isAuthenticated]);
-
   return (
     <AuthenticatedLayout>
       <Head title="Find Your Dream Job" />
@@ -371,7 +356,7 @@ export default function PublicJobListingsIndex({
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
         {/* Hero Section */}
         <div className="bg-linear-to-r from-blue-600 to-indigo-700 text-white py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className=" mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h1 className="text-3xl md:text-4xl font-bold mb-3">
                 Find Your Dream Job
@@ -393,25 +378,12 @@ export default function PublicJobListingsIndex({
                   />
                 </div>
               </div>
-
-              {/* Quick Links for Employers */}
-              <Can permission="jobs.create">
-                <div className="mt-6">
-                  <a
-                    href={route('employer.jobs.create')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition text-sm"
-                  >
-                    <FaBriefcase size={14} />
-                    Post a Job
-                  </a>
-                </div>
-              </Can>
             </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className=" mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Sidebar Filters - Desktop */}
             <div className="hidden lg:block w-80 shrink-0">

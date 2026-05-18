@@ -152,7 +152,17 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
     }
   };
 
-  // Validate current step
+  // In Create.jsx, add this helper function after your state declarations
+  const getUserHighestLevel = () => {
+    if (!currentUser) return 100;
+    if (currentUser.highest_role_level) return currentUser.highest_role_level;
+    if (currentUser.roles && currentUser.roles.length > 0) {
+      return Math.max(...currentUser.roles.map(role => role.level || 0));
+    }
+    return 100;
+  };
+
+  // Then update the validateStep function in Create.jsx (around line 150-180)
   const validateStep = () => {
     const newErrors = {};
 
@@ -176,14 +186,23 @@ export default function Create({ permissions, existingLevels, accessLevels }) {
         if (existingLevels && existingLevels.some(role => role.slug === formData.slug)) {
           newErrors.slug = 'This slug is already in use. Please choose another.';
         }
+
+        // FIXED: Get user's highest level properly
+        const userHighestLevel = getUserHighestLevel();
+
+        // Super admin (level 100) can create roles with level 1-99
+        if (userHighestLevel === 100 && formData.level >= 100) {
+          newErrors.level = `You cannot create a role with level ${formData.level}. Maximum role level is 99 for super admins.`;
+        }
+
+        // For non-super-admins, they cannot create roles with level >= their own
+        if (userHighestLevel < 100 && formData.level >= userHighestLevel) {
+          newErrors.level = `You cannot create a role with level ${formData.level} when your level is ${userHighestLevel}. This would allow privilege escalation.`;
+        }
         break;
 
       case 2: // Permissions - Optional, no validation needed
-        break;
-
       case 3: // Module Access - Optional, no validation needed
-        break;
-
       case 4: // Review - Always valid if we got here
         break;
     }

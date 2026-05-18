@@ -43,6 +43,7 @@ import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
 const Sidebar = () => {
   const { url, props } = usePage();
   const { auth } = props;
+  console.log(auth);
   const notificationMeta = props.notifications || { unread_count: 0, recent: [] };
 
   // Get user and their roles/permissions

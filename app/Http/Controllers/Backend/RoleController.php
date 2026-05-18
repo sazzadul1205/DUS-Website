@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class RoleController extends Controller
 {
@@ -29,6 +30,74 @@ class RoleController extends Controller
     private function roleIsNonDeletable(Role $role): bool
     {
         return $role->is_default || in_array($role->slug, self::NON_DELETABLE_ROLE_SLUGS, true);
+    }
+
+    /**
+     * Get the maximum role level the current user can create/edit
+     */
+    private function getMaxAllowedLevel(): int
+    {
+        $user = Auth::user();
+
+        if (!$user instanceof User) {
+            return 0;
+        }
+
+        $userLevel = $user->role?->level ?? 100;
+
+        // Users can only create roles with level greater than their own
+        // Maximum level they can assign is 100 (absolute max)
+        return 100;
+    }
+
+    /**
+     * Validate that role level doesn't exceed allowed limits
+     */
+    private function validateRoleLevel(int $level): void
+    {
+        $user = Auth::user();
+
+        if (!$user instanceof User) {
+            throw ValidationException::withMessages([
+                'level' => ['You must be logged in to create/update roles.']
+            ]);
+        }
+
+        $userLevel = $user->role?->level ?? 100;
+
+        // SUPER ADMIN CHECK - User level 100 (highest number = lowest access)
+        // Super admin should be able to create ALL roles (1-99)
+        if ($userLevel === 100) {
+            if ($level < 1) {
+                throw ValidationException::withMessages([
+                    'level' => 'Role level cannot be less than 1.'
+                ]);
+            }
+            if ($level >= 100) {
+                throw ValidationException::withMessages([
+                    'level' => 'You cannot create a role with level 100 or higher. Maximum role level for new roles is 99.'
+                ]);
+            }
+            return; // Super admin can create levels 1-99
+        }
+
+        // For non-super-admin users (levels 1-99)
+        // They can only create roles with HIGHER numbers (LOWER access) than themselves
+        if ($level <= $userLevel) {
+            throw ValidationException::withMessages([
+                'level' => sprintf(
+                    'You cannot create a role with level %d. You can only create roles with a higher level number (lower access) than your own level (%d).',
+                    $level,
+                    $userLevel
+                )
+            ]);
+        }
+
+        if ($level > 100) {
+            throw ValidationException::withMessages([
+                'level' => 'Role level cannot exceed 100.'
+            ]);
+        }
     }
 
     /**
@@ -167,6 +236,8 @@ class RoleController extends Controller
         // Get existing roles for level reference
         $existingLevels = Role::select('level', 'name')->orderBy('level')->get();
 
+        $currentUserLevel = $user->role?->level ?? 100;
+
         return inertia('Backend/Roles/Create', [
             'permissions' => $permissions,
             'existingLevels' => $existingLevels,
@@ -176,6 +247,9 @@ class RoleController extends Controller
                 ['value' => 'write', 'label' => 'Read & Write'],
                 ['value' => 'manage', 'label' => 'Full Management'],
             ],
+            'maxAllowedLevel' => 100,
+            'currentUserLevel' => $currentUserLevel,
+            'minAllowedLevel' => $currentUserLevel + 1,
         ]);
     }
 
@@ -209,6 +283,9 @@ class RoleController extends Controller
             'module_access.*.module' => 'required|string',
             'module_access.*.access_level' => 'required|in:no_access,read,write,manage',
         ]);
+
+        // Validate role level against privilege escalation
+        $this->validateRoleLevel($validated['level']);
 
         try {
             DB::beginTransaction();
@@ -246,11 +323,15 @@ class RoleController extends Controller
             Log::info('Role created', [
                 'role_id' => $role->id,
                 'role_name' => $role->name,
+                'role_level' => $role->level,
                 'created_by' => Auth::id(),
+                'created_by_level' => $user->role?->level,
             ]);
 
             return redirect()->route('backend.roles.index')
                 ->with('success', 'Role created successfully.');
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -433,6 +514,8 @@ class RoleController extends Controller
             ->pluck('module')
             ->toArray();
 
+        $currentUserLevel = $user->role?->level ?? 100;
+
         return inertia('Backend/Roles/Edit', [
             'role' => [
                 'id' => $role->id,
@@ -454,6 +537,9 @@ class RoleController extends Controller
                 ['value' => 'write', 'label' => 'Read & Write'],
                 ['value' => 'manage', 'label' => 'Full Management'],
             ],
+            'maxAllowedLevel' => 100,
+            'currentUserLevel' => $currentUserLevel,
+            'minAllowedLevel' => $currentUserLevel + 1,
         ]);
     }
 
@@ -494,6 +580,9 @@ class RoleController extends Controller
             'module_access.*.access_level' => 'required|in:no_access,read,write,manage',
         ]);
 
+        // Validate role level against privilege escalation
+        $this->validateRoleLevel($validated['level']);
+
         try {
             DB::beginTransaction();
 
@@ -530,11 +619,15 @@ class RoleController extends Controller
             Log::info('Role updated', [
                 'role_id' => $role->id,
                 'role_name' => $role->name,
+                'role_level' => $role->level,
                 'updated_by' => Auth::id(),
+                'updated_by_level' => $user->role?->level,
             ]);
 
             return redirect()->route('backend.roles.show', $role->id)
                 ->with('success', 'Role updated successfully.');
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
 

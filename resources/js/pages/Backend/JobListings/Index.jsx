@@ -65,9 +65,10 @@ export default function JobListingsIndex({
   } = useAuth();
 
   // Check permissions for job management
-  const isSuperAdmin = hasRole('super-admin');
+ const isSuperAdmin = hasRole('super-admin');
   const canViewJobs = hasAnyPermission(['jobs.view', 'jobs.manage']);
   const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const isHRManager = hasRole('hr-manager');
   const canEditJobs = hasAnyPermission(['jobs.update', 'jobs.manage']);
   const canToggleJobs = hasAnyPermission(['jobs.update', 'jobs.manage']);
   const canCreateJobs = hasAnyPermission(['jobs.create', 'jobs.manage']);

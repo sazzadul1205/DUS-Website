@@ -434,7 +434,7 @@ export default function PublicJobListingShow({
         {/* Hero Section */}
         <div className="relative bg-linear-to-br from-blue-700 via-blue-600 to-indigo-700 text-white overflow-hidden">
           <div className="absolute inset-0 bg-black/5"></div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+          <div className="relative  mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
             <button
               onClick={() => window.history.back()}
               className="group inline-flex items-center gap-2 text-white/70 hover:text-white mb-6 transition-all duration-200 hover:-translate-x-0.5"
@@ -547,7 +547,7 @@ export default function PublicJobListingShow({
         </div>
 
         {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+        <div className=" mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Main Content */}
             <div className="lg:col-span-2 space-y-6">

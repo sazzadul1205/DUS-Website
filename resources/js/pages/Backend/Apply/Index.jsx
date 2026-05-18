@@ -435,7 +435,7 @@ export default function ApplyIndex({ applications: initialApplications, stats: i
       <Head title={showTrashed ? "Withdrawn Applications" : "My Applications"} />
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100/50 p-4 md:p-6">
-        <div className="max-w-7xl mx-auto">
+        <div className=" mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>

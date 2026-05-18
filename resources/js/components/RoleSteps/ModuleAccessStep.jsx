@@ -82,7 +82,7 @@ export const ModuleAccessStep = ({ formData, setFormData, permissions, accessLev
               Module Access Configuration
             </h3>
             <p className="text-xs text-gray-500 mt-1">
-              Set access levels for each module. Higher levels (manage) include lower levels (read, write).
+              Set access levels for each module.
             </p>
           </div>
 

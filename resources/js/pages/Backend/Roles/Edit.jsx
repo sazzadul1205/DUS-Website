@@ -189,7 +189,17 @@ export default function Edit({
     }
   };
 
-  // Validate current step
+  // First, add a helper function to get user's highest role level
+  const getUserHighestLevel = () => {
+    if (!currentUser) return 100;
+    if (currentUser.highest_role_level) return currentUser.highest_role_level;
+    if (currentUser.roles && currentUser.roles.length > 0) {
+      return Math.max(...currentUser.roles.map(role => role.level || 0));
+    }
+    return 100;
+  };
+
+  // Then update the validateStep function
   const validateStep = () => {
     const newErrors = {};
 
@@ -219,9 +229,18 @@ export default function Edit({
           newErrors.level = 'Level must be between 1 and 100';
         }
 
-        // Prevent lowering level below current user's level (security)
-        if (currentUser && formData.level >= (currentUser.highest_role_level || 0)) {
-          newErrors.level = `You cannot set role level higher or equal to your own level (${currentUser.highest_role_level || 0}). This would allow privilege escalation.`;
+        // FIXED: Get user's highest level properly
+        const userHighestLevel = getUserHighestLevel();
+
+        // Super admin (level 100) can create roles with level 1-99
+        // Users cannot create roles with level >= their own level
+        if (formData.level >= userHighestLevel && userHighestLevel < 100) {
+          newErrors.level = `You cannot set role level higher or equal to your own level (${userHighestLevel}). This would allow privilege escalation.`;
+        }
+
+        // For super admin (level 100), they cannot create level 100 roles
+        if (userHighestLevel === 100 && formData.level >= 100) {
+          newErrors.level = `You cannot create a role with level ${formData.level}. Maximum role level is 99 for super admins.`;
         }
         break;
 

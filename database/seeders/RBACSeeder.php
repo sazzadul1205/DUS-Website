@@ -1,5 +1,5 @@
 <?php
-// database/seeders/RBACSeeder.php
+// database/seeders/RBACSeeder.php - FIXED VERSION
 
 namespace Database\Seeders;
 
@@ -150,14 +150,48 @@ class RBACSeeder extends Seeder
       ['name' => 'Manage Locations', 'slug' => 'locations.manage', 'module' => 'locations', 'action' => 'manage'],
       ['name' => 'View Location', 'slug' => 'location.view', 'module' => 'locations', 'action' => 'location_view'],
 
-      // Applicant Profiles Module
-      // ['name' => 'View Applicant Profiles', 'slug' => 'applicant-profiles.view', 'module' => 'applicant_profiles', 'action' => 'view'],
-      ['name' => 'Update Applicant Profiles', 'slug' => 'applicant-profiles.update', 'module' => 'applicant_profiles', 'action' => 'update'],
-      ['name' => 'Delete Applicant Profiles', 'slug' => 'applicant-profiles.destroy', 'module' => 'applicant_profiles', 'action' => 'destroy'],
-      ['name' => 'Manage Applicant Profiles', 'slug' => 'applicant-profiles.manage', 'module' => 'applicant_profiles', 'action' => 'manage'],
+      // ==========================================
+      // APPLICANT PROFILES MODULE - COMPLETE PERMISSIONS
+      // ==========================================
+      ['name' => 'View Applicant Profiles', 'slug' => 'applicant-profiles.view', 'module' => 'applicant_profiles', 'action' => 'view'],
+      ['name' => 'View Any Applicant Profile', 'slug' => 'applicant-profiles.view.any', 'module' => 'applicant_profiles', 'action' => 'view_any'],
+      ['name' => 'View Own Applicant Profile', 'slug' => 'applicant-profiles.view.own', 'module' => 'applicant_profiles', 'action' => 'view_own'],
+      ['name' => 'Show Applicant Profile', 'slug' => 'applicant-profiles.show', 'module' => 'applicant_profiles', 'action' => 'show'],
+      ['name' => 'Create Applicant Profile', 'slug' => 'applicant-profiles.create', 'module' => 'applicant_profiles', 'action' => 'create'],
+      ['name' => 'Store Applicant Profile', 'slug' => 'applicant-profiles.store', 'module' => 'applicant_profiles', 'action' => 'store'],
+      ['name' => 'Edit Applicant Profile', 'slug' => 'applicant-profiles.edit', 'module' => 'applicant_profiles', 'action' => 'edit'],
+      ['name' => 'Update Applicant Profile', 'slug' => 'applicant-profiles.update', 'module' => 'applicant_profiles', 'action' => 'update'],
+      ['name' => 'Delete Applicant Profile', 'slug' => 'applicant-profiles.destroy', 'module' => 'applicant_profiles', 'action' => 'destroy'],
+      ['name' => 'Restore Applicant Profile', 'slug' => 'applicant-profiles.restore', 'module' => 'applicant_profiles', 'action' => 'restore'],
+      ['name' => 'Force Delete Applicant Profile', 'slug' => 'applicant-profiles.force_delete', 'module' => 'applicant_profiles', 'action' => 'force_delete'],
+      ['name' => 'Bulk Delete Applicant Profiles', 'slug' => 'applicant-profiles.bulk_delete', 'module' => 'applicant_profiles', 'action' => 'bulk_delete'],
+      ['name' => 'Bulk Restore Applicant Profiles', 'slug' => 'applicant-profiles.bulk_restore', 'module' => 'applicant_profiles', 'action' => 'bulk_restore'],
+      ['name' => 'Bulk Activate Applicant Profiles', 'slug' => 'applicant-profiles.bulk_activate', 'module' => 'applicant_profiles', 'action' => 'bulk_activate'],
+      ['name' => 'Bulk Deactivate Applicant Profiles', 'slug' => 'applicant-profiles.bulk_deactivate', 'module' => 'applicant_profiles', 'action' => 'bulk_deactivate'],
+      ['name' => 'Filter Applicant Profiles', 'slug' => 'applicant-profiles.filter', 'module' => 'applicant_profiles', 'action' => 'filter'],
+      ['name' => 'Export Applicant Profiles', 'slug' => 'applicant-profiles.export', 'module' => 'applicant_profiles', 'action' => 'export'],
+      ['name' => 'Export Single Applicant Profile', 'slug' => 'applicant-profiles.export_single', 'module' => 'applicant_profiles', 'action' => 'export_single'],
+      ['name' => 'View Applicant Profile Stats', 'slug' => 'applicant-profiles.stats', 'module' => 'applicant_profiles', 'action' => 'stats'],
+      ['name' => 'View Applicant Analytics', 'slug' => 'applicant-profiles.analytics', 'module' => 'applicant_profiles', 'action' => 'analytics'],
+      ['name' => 'Manage Profile Basic Info', 'slug' => 'applicant-profiles.manage_basic', 'module' => 'applicant_profiles', 'action' => 'manage_basic'],
+      ['name' => 'Manage Profile Professional', 'slug' => 'applicant-profiles.manage_professional', 'module' => 'applicant_profiles', 'action' => 'manage_professional'],
+      ['name' => 'Manage Profile Work History', 'slug' => 'applicant-profiles.manage_work', 'module' => 'applicant_profiles', 'action' => 'manage_work'],
+      ['name' => 'Manage Profile Education', 'slug' => 'applicant-profiles.manage_education', 'module' => 'applicant_profiles', 'action' => 'manage_education'],
+      ['name' => 'Manage Profile Achievements', 'slug' => 'applicant-profiles.manage_achievements', 'module' => 'applicant_profiles', 'action' => 'manage_achievements'],
+      ['name' => 'Manage Profile Documents', 'slug' => 'applicant-profiles.manage_documents', 'module' => 'applicant_profiles', 'action' => 'manage_documents'],
+      ['name' => 'Upload CV to Applicant Profile', 'slug' => 'applicant-profiles.upload_cv', 'module' => 'applicant_profiles', 'action' => 'upload_cv'],
+      ['name' => 'Delete CV from Applicant Profile', 'slug' => 'applicant-profiles.delete_cv', 'module' => 'applicant_profiles', 'action' => 'delete_cv'],
+      ['name' => 'Set Primary CV on Applicant Profile', 'slug' => 'applicant-profiles.set_primary_cv', 'module' => 'applicant_profiles', 'action' => 'set_primary_cv'],
+      ['name' => 'Download CV from Applicant Profile', 'slug' => 'applicant-profiles.download_cv', 'module' => 'applicant_profiles', 'action' => 'download_cv'],
+      ['name' => 'Upload Photo to Applicant Profile', 'slug' => 'applicant-profiles.upload_photo', 'module' => 'applicant_profiles', 'action' => 'upload_photo'],
+      ['name' => 'Delete Photo from Applicant Profile', 'slug' => 'applicant-profiles.delete_photo', 'module' => 'applicant_profiles', 'action' => 'delete_photo'],
+      ['name' => 'View Applicant Profile Completion', 'slug' => 'applicant-profiles.completion_view', 'module' => 'applicant_profiles', 'action' => 'completion_view'],
+      ['name' => 'Update Applicant Profile Completion', 'slug' => 'applicant-profiles.completion_update', 'module' => 'applicant_profiles', 'action' => 'completion_update'],
+      ['name' => 'Manage All Applicant Profiles', 'slug' => 'applicant-profiles.manage', 'module' => 'applicant_profiles', 'action' => 'manage'],
+      ['name' => 'Assign Applicant Profile Roles', 'slug' => 'applicant-profiles.assign_roles', 'module' => 'applicant_profiles', 'action' => 'assign_roles'],
 
-      // Profiles Module (Legacy)
-      ['name' => 'View Applicant Profiles', 'slug' => 'profiles.view', 'module' => 'profiles', 'action' => 'view'],
+      // Profiles Module (Legacy - keeping for backward compatibility)
+      ['name' => 'View Profile', 'slug' => 'profiles.view', 'module' => 'profiles', 'action' => 'view'],
       ['name' => 'View Any Profile', 'slug' => 'profiles.view.any', 'module' => 'profiles', 'action' => 'view_any'],
       ['name' => 'View My Own Profile', 'slug' => 'profiles.view.own', 'module' => 'profiles', 'action' => 'view_own'],
       ['name' => 'Show Profile Details', 'slug' => 'profiles.show', 'module' => 'profiles', 'action' => 'show'],
@@ -178,11 +212,11 @@ class RBACSeeder extends Seeder
       ['name' => 'Bulk Delete Profiles', 'slug' => 'profiles.bulk_delete', 'module' => 'profiles', 'action' => 'bulk_delete'],
       ['name' => 'Bulk Restore Profiles', 'slug' => 'profiles.bulk_restore', 'module' => 'profiles', 'action' => 'bulk_restore'],
       ['name' => 'Export Profiles', 'slug' => 'profiles.export', 'module' => 'profiles', 'action' => 'export'],
-      ['name' => 'Upload CV Document', 'slug' => 'profiles.upload_cv', 'module' => 'profiles', 'action' => 'upload_cv'],
-      ['name' => 'Delete CV Document', 'slug' => 'profiles.destroy_cv', 'module' => 'profiles', 'action' => 'destroy_cv'],
-      ['name' => 'Set Primary CV', 'slug' => 'profiles.set_primary_cv', 'module' => 'profiles', 'action' => 'set_primary_cv'],
+      ['name' => 'Upload CV to Profile', 'slug' => 'profiles.upload_cv', 'module' => 'profiles', 'action' => 'upload_cv'],
+      ['name' => 'Delete CV from Profile', 'slug' => 'profiles.destroy_cv', 'module' => 'profiles', 'action' => 'destroy_cv'],
+      ['name' => 'Set Primary CV on Profile', 'slug' => 'profiles.set_primary_cv', 'module' => 'profiles', 'action' => 'set_primary_cv'],
       ['name' => 'Change Profile Password', 'slug' => 'profiles.change_password', 'module' => 'profiles', 'action' => 'change_password'],
-      ['name' => 'Download CV Document', 'slug' => 'profiles.download_cv', 'module' => 'profiles', 'action' => 'download_cv'],
+      ['name' => 'Download CV from Profile', 'slug' => 'profiles.download_cv', 'module' => 'profiles', 'action' => 'download_cv'],
       ['name' => 'View Profile Photo', 'slug' => 'profiles.photo', 'module' => 'profiles', 'action' => 'photo'],
       ['name' => 'Get Profile Data', 'slug' => 'profiles.get_data', 'module' => 'profiles', 'action' => 'get_data'],
       ['name' => 'Manage Profiles', 'slug' => 'profiles.manage', 'module' => 'profiles', 'action' => 'manage'],
@@ -295,7 +329,7 @@ class RBACSeeder extends Seeder
       ['name' => 'Delete Employer', 'slug' => 'employer.destroy', 'module' => 'employer', 'action' => 'destroy'],
     ];
 
-    // Insert permissions using insertOrIgnore to avoid duplicates
+    // Insert permissions using updateOrInsert to avoid duplicates
     foreach ($permissions as $permission) {
       DB::table('permissions')->updateOrInsert(
         ['slug' => $permission['slug']],
@@ -435,6 +469,7 @@ class RBACSeeder extends Seeder
     }
 
     // Employer Admin permissions
+    // Employer Admin permissions
     $employerAdminPermissionSlugs = [
       'dashboard.view',
       'dashboard.stats.view',
@@ -469,11 +504,9 @@ class RBACSeeder extends Seeder
       'categories.view',
       'category.view',
       'categories.get_active',
-      'categories.manage',
       'locations.view',
       'location.view',
       'locations.get_active',
-      'locations.manage',
       'employer_profile.view',
       'employer_profile.edit',
       'employer_profile.update',
@@ -482,15 +515,20 @@ class RBACSeeder extends Seeder
       'notification.view',
       'notifications.mark_read',
       'notifications.mark_all_read',
-      'notification.mark_read',
-      'notification.mark_all_read',
       'statistics.view',
       'statistics.ats',
-      'statistics.employers',
       'statistics.jobs',
       'statistics.dashboard',
       'report.jobs',
       'report.applications',
+      // Applicant Profile permissions for employer - FULL ACCESS
+      'applicant-profiles.view',
+      'applicant-profiles.view.any',
+      'applicant-profiles.show',
+      'applicant-profiles.filter',
+      'applicant-profiles.export',
+      'applicant-profiles.stats',
+      'applicant-profiles.download_cv',
     ];
 
     foreach ($employerAdminPermissionSlugs as $slug) {
@@ -503,6 +541,7 @@ class RBACSeeder extends Seeder
       }
     }
 
+    // HR Manager permissions
     // HR Manager permissions
     $hrManagerPermissionSlugs = [
       'dashboard.view',
@@ -531,6 +570,14 @@ class RBACSeeder extends Seeder
       'employer_profile.update_password',
       'notifications.view',
       'notifications.mark_read',
+      // Applicant Profile permissions for HR Manager - FULL ACCESS
+      'applicant-profiles.view',
+      'applicant-profiles.view.any',
+      'applicant-profiles.show',
+      'applicant-profiles.filter',
+      'applicant-profiles.export',
+      'applicant-profiles.stats',
+      'applicant-profiles.download_cv',
     ];
 
     foreach ($hrManagerPermissionSlugs as $slug) {
@@ -568,6 +615,11 @@ class RBACSeeder extends Seeder
       'employer_profile.update',
       'employer_profile.update_password',
       'notifications.view',
+      // Applicant Profile permissions for Recruiter - VIEW ACCESS
+      'applicant-profiles.view',
+      'applicant-profiles.show',
+      'applicant-profiles.filter',
+      'applicant-profiles.download_cv',
     ];
 
     foreach ($recruiterPermissionSlugs as $slug) {
@@ -605,7 +657,21 @@ class RBACSeeder extends Seeder
       'apply.ats_status',
       'application.view.own',
       'applicant-profiles.view',
+      'applicant-profiles.view.own',
+      'applicant-profiles.show',
+      'applicant-profiles.create',
+      'applicant-profiles.store',
+      'applicant-profiles.edit',
       'applicant-profiles.update',
+      'applicant-profiles.destroy',
+      'applicant-profiles.upload_cv',
+      'applicant-profiles.delete_cv',
+      'applicant-profiles.set_primary_cv',
+      'applicant-profiles.download_cv',
+      'applicant-profiles.upload_photo',
+      'applicant-profiles.delete_photo',
+      'applicant-profiles.completion_view',
+      'applicant-profiles.completion_update',
       'profiles.view.own',
       'profiles.show',
       'profiles.edit.own',
@@ -663,7 +729,6 @@ class RBACSeeder extends Seeder
     ])->delete();
 
     $moduleAccess = [
-      // Super Admin
       ['role_id' => $superAdminRoleId, 'module' => 'dashboard', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'job_listings', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'public_jobs', 'access_level' => 'manage'],
@@ -685,7 +750,6 @@ class RBACSeeder extends Seeder
       ['role_id' => $superAdminRoleId, 'module' => 'statistics', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'reports', 'access_level' => 'manage'],
 
-      // Admin
       ['role_id' => $adminRoleId, 'module' => 'dashboard', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'job_listings', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'public_jobs', 'access_level' => 'manage'],
@@ -707,7 +771,6 @@ class RBACSeeder extends Seeder
       ['role_id' => $adminRoleId, 'module' => 'statistics', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'reports', 'access_level' => 'manage'],
 
-      // Employer Admin
       ['role_id' => $employerAdminRoleId, 'module' => 'dashboard', 'access_level' => 'write'],
       ['role_id' => $employerAdminRoleId, 'module' => 'job_listings', 'access_level' => 'write'],
       ['role_id' => $employerAdminRoleId, 'module' => 'applications', 'access_level' => 'write'],
@@ -717,8 +780,8 @@ class RBACSeeder extends Seeder
       ['role_id' => $employerAdminRoleId, 'module' => 'notifications', 'access_level' => 'write'],
       ['role_id' => $employerAdminRoleId, 'module' => 'statistics', 'access_level' => 'read'],
       ['role_id' => $employerAdminRoleId, 'module' => 'reports', 'access_level' => 'read'],
+      ['role_id' => $employerAdminRoleId, 'module' => 'applicant_profiles', 'access_level' => 'write'],  // Changed from 'read' to 'write'
 
-      // HR Manager
       ['role_id' => $hrManagerRoleId, 'module' => 'dashboard', 'access_level' => 'write'],
       ['role_id' => $hrManagerRoleId, 'module' => 'job_listings', 'access_level' => 'write'],
       ['role_id' => $hrManagerRoleId, 'module' => 'applications', 'access_level' => 'write'],
@@ -726,8 +789,8 @@ class RBACSeeder extends Seeder
       ['role_id' => $hrManagerRoleId, 'module' => 'locations', 'access_level' => 'read'],
       ['role_id' => $hrManagerRoleId, 'module' => 'employer_profile', 'access_level' => 'write'],
       ['role_id' => $hrManagerRoleId, 'module' => 'notifications', 'access_level' => 'read'],
+      ['role_id' => $hrManagerRoleId, 'module' => 'applicant_profiles', 'access_level' => 'write'],  // Changed from 'read' to 'write'
 
-      // Recruiter
       ['role_id' => $recruiterRoleId, 'module' => 'dashboard', 'access_level' => 'read'],
       ['role_id' => $recruiterRoleId, 'module' => 'job_listings', 'access_level' => 'write'],
       ['role_id' => $recruiterRoleId, 'module' => 'applications', 'access_level' => 'write'],
@@ -735,8 +798,8 @@ class RBACSeeder extends Seeder
       ['role_id' => $recruiterRoleId, 'module' => 'locations', 'access_level' => 'read'],
       ['role_id' => $recruiterRoleId, 'module' => 'employer_profile', 'access_level' => 'write'],
       ['role_id' => $recruiterRoleId, 'module' => 'notifications', 'access_level' => 'read'],
+      ['role_id' => $recruiterRoleId, 'module' => 'applicant_profiles', 'access_level' => 'read'],
 
-      // Job Seeker
       ['role_id' => $jobSeekerRoleId, 'module' => 'dashboard', 'access_level' => 'read'],
       ['role_id' => $jobSeekerRoleId, 'module' => 'public_jobs', 'access_level' => 'read'],
       ['role_id' => $jobSeekerRoleId, 'module' => 'apply', 'access_level' => 'write'],

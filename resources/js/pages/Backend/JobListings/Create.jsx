@@ -42,6 +42,7 @@ export default function Create({ categories, locations }) {
   const isSuperAdmin = hasRole('super-admin');
   const canViewJobs = hasAnyPermission(['jobs.view', 'jobs.manage']);
   const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const isHRManager = hasRole('hr-manager');
   const canCreateJobs = hasAnyPermission(['jobs.create', 'jobs.manage']);
 
   // Check if user has an employer profile (for employers)
@@ -420,7 +421,7 @@ export default function Create({ categories, locations }) {
       <Head title="Create Job Listing" />
 
       <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
+        <div className=" mx-auto">
           {/* Back Button */}
           <div className="mb-4">
             <button

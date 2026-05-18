@@ -62,13 +62,14 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
   const isSuperAdmin = hasRole('super-admin');
   const canViewJobs = hasAnyPermission(['jobs.view', 'jobs.manage']);
   const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const isHRManager = hasRole('hr-manager');
   const canEditJobs = hasAnyPermission(['jobs.update', 'jobs.manage']);
   const canToggleJobs = hasAnyPermission(['jobs.update', 'jobs.manage']);
   const canDeleteJobs = hasAnyPermission(['jobs.destroy', 'jobs.manage']);
   const canViewApplications = hasAnyPermission(['applications.view', 'applications.manage']);
 
   // Check if user owns this job listing
-  const isJobOwner = isEmployer && currentUser?.employer_id === jobListing?.employer_id;
+  const isJobOwner = (isEmployer || isHRManager) && currentUser?.employer_id === jobListing?.employer_id;
 
   // Check if user can edit this specific job
   const canEditThisJob = canEditJobs || isJobOwner || isSuperAdmin;
@@ -337,7 +338,7 @@ export default function Show({ jobListing, applicationStats, averageAtsScore, re
       <Head title={`${jobListing.title} - Job Details`} />
 
       <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className=" mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header Section */}
           <div className="mb-6">
             <Link

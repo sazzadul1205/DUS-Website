@@ -83,7 +83,7 @@ const StoriesSection = ({ storiesData }) => {
       className='bg-[#F5F5F5] py-12 sm:py-16 md:py-25 lg:py-37.5'
     >
       {/* Section Header - Full width with responsive padding */}
-      <div className="text-center max-w-7xl mx-auto px-5 sm:px-10 md:px-20 lg:px-50">
+      <div className="text-center  mx-auto px-5 sm:px-10 md:px-20 lg:px-50">
         <h3 className='bricolage-grotesque font-extrabold text-[32px] sm:text-[38px] md:text-[44px] lg:text-[50px] text-center text-[#080C14] pb-3 sm:pb-4 lg:pb-5'>
           {storiesData.section.title}
         </h3>

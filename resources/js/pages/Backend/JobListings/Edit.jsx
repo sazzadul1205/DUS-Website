@@ -43,9 +43,10 @@ export default function Edit({ jobListing, categories, locations }) {
   const canViewJobs = hasAnyPermission(['jobs.view', 'jobs.manage']);
   const canEditJobs = hasAnyPermission(['jobs.update', 'jobs.manage']);
   const isEmployer = hasRole('employer') || hasRole('employer-admin');
+  const isHRManager = hasRole('hr-manager');
 
   // Check if user owns this job listing
-  const isJobOwner = isEmployer && currentUser?.employer_id === jobListing?.employer_id;
+  const isJobOwner = (isEmployer || isHRManager) && currentUser?.employer_id === jobListing?.employer_id;
 
   // Check if user can edit this specific job
   const canEditThisJob = canEditJobs || isJobOwner || isSuperAdmin;
@@ -441,7 +442,7 @@ export default function Edit({ jobListing, categories, locations }) {
       <Head title={`Edit: ${jobListing.title}`} />
 
       <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
+        <div className=" mx-auto">
           {/* Header */}
           <div className="relative mb-8">
             {/* Back Button */}
