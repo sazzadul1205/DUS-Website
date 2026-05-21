@@ -23,12 +23,10 @@ import Swal from 'sweetalert2';
 
 // React PDF
 import { Document, Page, pdfjs } from 'react-pdf';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 const MAX_CVS = 3;
 
@@ -162,7 +160,7 @@ const CVUpload = ({ data, setData }) => {
       Swal.fire({
         icon: 'error',
         title: 'Upload Failed',
-      text: error.message || 'Something went wrong while uploading the file.',
+        text: error.message || 'Something went wrong while uploading the file.',
       });
     } finally {
       setUploading(false);

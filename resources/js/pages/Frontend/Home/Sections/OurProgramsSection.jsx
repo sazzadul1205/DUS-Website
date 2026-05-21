@@ -1,17 +1,12 @@
 // resources/js/pages/Frontend/Home/Sections/OurPrograms.jsx
 import React, { useRef, useEffect, useState } from 'react';
-
-// Arrow Icon
 import ArrowIcon from './ArrowIcon';
 
 const OurProgramsSection = ({ programsData }) => {
-  // Visible Cards
   const [visibleCards, setVisibleCards] = useState([]);
-
-  // Intersection Observer
   const cardsRef = useRef([]);
 
-  // Intersection Observer
+  // Intersection Observer – animation triggers when 50% of card is visible (centered)
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -25,7 +20,7 @@ const OurProgramsSection = ({ programsData }) => {
           }
         });
       },
-      { threshold: 0.2 }
+      { threshold: 0.5 }
     );
 
     cardsRef.current.forEach((card) => {
@@ -35,9 +30,10 @@ const OurProgramsSection = ({ programsData }) => {
     return () => observer.disconnect();
   }, []);
 
-  // Draggable Cards
-  // Adjusted sticky top for mobile to account for smaller screens
-  const STICKY_TOP = { base: 120, lg: 140 };
+  // Sticky offsets using viewport-relative units (vh)
+  // These scale perfectly on any screen size, including mobile.
+  const STICKY_BASE_TOP = '20vh';      // first card sticks 5% from top
+  const STICKY_INCREMENT = '6vh';     // each next card sticks 6% lower
 
   return (
     <section id="our-programs" className="bg-white py-12 sm:py-16 lg:py-20 px-5 sm:px-10 md:px-20 lg:px-50">
@@ -57,59 +53,66 @@ const OurProgramsSection = ({ programsData }) => {
         </button>
       </div>
 
-      {/* Cards with perfect stack */}
-      <div className="relative min-h-screen mt-16 sm:mt-24 lg:mt-32">
-        {programsData.programs.map((program, index) => (
-          <div
-            key={program.id}
-            ref={(el) => (cardsRef.current[index] = el)}
-            data-id={program.id}
-            className={`
-              sticky transition-all duration-700 ease-out
-              ${visibleCards.includes(program.id)
-                ? 'opacity-100 translate-y-0'
-                : 'opacity-0 translate-y-16 sm:translate-y-24 lg:translate-y-32'
-              }
-            `}
-            style={{
-              top: `clamp(60px, ${STICKY_TOP.base}px, ${STICKY_TOP.lg}px)`,
-              zIndex: index,
-              marginBottom: 0,
-            }}
-          >
-            <div
-              className={`flex flex-col lg:flex-row justify-between gap-6 sm:gap-8 md:gap-10 lg:gap-25 items-center ${program.bgColor} p-5 sm:p-6 md:p-8 lg:p-25 rounded-2xl sm:rounded-3xl lg:rounded-3xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2`}
-            >
-              {/* Content */}
-              <div className="w-full lg:w-1/2 space-y-3 sm:space-y-4 lg:space-y-5">
-                <h3 className="bricolage-grotesque font-600 text-[24px] sm:text-[28px] md:text-[36px] lg:text-[46px] text-[#080C14] leading-tight">
-                  {program.title.split("<br />").map((line, index) => (
-                    <React.Fragment key={index}>
-                      {line}
-                      {index !== program.title.split("<br />").length - 1 && <br />}
-                    </React.Fragment>
-                  ))}
-                </h3>
-                <p className="bricolage-grotesque font-400 text-[14px] sm:text-[16px] lg:text-[20px] text-[#524B48] leading-relaxed line-clamp-6 sm:line-clamp-8 lg:line-clamp-9">
-                  {program.description}
-                </p>
-                <button className="bricolage-grotesque flex items-center gap-2 font-500 lg:font-600 text-[16px] sm:text-[17px] lg:text-[20px] text-[#009BE2] group hover:text-[#080C14] transition-colors duration-300">
-                  Read more
-                  <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
-                </button>
-              </div>
+      {/* Cards container – NO gaps */}
+      <div className="relative flex flex-col gap-0 min-h-screen mt-16 sm:mt-24 lg:mt-32">
+        {programsData.programs.map((program, index) => {
+          // zIndex: later cards overlap earlier ones (natural deck effect)
+          const zIndex = index + 1;
 
-              {/* Image */}
-              <div className="w-full lg:w-1/2 mt-4 lg:mt-0">
-                <img
-                  src={program.image}
-                  alt={program.title}
-                  className="w-full h-auto lg:h-125 object-cover rounded-2xl sm:rounded-3xl lg:rounded-3xl shadow-lg"
-                />
+          // Compute the sticky top offset using calc()
+          const stickyTop = `calc(${STICKY_BASE_TOP} + ${index} * ${STICKY_INCREMENT})`;
+
+          return (
+            <div
+              key={program.id}
+              ref={(el) => (cardsRef.current[index] = el)}
+              data-id={program.id}
+              className={`
+                sticky transition-all duration-700 ease-out w-full
+                ${visibleCards.includes(program.id)
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 translate-y-16 sm:translate-y-24 lg:translate-y-32'
+                }
+              `}
+              style={{
+                top: stickyTop,
+                zIndex: zIndex,
+              }}
+            >
+              <div
+                className={`flex flex-col lg:flex-row justify-between gap-6 sm:gap-8 md:gap-10 lg:gap-25 items-center ${program.bgColor} p-5 sm:p-6 md:p-8 lg:p-25 rounded-2xl sm:rounded-3xl lg:rounded-3xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2`}
+              >
+                {/* Content */}
+                <div className="w-full lg:w-1/2 space-y-3 sm:space-y-4 lg:space-y-5">
+                  <h3 className="bricolage-grotesque font-600 text-[24px] sm:text-[28px] md:text-[36px] lg:text-[46px] text-[#080C14] leading-tight">
+                    {program.title.split("<br />").map((line, idx) => (
+                      <React.Fragment key={idx}>
+                        {line}
+                        {idx !== program.title.split("<br />").length - 1 && <br />}
+                      </React.Fragment>
+                    ))}
+                  </h3>
+                  <p className="bricolage-grotesque font-400 text-[14px] sm:text-[16px] lg:text-[20px] text-[#524B48] leading-relaxed line-clamp-6 sm:line-clamp-8 lg:line-clamp-9">
+                    {program.description}
+                  </p>
+                  <button className="bricolage-grotesque flex items-center gap-2 font-500 lg:font-600 text-[16px] sm:text-[17px] lg:text-[20px] text-[#009BE2] group hover:text-[#080C14] transition-colors duration-300">
+                    Read more
+                    <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
+                  </button>
+                </div>
+
+                {/* Image */}
+                <div className="w-full lg:w-1/2 mt-4 lg:mt-0">
+                  <img
+                    src={program.image}
+                    alt={program.title}
+                    className="w-full h-auto lg:h-125 object-cover rounded-2xl sm:rounded-3xl lg:rounded-3xl shadow-lg"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="h-12 sm:h-16 lg:h-20"></div>

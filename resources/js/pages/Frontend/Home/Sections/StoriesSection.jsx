@@ -7,75 +7,108 @@ import React, { useRef, useEffect, useState } from 'react';
 import ArrowIcon from './ArrowIcon';
 
 const StoriesSection = ({ storiesData }) => {
-  // State for drag scrolling
+  // Refs for DOM elements and drag state
   const scrollContainerRef = useRef(null);
+  const startX = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const isDraggingRef = useRef(false);
 
-  // State for drag scrolling
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  // State only for cursor styling (triggers re-render)
+  const [dragging, setDragging] = useState(false);
 
-  // Mouse/Touch drag scrolling
-  const handleMouseDown = (e) => {
-    setIsDragging(true);
-    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
-    setScrollLeft(scrollContainerRef.current.scrollLeft);
-  };
-
-  // Mouse/Touch drag scrolling
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5;
-    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  // Mouse/Touch drag scrolling
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Touch drag scrolling
-  const handleTouchStart = (e) => {
-    setIsDragging(true);
-    setStartX(e.touches[0].pageX - scrollContainerRef.current.offsetLeft);
-    setScrollLeft(scrollContainerRef.current.scrollLeft);
-  };
-
-  // Touch drag scrolling
-  const handleTouchMove = (e) => {
-    if (!isDragging) return;
-    const x = e.touches[0].pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5;
-    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  // Drag scrolling
+  // Set up drag-to-scroll event listeners
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (container) {
-      container.addEventListener('mousedown', handleMouseDown);
-      container.addEventListener('mouseleave', handleMouseUp);
-      container.addEventListener('mouseup', handleMouseUp);
-      container.addEventListener('mousemove', handleMouseMove);
-      container.addEventListener('touchstart', handleTouchStart);
-      container.addEventListener('touchmove', handleTouchMove);
-      container.addEventListener('touchend', handleMouseUp);
-    }
+    if (!container) return;
 
-    return () => {
-      if (container) {
-        container.removeEventListener('mousedown', handleMouseDown);
-        container.removeEventListener('mouseleave', handleMouseUp);
-        container.removeEventListener('mouseup', handleMouseUp);
-        container.removeEventListener('mousemove', handleMouseMove);
-        container.removeEventListener('touchstart', handleTouchStart);
-        container.removeEventListener('touchmove', handleTouchMove);
-        container.removeEventListener('touchend', handleMouseUp);
+    // --- Mouse Event Handlers ---
+    const onMouseDown = (e) => {
+      // Prevent default only if not clicking on interactive elements (optional)
+      // We'll let it be; dragging starts even over buttons, but click will still work if no movement
+      isDraggingRef.current = true;
+      setDragging(true);
+
+      // Get initial position and scroll offset
+      startX.current = e.pageX - container.offsetLeft;
+      scrollLeftStart.current = container.scrollLeft;
+
+      // Prevent text selection while dragging
+      e.preventDefault();
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDraggingRef.current) return;
+
+      e.preventDefault();
+      const x = e.pageX - container.offsetLeft;
+      const walk = (x - startX.current) * 1.5; // Drag sensitivity
+      container.scrollLeft = scrollLeftStart.current - walk;
+    };
+
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
+      setDragging(false);
+    };
+
+    const onMouseLeave = () => {
+      // End drag if mouse leaves the container
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        setDragging(false);
       }
     };
-  }, [isDragging, startX, scrollLeft]);
+
+    // --- Touch Event Handlers ---
+    const onTouchStart = (e) => {
+      if (e.touches.length) {
+        isDraggingRef.current = true;
+        setDragging(true);
+
+        startX.current = e.touches[0].pageX - container.offsetLeft;
+        scrollLeftStart.current = container.scrollLeft;
+      }
+    };
+
+    const onTouchMove = (e) => {
+      if (!isDraggingRef.current || !e.touches.length) return;
+
+      e.preventDefault(); // Prevent page scroll while dragging horizontally
+      const x = e.touches[0].pageX - container.offsetLeft;
+      const walk = (x - startX.current) * 1.5;
+      container.scrollLeft = scrollLeftStart.current - walk;
+    };
+
+    const onTouchEnd = () => {
+      isDraggingRef.current = false;
+      setDragging(false);
+    };
+
+    // --- Attach Event Listeners ---
+    // Mouse events
+    container.addEventListener('mousedown', onMouseDown);
+    container.addEventListener('mousemove', onMouseMove);
+    container.addEventListener('mouseup', onMouseUp);
+    container.addEventListener('mouseleave', onMouseLeave);
+
+    // Touch events (with passive: false for touchmove to allow preventDefault)
+    container.addEventListener('touchstart', onTouchStart, { passive: false });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd);
+    container.addEventListener('touchcancel', onTouchEnd);
+
+    // --- Cleanup ---
+    return () => {
+      container.removeEventListener('mousedown', onMouseDown);
+      container.removeEventListener('mousemove', onMouseMove);
+      container.removeEventListener('mouseup', onMouseUp);
+      container.removeEventListener('mouseleave', onMouseLeave);
+
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, []); // Empty dependency array - only run on mount/unmount
 
   return (
     <section
@@ -83,7 +116,7 @@ const StoriesSection = ({ storiesData }) => {
       className='bg-[#F5F5F5] py-12 sm:py-16 md:py-25 lg:py-37.5'
     >
       {/* Section Header - Full width with responsive padding */}
-      <div className="text-center  mx-auto px-5 sm:px-10 md:px-20 lg:px-50">
+      <div className="text-center mx-auto px-5 sm:px-10 md:px-20 lg:px-50">
         <h3 className='bricolage-grotesque font-extrabold text-[32px] sm:text-[38px] md:text-[44px] lg:text-[50px] text-center text-[#080C14] pb-3 sm:pb-4 lg:pb-5'>
           {storiesData.section.title}
         </h3>
@@ -97,12 +130,12 @@ const StoriesSection = ({ storiesData }) => {
         ref={scrollContainerRef}
         className={`
           flex overflow-x-auto gap-5 sm:gap-8 lg:gap-10 px-5 sm:px-10 md:px-20 lg:px-50 scroll-smooth w-full
-          ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'}
+          ${dragging ? 'cursor-grabbing select-none' : 'cursor-grab'}
           hide-scrollbar
         `}
         style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
+          scrollbarWidth: 'none',     // Firefox
+          msOverflowStyle: 'none',    // IE/Edge
           WebkitOverflowScrolling: 'touch'
         }}
       >
@@ -117,9 +150,9 @@ const StoriesSection = ({ storiesData }) => {
               className='h-48 sm:h-56 md:h-72 lg:h-86.75 rounded-2xl mx-auto object-cover w-full'
             />
             <div className='p-3 sm:p-4 lg:p-5'>
-              <label className='text-[#009BE2] font-400 text-[12px] sm:text-[14px] lg:text-[16px] pb-1 sm:pb-2 block'>
+              <span className='text-[#009BE2] font-400 text-[12px] sm:text-[14px] lg:text-[16px] pb-1 sm:pb-2 block'>
                 {story.date}
-              </label>
+              </span>
               <h3 className='text-[#080C14] font-600 text-[24px] sm:text-[28px] md:text-[32px] lg:text-[36px] leading-snug mb-3 sm:mb-4 lg:mb-5 line-clamp-2'>
                 {story.title}
               </h3>
@@ -141,7 +174,7 @@ const StoriesSection = ({ storiesData }) => {
         <div className="absolute right-0 top-0 bottom-0 w-8 sm:w-10 lg:w-12 bg-linear-to-l from-[#F5F5F5] to-transparent"></div>
       </div>
 
-      {/* Add this style tag to hide scrollbar globally for this component */}
+      {/* Hide scrollbar globally for this component */}
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;

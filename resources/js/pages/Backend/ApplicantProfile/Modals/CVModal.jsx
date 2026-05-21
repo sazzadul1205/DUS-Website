@@ -1,8 +1,15 @@
 // resources/js/Pages/Backend/ApplicantProfile/Modals/CVModal.jsx
 
+// React
 import { useState, useEffect } from 'react';
+
+// Inertia
 import { router } from '@inertiajs/react';
+
+// SweetAlert
 import Swal from 'sweetalert2';
+
+// Icons
 import {
   FaFileAlt,
   FaTrashAlt,
@@ -16,14 +23,16 @@ import {
 } from 'react-icons/fa';
 import { MdDescription } from 'react-icons/md';
 import { BiCloudUpload } from 'react-icons/bi';
+
+// Modals
 import Modal from './Modal';
+
+// React PDF
 import { Document, Page, pdfjs } from 'react-pdf';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 const MAX_CVS = 3;
 
