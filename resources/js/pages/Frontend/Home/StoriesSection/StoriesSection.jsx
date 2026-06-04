@@ -4,7 +4,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 
 // Arrow Icon
-import ArrowIcon from './ArrowIcon';
+import ArrowIcon from '../../../../components/Shared/ArrowIcon';
 
 const StoriesSection = ({ storiesData }) => {
   // Refs for DOM elements and drag state

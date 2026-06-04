@@ -4,7 +4,7 @@
 import React from 'react';
 
 // Arrow Icon
-import ArrowIcon from './ArrowIcon';
+import ArrowIcon from '../../../../components/Shared/ArrowIcon';
 
 const AboutUsSection = ({ aboutUsData }) => {
   return (

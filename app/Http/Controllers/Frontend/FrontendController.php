@@ -581,7 +581,7 @@ class FrontendController extends Controller
      */
     public function about(): Response
     {
-        return Inertia::render('Frontend/About');
+        return Inertia::render('Frontend/About/About');
     }
 
     /**

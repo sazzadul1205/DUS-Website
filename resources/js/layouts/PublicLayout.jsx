@@ -7,9 +7,9 @@ import React from 'react';
 import { Dumbbell } from 'lucide-react';
 
 // Components
-import Navbar from '../components/Navbar';
-import TopBar from '../components/TopBar';
-import Footer from '../components/Footer';
+import Navbar from '../components/Shared/Navbar';
+import TopBar from '../components/Shared/TopBar';
+import Footer from '../components/Shared/Footer';
 
 const PublicLayout = ({ children, topBarData, navbarData, footerData }) => {
   return (

@@ -8,7 +8,7 @@ import { HiOutlineLocationMarker } from "react-icons/hi";
 import { LuBriefcaseBusiness, LuClock4 } from "react-icons/lu";
 
 // Arrow Icon
-import ArrowIcon from './ArrowIcon';
+import ArrowIcon from '../../../../components/Shared/ArrowIcon';
 
 const JobsSection = ({ jobsData }) => {
 

@@ -8,15 +8,15 @@ import { Head } from "@inertiajs/react";
 import PublicLayout from "../../../layouts/PublicLayout";
 
 // Sections
-import JobsSection from "./Sections/JobsSection";
-import BannerSection from "./Sections/BannerSection";
-import StoriesSection from "./Sections/StoriesSection";
-import AboutUsSection from "./Sections/AboutUsSection";
-import OurActionSection from "./Sections/OurActionSection";
-import WhereWeWorkSection from "./Sections/WhereWeWorkSection";
-import OurProgramsSection from "./Sections/OurProgramsSection";
-import ProgramImpactSection from "./Sections/ProgramImpactSection";
-import UpcomingEventsSection from "./Sections/UpcomingEventsSection";
+import JobsSection from "./JobsSection/JobsSection";
+import BannerSection from "./BannerSection/BannerSection";
+import StoriesSection from "./StoriesSection/StoriesSection";
+import AboutUsSection from "./AboutUsSection/AboutUsSection";
+import OurActionSection from "./OurActionSection/OurActionSection";
+import WhereWeWorkSection from "./WhereWeWorkSection/WhereWeWorkSection";
+import OurProgramsSection from "./OurProgramsSection/OurProgramsSection";
+import ProgramImpactSection from "./ProgramImpactSection/ProgramImpactSection";
+import UpcomingEventsSection from "./UpcomingEventsSection/UpcomingEventsSection";
 
 // resources/js/Pages/Frontend/Home.jsx
 export default function Home({

@@ -1,6 +1,6 @@
 // resources/js/pages/Frontend/Home/Sections/OurPrograms.jsx
 import React, { useRef, useEffect, useState } from 'react';
-import ArrowIcon from './ArrowIcon';
+import ArrowIcon from '../../../../components/Shared/ArrowIcon';
 
 const OurProgramsSection = ({ programsData }) => {
   const [visibleCards, setVisibleCards] = useState([]);
