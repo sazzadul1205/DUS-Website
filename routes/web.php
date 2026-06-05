@@ -56,6 +56,7 @@ Route::prefix('/')->group(function () {
 
     // Other frontend pages
     Route::get('/about', [FrontendController::class, 'about'])->name('frontend.about');
+    Route::get('/about/{slug}', [FrontendController::class, 'aboutSub'])->name('frontend.about.sub');
     Route::get('/projects-programs', [FrontendController::class, 'projectsPrograms'])->name('frontend.projects-programs');
     Route::get('/workplace-area', [FrontendController::class, 'workplaceArea'])->name('frontend.workplace-area');
     Route::get('/posts', [FrontendController::class, 'posts'])->name('frontend.posts');

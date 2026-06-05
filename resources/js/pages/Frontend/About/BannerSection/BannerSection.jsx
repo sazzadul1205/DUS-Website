@@ -45,7 +45,7 @@ const BannerSection = ({ bannerData, sectionId }) => {
 
       {/* Content - Only render if there's content to show */}
       {(title.text || description.text) && (
-        <div className="absolute left-0 md:left-5 inset-0 flex items-center p-5 md:p-12.5">
+        <div className="absolute left-0 md:left-10 inset-0 flex items-center p-5 md:p-12.5">
           <div className="w-full px-4 md:px-20 text-white space-y-3 md:space-y-5">
 
             {/* Title - Only render if text exists */}

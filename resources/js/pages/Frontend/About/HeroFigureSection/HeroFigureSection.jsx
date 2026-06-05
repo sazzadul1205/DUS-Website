@@ -25,67 +25,13 @@ const HeroFigureSection = ({
   const {
     section,
     content,
-    image
+    image,
+    btn  // Renamed from 'functions' to 'btn'
   } = data;
 
-  // Helper function to render content blocks dynamically with list support
-  const renderContentBlocks = () => {
-    if (!content) return null;
-
-    // Get all content keys except 'functions' and other special keys
-    const contentKeys = Object.keys(content).filter(key =>
-      key !== 'functions' &&
-      content[key] &&
-      typeof content[key] === 'object'
-    );
-
-    return contentKeys.map((key, blockIndex) => {
-      const block = content[key];
-      const isList = block.type === 'list'; // Check if this block should be rendered as a list
-      const listGap = block.listGap || 'gap-2'; // Default gap-2 (8px), can be overridden
-      const listItemGap = block.listItemGap || 'ml-2'; // Left/right gap for list items, default ml-2 (8px)
-
-      // Check if block has content to render
-      const hasParagraphs = block.paragraphs && block.paragraphs.length > 0;
-      const hasItems = block.items && block.items.length > 0;
-
-      if (!hasParagraphs && !hasItems) return null;
-
-      return (
-        <div key={`content-block-${blockIndex}`}>
-          {/* Only render title if it exists */}
-          {block.title && (
-            <p className='font-700 pb-5'>
-              {block.title}
-            </p>
-          )}
-
-          {isList ? (
-            // Render as list with dots
-            <ul className={`space-y-0 ${listGap}`}>
-              {block.items && block.items.map((item, itemIndex) => (
-                <li key={`list-item-${blockIndex}-${itemIndex}`} className='flex items-start gap-2'>
-                  <span className={`inline-block w-1 h-1 mt-2.5 bg-[#333333] rounded-full shrink-0 ${listItemGap}`}></span>
-                  <span className='font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#333333] leading-snug'>
-                    {item}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            // Render as paragraphs
-            block.paragraphs && block.paragraphs.map((paragraph, paraIndex) => (
-              <p
-                key={`paragraph-${blockIndex}-${paraIndex}`}
-                className='font-400 mb-4 last:mb-0'
-              >
-                {paragraph}
-              </p>
-            ))
-          )}
-        </div>
-      );
-    });
+  // Function to render HTML content safely
+  const renderHTML = (htmlString) => {
+    return { __html: htmlString };
   };
 
   // Determine image position based on layout
@@ -101,18 +47,33 @@ const HeroFigureSection = ({
         </h1>
       )}
 
-      <div className='bricolage-grotesque text-[16px] sm:text-[18px] lg:text-[20px] text-[#333333] leading-snug space-y-6'>
-        {renderContentBlocks()}
-      </div>
+      {/* Render HTML content with 730px max height and ellipsis */}
+      {content?.html && (
+        <div className="relative">
+          <div
+            className='bricolage-grotesque text-[16px] sm:text-[18px] lg:text-[20px] text-[#333333] leading-snug overflow-hidden'
+            style={{
+              maxHeight: '730px',
+              display: '-webkit-box',
+              WebkitLineClamp: 'unset',
+              WebkitBoxOrient: 'vertical',
+              wordBreak: 'break-word'
+            }}
+            dangerouslySetInnerHTML={renderHTML(content.html)}
+          />
+          {/* Ellipsis indicator */}
+          <div className="absolute bottom-0 left-0 right-0 h-8 bg-linear-to-t from-white to-transparent pointer-events-none"></div>
+        </div>
+      )}
 
-      {/* Only render button if functions exists */}
-      {content?.functions && content?.functions.buttonText && content?.functions.link && (
+      {/* Render button if btn exists */}
+      {btn && btn.text && btn.link && (
         <div className='pt-8'>
           <button
-            onClick={() => window.location.href = content.functions.link}
+            onClick={() => window.location.href = btn.link}
             className='bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-4 py-3 sm:px-5 sm:py-3.5 lg:p-4 font-600 text-[14px] sm:text-[15px] lg:text-[16px] inline-flex items-center gap-3 group hover:bg-[#009BE2] hover:text-white transition-all duration-300'
           >
-            <span>{content.functions.buttonText}</span>
+            <span>{btn.text}</span>
             <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
           </button>
         </div>
