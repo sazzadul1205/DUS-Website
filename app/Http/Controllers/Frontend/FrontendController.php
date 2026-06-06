@@ -606,7 +606,7 @@ class FrontendController extends Controller
         // Banner Data
         $bannerData = [
             'background' => [
-                'src' => 'https://placehold.co/1920x589',
+                'src' => $storageUrl . '/AboutUs/9734ab42cfed2d40c8ed08cbc3059b227d9aee8b.jpg',
                 'alt' => 'Background'
             ],
             'overlay' => [
@@ -650,7 +650,7 @@ class FrontendController extends Controller
                 'link' => '/about/vision-mission'
             ],
             'image' => [
-                'src' => 'https://placehold.co/730x730',
+                'src' => $storageUrl . '/AboutUs/c9c3585f93806d98cf9e2fbeadccb32a66efb4b5.jpg',
                 'alt' => 'Vision and Mission',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -678,7 +678,7 @@ class FrontendController extends Controller
                 'link' => '/about/functions'
             ],
             'image' => [
-                'src' => 'https://placehold.co/730x730',
+                'src' => $storageUrl . '/AboutUs/f465fcbdab4004cd25dba4df06b9f8d5f2648620.jpg',
                 'alt' => 'Background',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -687,7 +687,7 @@ class FrontendController extends Controller
         // Legal Data
         $legalData = [
             'background' => [
-                'src' => 'https://placehold.co/1920x589',
+                'src' => $storageUrl . '/AboutUs/64065404ef679e54d2dabd90bba3b1744817c578.jpg',
                 'alt' => 'Background'
             ],
             'overlay' => [
@@ -730,7 +730,7 @@ class FrontendController extends Controller
                 'link' => '/about/interventional-approaches'
             ],
             'image' => [
-                'src' => 'https://placehold.co/730x730',
+                'src' => $storageUrl . '/AboutUs/d3afc7e94d5609f2c2356758f463ee15af0450fe.jpg',
                 'alt' => 'Interventional Approaches',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -781,7 +781,7 @@ class FrontendController extends Controller
                 'link' => '/about/evolutionary-changes'
             ],
             'image' => [
-                'src' => 'https://placehold.co/730x730',
+                'src' => $storageUrl . '/AboutUs/962bd5ee9dacf1f4261d0592856f5716dcffb725.jpg',
                 'alt' => 'Evolutionary Changes',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -814,7 +814,7 @@ class FrontendController extends Controller
                 'link' => '/about/governance'
             ],
             'image' => [
-                'src' => 'https://placehold.co/730x730',
+                'src' => $storageUrl . '/AboutUs/ce88efc81f8b1fe8d4f757eba85f05717acb68e4.jpg',
                 'alt' => 'Governance',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -829,7 +829,7 @@ class FrontendController extends Controller
                 [
                     'id' => 'operational-areas',
                     'image' => [
-                        'src' => 'https://placehold.co/335x440',
+                        'src' => $storageUrl . '/AboutUs/image.png',
                         'alt' => 'Operational Areas',
                         'className' => 'mx-auto object-contain'
                     ],
@@ -842,7 +842,7 @@ class FrontendController extends Controller
                 [
                     'id' => 'achievements',
                     'image' => [
-                        'src' => 'https://placehold.co/670x420',
+                        'src' => $storageUrl . '/AboutUs/fcbbf1e10ca75bccf6a608e1de01306d56897811.png',
                         'alt' => 'Our Achievements',
                         'className' => 'mx-auto object-contain'
                     ],
@@ -881,7 +881,7 @@ class FrontendController extends Controller
                 'link' => '/about/programs-activities'
             ],
             'image' => [
-                'src' => 'https://placehold.co/730x730',
+                'src' => $storageUrl . '/AboutUs/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff.jpg',
                 'alt' => 'Programs',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -1187,7 +1187,7 @@ class FrontendController extends Controller
         // Banner Data for sub-page
         $bannerData = [
             'background' => [
-                'src' => 'https://placehold.co/1920x589',
+                'src' => $storageUrl . '/OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png',
                 'alt' => 'Background'
             ],
             'overlay' => [
@@ -1456,7 +1456,7 @@ class FrontendController extends Controller
                         <p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed mt-3"><strong class="text-[#080C14]">Impact:</strong> Over 10,000 children have benefited from our education programs, with a 85% retention rate and significant improvement in learning outcomes.</p>
                     </div>
                 ',
-                    'image' => 'https://placehold.co/700x500',
+                    'image' => $storageUrl . '/OurPrograms/42ccde89743ee9405c6546567e02dfbb36759866.jpg',
                     'bgColor' => 'bg-[#EEF3E6]',
                     'link' => '/projects-programs/dwip-education'
                 ],
@@ -1481,7 +1481,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => 'https://placehold.co/700x500',
+                    'image' => $storageUrl . '/OurPrograms/41146cd8c06fe1e0af97901abf7120a065421b19.jpg',
                     'bgColor' => 'bg-[#E6F3F1]',
                     'link' => '/projects-programs/information-and-communication-technology'
                 ],
@@ -1508,7 +1508,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => 'https://placehold.co/700x500',
+                    'image' => $storageUrl . '/OurPrograms/a496922a3fc00992b6c454822d60bde51dc001e5.webp',
                     'bgColor' => 'bg-[#F3E6EA]',
                     'link' => '/projects-programs/research-and-documentation'
                 ],
@@ -1533,7 +1533,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => 'https://placehold.co/700x500',
+                    'image' => $storageUrl . '/OurPrograms/1b7d77f85b29f0b12d98e2a09ddc1d734c6f6ea1.jpg',
                     'bgColor' => 'bg-[#E6ECF3]',
                     'link' => '/projects-programs/livelihood-restoration-project'
                 ],
@@ -1558,7 +1558,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => 'https://placehold.co/700x500',
+                    'image' => $storageUrl . '/OurPrograms/21f2ed036293018aac5b8d98c97bc26201e92f68.jpg',
                     'bgColor' => 'bg-[#F3E6F1]',
                     'link' => '/projects-programs/group-member-insurance-savings-scheme'
                 ],
@@ -1583,7 +1583,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => 'https://placehold.co/700x500',
+                    'image' => $storageUrl . '/OurPrograms/a00b43d1f3ee0f568f2e058ee39101be8911c1a0.jpg',
                     'bgColor' => 'bg-[#F3E6EA]',
                     'link' => '/projects-programs/social-development-program'
                 ],
@@ -1608,7 +1608,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => 'https://placehold.co/700x500',
+                    'image' => $storageUrl . '/OurPrograms/1c54b2045a0958af86f3c81624c73f0b8e23b6f7.jpg',
                     'bgColor' => 'bg-[#E6F1F3]',
                     'link' => '/projects-programs/legal-and-human-rights'
                 ],
@@ -1635,7 +1635,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => 'https://placehold.co/700x500',
+                    'image' => $storageUrl . '/OurPrograms/42d5b669fc99984337547c6028cb9251bc1b306d.jpg',
                     'bgColor' => 'bg-[#F2F3E6]',
                     'link' => '/projects-programs/watsan-program'
                 ],
@@ -1660,7 +1660,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => 'https://placehold.co/700x500',
+                    'image' => $storageUrl . '/OurPrograms/be14c45848898048e7b7832affc4dc713b032e10.jpg',
                     'bgColor' => 'bg-[#E6EDF3]',
                     'link' => '/projects-programs/training-and-other-facilities'
                 ],
@@ -1685,7 +1685,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => 'https://placehold.co/700x500',
+                    'image' => $storageUrl . '/OurPrograms/83260e25460beb43cd8a9c084bb311328e8f24d7.jpg',
                     'bgColor' => 'bg-[#EAE6F3]',
                     'link' => '/projects-programs/tourism-and-hospitality'
                 ],
@@ -2114,7 +2114,7 @@ class FrontendController extends Controller
         // Banner Data for sub-page
         $bannerData = [
             'background' => [
-                'src' => 'https://placehold.co/1920x589',
+                'src' => $storageUrl . '/OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png',
                 'alt' => 'Background'
             ],
             'overlay' => [
