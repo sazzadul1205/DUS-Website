@@ -5,18 +5,13 @@
 
     RewriteEngine On
 
-    # When the project is served from the repo root (e.g. http://localhost/JobMatch),
-    # /storage/* would otherwise map to the protected Laravel storage/ directory and 403.
-    # Rewrite it to the public storage symlink (public/storage -> storage/app/public).
-    RewriteRule ^storage/(.*)$ public/storage/$1 [L,NC]
-
-    # Allow Vite build assets and other public assets when not using public/ as docroot.
-    RewriteRule ^build/(.*)$ public/build/$1 [L,NC]
-    RewriteRule ^images/(.*)$ public/images/$1 [L,NC]
-
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Handle X-XSRF-Token Header
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d

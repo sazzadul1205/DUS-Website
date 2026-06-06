@@ -37,7 +37,7 @@ const ProjectsPrograms = ({
 
 
   return (
-    <PublicLayout topBarData={topBarData} navbarData={navbarData} footerData={footerData} storageUrl={storageUrl} storageUrl={storageUrl} >
+    <PublicLayout topBarData={topBarData} navbarData={navbarData} footerData={footerData} storageUrl={storageUrl} >
 
       <Head title="Projects Programs | DUS - Dwip Unnayan Society | Empowering Communities" />
 
