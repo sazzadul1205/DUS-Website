@@ -50,27 +50,25 @@ Route::get('/unauthorized', function () {
     ]);
 })->name('unauthorized.access');
 
-Route::prefix('/')->group(function () {
-    // Home page (main landing page)
-    Route::get('/', [FrontendController::class, 'home'])->name('home');
+// Home page (main landing page)
+Route::get('/', [FrontendController::class, 'home'])->name('home');
 
-    // Other frontend pages
-    // About
-    Route::get('/about', [FrontendController::class, 'about'])->name('frontend.about');
-    Route::get('/about/{slug}', [FrontendController::class, 'aboutDetails'])->name('frontend.about.details');
+// Other frontend pages
+// About
+Route::get('/about', [FrontendController::class, 'about'])->name('frontend.about');
+Route::get('/about/{slug}', [FrontendController::class, 'aboutDetails'])->name('frontend.about.details');
 
-    // Projects & Programs
-    Route::get('/projects-programs', [FrontendController::class, 'projectsPrograms'])->name('frontend.projects-programs');
-    Route::get('/projects-programs/{slug}', [FrontendController::class, 'projectsProgramsDetails'])->name('frontend.projects-programs.details');
+// Projects & Programs
+Route::get('/projects-programs', [FrontendController::class, 'projectsPrograms'])->name('frontend.projects-programs');
+Route::get('/projects-programs/{slug}', [FrontendController::class, 'projectsProgramsDetails'])->name('frontend.projects-programs.details');
 
-    Route::get('/workplace-area', [FrontendController::class, 'workplaceArea'])->name('frontend.workplace-area');
-    Route::get('/posts', [FrontendController::class, 'posts'])->name('frontend.posts');
-    Route::get('/posts/{slug}', [FrontendController::class, 'showPost'])->name('frontend.posts.show');
-    Route::get('/media', [FrontendController::class, 'media'])->name('frontend.media');
-    Route::get('/get-involved', [FrontendController::class, 'getInvolved'])->name('frontend.get-involved');
-    Route::get('/jobs-frontend', [FrontendController::class, 'jobs'])->name('frontend.jobs');
-    Route::get('/jobs-frontend/{slug}', [FrontendController::class, 'showJob'])->name('frontend.jobs.show');
-});
+Route::get('/workplace-area', [FrontendController::class, 'workplaceArea'])->name('frontend.workplace-area');
+Route::get('/posts', [FrontendController::class, 'posts'])->name('frontend.posts');
+Route::get('/posts/{slug}', [FrontendController::class, 'showPost'])->name('frontend.posts.show');
+Route::get('/media', [FrontendController::class, 'media'])->name('frontend.media');
+Route::get('/get-involved', [FrontendController::class, 'getInvolved'])->name('frontend.get-involved');
+Route::get('/jobs-frontend', [FrontendController::class, 'jobs'])->name('frontend.jobs');
+Route::get('/jobs-frontend/{slug}', [FrontendController::class, 'showJob'])->name('frontend.jobs.show');
 
 
 // Public job listings (no auth) - Using PublicJobListingController
