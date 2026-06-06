@@ -3,14 +3,24 @@
 
 namespace App\Models;
 
+// Models
 use App\Models\User;
+
+// Notifications
 use App\Notifications\ApplicationStatusUpdated;
+
+// ATS
+use App\Services\ATSService;
+
+// Eloquent
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+
+// Facades
 use Illuminate\Support\Facades\Log;
 
 class Application extends Model
@@ -273,12 +283,24 @@ class Application extends Model
     {
         try {
             // Check if ATSService exists
-            if (!class_exists(\App\Services\ATSService::class)) {
-                throw new \Exception('ATS Service is not available. Please run: php artisan make:service ATSService');
+            if (!class_exists(ATSService::class)) {
+                // Mark as failed but don't throw - allow graceful degradation
+                $this->update([
+                    'ats_calculation_status' => self::ATS_FAILED,
+                    'ats_score' => [
+                        'percentage' => 0,
+                        'error' => 'ATS Service not available. Please run: php artisan make:service ATSService',
+                        'status' => 'service_missing',
+                    ],
+                    'ats_last_attempted_at' => now(),
+                    'ats_attempt_count' => ($this->ats_attempt_count ?? 0) + 1,
+                ]);
+
+                return false;
             }
 
-            /** @var \App\Services\ATSService $atsService */
-            $atsService = app(\App\Services\ATSService::class);
+            /** @var ATSService $atsService */
+            $atsService = app(ATSService::class);
 
             $this->loadMissing(['jobListing', 'applicantProfile']);
 

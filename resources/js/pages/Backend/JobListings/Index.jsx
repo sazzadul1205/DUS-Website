@@ -65,7 +65,7 @@ export default function JobListingsIndex({
   } = useAuth();
 
   // Check permissions for job management
- const isSuperAdmin = hasRole('super-admin');
+  const isSuperAdmin = hasRole('super-admin');
   const canViewJobs = hasAnyPermission(['jobs.view', 'jobs.manage']);
   const isEmployer = hasRole('employer') || hasRole('employer-admin');
   const isHRManager = hasRole('hr-manager');
@@ -1290,20 +1290,18 @@ export default function JobListingsIndex({
                         {/* ACTIONS */}
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex justify-end gap-2">
-                            {!trashed && (
-                              <a
-                                href={route('backend.applications.job', job.id)}
-                                className="relative p-2 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded-lg transition-all duration-200"
-                                title="View Applications"
-                              >
-                                <FaUsers size={18} />
-                                {applicationsCount > 0 && (
-                                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-md">
-                                    {applicationsCount > 99 ? '99+' : applicationsCount}
-                                  </span>
-                                )}
-                              </a>
-                            )}
+                            <a
+                              href={route('backend.applications.job', job.id)}
+                              className="relative p-2 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded-lg transition-all duration-200"
+                              title="View Applications"
+                            >
+                              <FaUsers size={18} />
+                              {applicationsCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-md">
+                                  {applicationsCount > 99 ? '99+' : applicationsCount}
+                                </span>
+                              )}
+                            </a>
 
                             <a
                               href={route('backend.listing.show', job.id)}

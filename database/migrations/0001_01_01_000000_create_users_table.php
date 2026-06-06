@@ -22,7 +22,6 @@ return new class extends Migration
 
             // Password field is nullable to allow for OAuth users without a password
             $table->string('password')->nullable();
-            $table->string('old_password')->nullable(); // For password history
 
             // Google OAuth (single-provider)
             $table->string('google_id')->nullable()->unique();

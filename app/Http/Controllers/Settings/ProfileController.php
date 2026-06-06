@@ -37,7 +37,8 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return to_route('profile.edit');
+        // Fix: Use the correct route name
+        return redirect()->route('settings.profile')->with('status', 'profile-updated');
     }
 
     /**

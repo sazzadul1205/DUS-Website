@@ -1,11 +1,9 @@
 <?php
-// database/migrations/2026_03_22_140200_create_job_categories_table.php
+// database/migrations/2026_03_31_163752_create_job_categories_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 return new class extends Migration
 {

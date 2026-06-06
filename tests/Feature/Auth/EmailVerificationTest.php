@@ -35,6 +35,8 @@ test('email can be verified', function () {
     Event::assertDispatched(Verified::class);
     expect($user->hasVerifiedEmail())->toBeTrue();
 
+    // Fix: Match your app's actual redirect
+    // After email verification, your app redirects to profile completion
     $response->assertRedirect(route('profile.complete', absolute: false));
 });
 
@@ -56,6 +58,5 @@ test('email is not verified with invalid hash', function () {
 
     expect($user->hasVerifiedEmail())->toBeFalse();
 
-    // optional but better
     $response->assertStatus(403);
 });

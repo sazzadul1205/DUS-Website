@@ -331,9 +331,10 @@ class ApplicationsController extends Controller
                 ->with('error', 'You do not have permission to view job applications.');
         }
 
-        $job = JobListing::with('employer', 'category')->findOrFail($jobId);
+        $job = JobListing::withTrashed()->with('employer', 'category')->findOrFail($jobId);
 
-        $query = Application::with(['applicantProfile.user', 'statusTimelines'])
+        $query = Application::withTrashed()
+            ->with(['applicantProfile.user', 'statusTimelines'])
             ->where('job_listing_id', $jobId);
 
         // Filter by status
@@ -478,7 +479,7 @@ class ApplicationsController extends Controller
         ];
 
         // Get filter options (min/max values for ranges)
-        $filterOptionsQuery = Application::where('job_listing_id', $jobId);
+        $filterOptionsQuery = Application::withTrashed()->where('job_listing_id', $jobId);
 
         $atsStats = (clone $filterOptionsQuery)->selectRaw('
         MIN(CAST(JSON_EXTRACT(ats_score, "$.percentage") AS UNSIGNED)) as min_ats,

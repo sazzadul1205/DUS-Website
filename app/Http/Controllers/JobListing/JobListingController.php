@@ -19,6 +19,7 @@ use App\Models\JobListing;
 use App\Models\JobCategory;
 use App\Models\JobView;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class JobListingController extends Controller
 {
@@ -44,7 +45,9 @@ class JobListingController extends Controller
         $query = JobListing::withTrashed()
             ->with(['category', 'locations', 'employer'])
             ->withCount([
-                'applications',
+                'applications' => function ($q) {
+                    $q->withTrashed(); // Include trashed applications in count
+                },
                 'views'
             ]);
 
@@ -415,6 +418,7 @@ class JobListingController extends Controller
 
         // Get application stats with ATS scores
         $applications = $jobListing->applications()
+            ->withTrashed()
             ->with(['user', 'applicantProfile'])
             ->latest()
             ->get();
@@ -442,6 +446,7 @@ class JobListingController extends Controller
 
         // Get recent applications
         $recentApplications = $jobListing->applications()
+            ->withTrashed()
             ->with(['user', 'applicantProfile'])
             ->latest()
             ->limit(10)
@@ -648,9 +653,8 @@ class JobListingController extends Controller
             ->with('success', 'Job listing updated successfully');
     }
 
-
     /**
-     * Remove the specified job listing (soft delete)
+     * Remove the specified job listing (soft delete) - WITH applications
      */
     public function destroy(JobListing $jobListing)
     {
@@ -666,23 +670,44 @@ class JobListingController extends Controller
                 ->with('error', 'You do not have permission to delete job listings.');
         }
 
-        $applicationsCount = $jobListing->applications()->count();
+        // Start a transaction to ensure data consistency
+        DB::beginTransaction();
 
-        if ($applicationsCount > 0) {
+        try {
+            // Soft delete all related applications first
+            $applicationsCount = $jobListing->applications()->count();
+
+            if ($applicationsCount > 0) {
+                // Soft delete all applications for this job
+                $jobListing->applications()->delete(); // This uses SoftDeletes
+
+                // Log the deletion for audit purposes
+                Log::info('Job listing and associated applications soft deleted', [
+                    'job_id' => $jobListing->id,
+                    'job_title' => $jobListing->title,
+                    'applications_count' => $applicationsCount,
+                    'deleted_by' => Auth::id()
+                ]);
+            }
+
+            // Soft delete the job listing itself
+            $jobListing->delete();
+
+            DB::commit();
+
             return redirect()->route('backend.listing.index')
-                ->with('error', "Cannot delete job listing with {$applicationsCount} existing application(s). Consider deactivating it instead.");
+                ->with('success', "Job listing and {$applicationsCount} associated application(s) moved to trash. You can restore them later if needed.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Failed to delete job listing with applications', [
+                'job_id' => $jobListing->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->route('backend.listing.index')
+                ->with('error', 'Failed to delete job listing: ' . $e->getMessage());
         }
-
-        $jobListing->delete();
-
-        Log::info('Job listing deleted', [
-            'job_id' => $jobListing->id,
-            'title' => $jobListing->title,
-            'user_id' => Auth::id()
-        ]);
-
-        return redirect()->route('backend.listing.index')
-            ->with('success', 'Job listing moved to trash');
     }
 
     /**
@@ -733,16 +758,17 @@ class JobListingController extends Controller
         }
 
         $applications = $jobListing->applications()
+            ->withTrashed()
             ->with(['user', 'applicantProfile'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
         $stats = [
-            'total' => $jobListing->applications()->count(),
-            'pending' => $jobListing->applications()->where('status', 'pending')->count(),
-            'shortlisted' => $jobListing->applications()->where('status', 'shortlisted')->count(),
-            'rejected' => $jobListing->applications()->where('status', 'rejected')->count(),
-            'hired' => $jobListing->applications()->where('status', 'hired')->count(),
+            'total' => $jobListing->applications()->withTrashed()->count(),
+            'pending' => $jobListing->applications()->withTrashed()->where('status', 'pending')->count(),
+            'shortlisted' => $jobListing->applications()->withTrashed()->where('status', 'shortlisted')->count(),
+            'rejected' => $jobListing->applications()->withTrashed()->where('status', 'rejected')->count(),
+            'hired' => $jobListing->applications()->withTrashed()->where('status', 'hired')->count(),
         ];
 
         return Inertia::render('Backend/JobListings/Applications', [
@@ -880,7 +906,7 @@ class JobListingController extends Controller
     }
 
     /**
-     * Restore a soft-deleted job listing
+     * Restore a soft-deleted job listing and its applications
      */
     public function restore(int $id)
     {
@@ -903,26 +929,44 @@ class JobListingController extends Controller
                 ->with('error', 'This job listing is not in trash.');
         }
 
-        $now = Carbon::now();
-        if ($jobListing->application_deadline && $jobListing->application_deadline < $now) {
+        // Start transaction
+        DB::beginTransaction();
+
+        try {
+            // Restore the job listing
+            $jobListing->restore();
+
+            // Restore all related applications (they use SoftDeletes too)
+            $restoredApplications = Application::onlyTrashed()
+                ->where('job_listing_id', $jobListing->id)
+                ->restore();
+
+            DB::commit();
+
+            Log::info('Job listing and applications restored', [
+                'job_id' => $jobListing->id,
+                'title' => $jobListing->title,
+                'applications_restored' => $restoredApplications,
+                'restored_by' => Auth::id()
+            ]);
+
             return redirect()->route('backend.listing.index')
-                ->with('error', 'Cannot restore job because the application deadline has passed.');
+                ->with('success', "Job listing and {$restoredApplications} application(s) restored successfully.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Failed to restore job listing', [
+                'job_id' => $jobListing->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->route('backend.listing.index')
+                ->with('error', 'Failed to restore job listing: ' . $e->getMessage());
         }
-
-        $jobListing->restore();
-
-        Log::info('Job listing restored', [
-            'job_id' => $jobListing->id,
-            'title' => $jobListing->title,
-            'user_id' => Auth::id()
-        ]);
-
-        return redirect()->route('backend.listing.index')
-            ->with('success', 'Job listing restored successfully.');
     }
 
     /**
-     * Permanently delete a soft-deleted job listing
+     * Permanently delete a soft-deleted job listing and all related data
      */
     public function forceDelete(int $id)
     {
@@ -945,17 +989,57 @@ class JobListingController extends Controller
                 ->with('error', 'Only trashed job listings can be permanently deleted.');
         }
 
-        $jobListing->locations()->detach();
-        $jobListing->forceDelete();
+        DB::beginTransaction();
 
-        Log::info('Job listing permanently deleted', [
-            'job_id' => $jobListing->id,
-            'title' => $jobListing->title,
-            'user_id' => Auth::id()
-        ]);
+        try {
+            // Get all applications (including trashed)
+            $applications = Application::withTrashed()
+                ->where('job_listing_id', $jobListing->id)
+                ->get();
 
-        return redirect()->route('backend.listing.index')
-            ->with('success', 'Job listing permanently deleted.');
+            // Delete resume files from storage for each application
+            foreach ($applications as $application) {
+                $resumePath = $application->getActualResumePath();
+                if ($resumePath && Storage::disk('public')->exists($resumePath)) {
+                    Storage::disk('public')->delete($resumePath);
+                    Log::info('Resume file deleted', [
+                        'application_id' => $application->id,
+                        'resume_path' => $resumePath
+                    ]);
+                }
+
+                // Permanently delete the application
+                $application->forceDelete();
+            }
+
+            // Detach location relationships
+            $jobListing->locations()->detach();
+
+            // Permanently delete the job listing
+            $jobListing->forceDelete();
+
+            DB::commit();
+
+            Log::info('Job listing permanently deleted', [
+                'job_id' => $jobListing->id,
+                'title' => $jobListing->title,
+                'applications_deleted' => $applications->count(),
+                'deleted_by' => Auth::id()
+            ]);
+
+            return redirect()->route('backend.listing.index')
+                ->with('success', "Job listing and {$applications->count()} application(s) permanently deleted.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Failed to force delete job listing', [
+                'job_id' => $jobListing->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->route('backend.listing.index')
+                ->with('error', 'Failed to permanently delete job listing: ' . $e->getMessage());
+        }
     }
 
     /**

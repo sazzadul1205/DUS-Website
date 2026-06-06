@@ -3,12 +3,19 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+// Factories
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+// Models
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+
+// Relations
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+// Eloquent
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ApplicantProfile extends Model
@@ -25,7 +32,7 @@ class ApplicantProfile extends Model
     ];
 
     /**
-     * Fillable fields
+     * Fillable fields - FIXED: Added missing blood_type
      */
     protected $fillable = [
         'user_id',
@@ -214,5 +221,13 @@ class ApplicantProfile extends Model
         }
 
         return (int) round(($filled / count($fields)) * 100);
+    }
+
+    /**
+     * Get blood type label
+     */
+    public function getBloodTypeLabelAttribute(): ?string
+    {
+        return $this->blood_type;
     }
 }

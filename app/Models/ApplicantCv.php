@@ -3,10 +3,17 @@
 
 namespace App\Models;
 
+// Eloquent
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+
+// Factories
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+// Facades
 use Illuminate\Support\Facades\DB;
+
+// Validation
 use Illuminate\Validation\ValidationException;
 
 class ApplicantCv extends Model
@@ -72,6 +79,13 @@ class ApplicantCv extends Model
                 ]);
             }
 
+            // Auto-set order position if not set
+            if ($cv->order_position === null || $cv->order_position === 0) {
+                $maxPosition = self::where('applicant_profile_id', $cv->applicant_profile_id)
+                    ->max('order_position');
+                $cv->order_position = ($maxPosition ?? -1) + 1;
+            }
+
             // If primary, unset other primary CVs
             if (
                 $cv->is_primary &&
@@ -128,6 +142,13 @@ class ApplicantCv extends Model
                     ]);
                 }
             }
+        });
+
+        /**
+         * After deleting - reorder remaining CVs
+         */
+        static::deleted(function (ApplicantCv $cv): void {
+            self::reorderCvs($cv->applicant_profile_id);
         });
     }
 
@@ -214,7 +235,7 @@ class ApplicantCv extends Model
     }
 
     /**
-     * Reorder CVs after deletion
+     * Reorder CVs after deletion - FIXED without unique constraint
      */
     public static function reorderCvs(int $applicantProfileId): void
     {
@@ -227,17 +248,29 @@ class ApplicantCv extends Model
             return;
         }
 
-        DB::transaction(function () use ($applicantProfileId, $cvs): void {
-            // Shift positions temporarily
-            self::where('applicant_profile_id', $applicantProfileId)->update([
-                'order_position' => DB::raw('order_position + 1000'),
-            ]);
-
+        DB::transaction(function () use ($cvs): void {
             foreach ($cvs as $index => $cv) {
-                self::where('id', $cv->id)->update([
-                    'order_position' => $index,
-                ]);
+                $newPosition = $index;
+                if ($cv->order_position !== $newPosition) {
+                    self::where('id', $cv->id)->update([
+                        'order_position' => $newPosition,
+                    ]);
+                }
             }
+        });
+    }
+
+    /**
+     * Swap positions with another CV
+     */
+    public function swapPosition(ApplicantCv $otherCv): void
+    {
+        $tempPosition = $this->order_position;
+
+        DB::transaction(function () use ($otherCv, $tempPosition): void {
+            $this->update(['order_position' => -999]); // Temporary position
+            $otherCv->update(['order_position' => $tempPosition]);
+            $this->update(['order_position' => $otherCv->order_position]);
         });
     }
 

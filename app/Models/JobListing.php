@@ -101,11 +101,27 @@ class JobListing extends Model
         static::creating(function (JobListing $job): void {
             if (empty($job->slug)) {
                 $baseSlug = Str::slug($job->title);
-                $slug = $baseSlug . '-' . Str::random(8);
+                $slug = $baseSlug;
+                $counter = 1;
 
-                // Ensure uniqueness
+                // First try clean slug
                 while (self::where('slug', $slug)->exists()) {
-                    $slug = $baseSlug . '-' . Str::random(8);
+                    $slug = $baseSlug . '-' . $counter++;
+                }
+
+                $job->slug = $slug;
+            }
+        });
+
+        static::updating(function (JobListing $job): void {
+            // If title changed and slug is auto-generated, update slug
+            if ($job->isDirty('title') && !$job->isDirty('slug')) {
+                $baseSlug = Str::slug($job->title);
+                $slug = $baseSlug;
+                $counter = 1;
+
+                while (self::where('slug', $slug)->where('id', '!=', $job->id)->exists()) {
+                    $slug = $baseSlug . '-' . $counter++;
                 }
 
                 $job->slug = $slug;
@@ -204,6 +220,30 @@ class JobListing extends Model
         return $query->where('job_type', $jobType);
     }
 
+    /**
+     * Filter by location
+     */
+    public function scopeByLocation(Builder $query, int $locationId): Builder
+    {
+        return $query->whereHas('locations', function (Builder $q) use ($locationId): void {
+            $q->where('locations.id', $locationId);
+        });
+    }
+
+    /**
+     * Search by keyword in title, description, requirements, or skills
+     */
+    public function scopeSearch(Builder $query, string $keyword): Builder
+    {
+        return $query->where(function (Builder $q) use ($keyword): void {
+            $q->where('title', 'like', "%{$keyword}%")
+                ->orWhere('description', 'like', "%{$keyword}%")
+                ->orWhere('requirements', 'like', "%{$keyword}%")
+                ->orWhereJsonContains('skills', $keyword)
+                ->orWhereJsonContains('keywords', $keyword);
+        });
+    }
+
     /* ==========================================
      | ACCESSORS & HELPERS
      |========================================== */
@@ -263,5 +303,50 @@ class JobListing extends Model
     public function getApplicationCountAttribute(): int
     {
         return $this->applications()->count();
+    }
+
+    /**
+     * Get formatted job type label
+     */
+    public function getJobTypeLabelAttribute(): string
+    {
+        $labels = [
+            'full-time' => 'Full Time',
+            'part-time' => 'Part Time',
+            'contract' => 'Contract',
+            'internship' => 'Internship',
+            'remote' => 'Remote',
+            'hybrid' => 'Hybrid',
+        ];
+
+        return $labels[$this->job_type] ?? ucfirst($this->job_type);
+    }
+
+    /**
+     * Get formatted experience level label
+     */
+    public function getExperienceLevelLabelAttribute(): string
+    {
+        $labels = [
+            'entry' => 'Entry Level',
+            'junior' => 'Junior',
+            'mid-level' => 'Mid Level',
+            'senior' => 'Senior',
+            'lead' => 'Lead',
+            'executive' => 'Executive',
+        ];
+
+        return $labels[$this->experience_level] ?? ucfirst(str_replace('-', ' ', $this->experience_level));
+    }
+
+    /**
+     * Retrieve the model for a bound value when using implicit route binding.
+     * Include trashed records so deleted job listings can still be accessed.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->withTrashed()
+            ->firstOrFail();
     }
 }
