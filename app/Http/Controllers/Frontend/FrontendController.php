@@ -6,28 +6,77 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class FrontendController extends Controller
 {
+    /**
+     * Serve any asset from storage (images, files, etc.)
+     * Works for both static theme assets and user uploads
+     */
+    public function asset(string $path)
+    {
+        // Security: Prevent path traversal attacks
+        if (Str::contains($path, '..')) {
+            abort(404);
+        }
+
+        // Check if file exists in storage
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404);
+        }
+
+        // Get file mime type from the resolved local file path
+        $fullPath = Storage::disk('public')->path($path);
+        $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
+
+        // Cache for 1 year for better performance
+        $cacheTime = 31536000; // 1 year in seconds
+
+        // Return file with proper headers and caching
+        return response()
+            ->file($fullPath, ['Content-Type' => $mimeType])
+            ->setCache([
+                'public' => true,
+                'max_age' => $cacheTime,
+                's_maxage' => $cacheTime
+            ]);
+    }
+
     /**
      * Get shared data for all frontend pages (TopBar, Navbar, Footer)
      */
     private function getSharedData(): array
     {
-        // Get storage URL from config
-        $storageUrl = asset('storage');
+        // Asset helper function using route
+        $asset = function ($path) {
+            return route('asset', ['path' => ltrim($path, '/')]);
+        };
 
-        // Top Bar Data (static paths - these are in public/images)
+        // Top Bar Data
         $topBarData = [
             'contactInfo' => [
-                'email' => ['text' => 'dus.eddus@gmail.com', 'icon' => $storageUrl . '/images/TopBar/Email.svg', 'alt' => 'Email'],
-                'phone' => ['text' => '+880 1761-493412', 'icon' => $storageUrl . '/images/TopBar/Phone.svg', 'alt' => 'Phone'],
-                'hours' => ['text' => 'Sun - Thu 9:00AM - 5:00PM', 'icon' => $storageUrl . '/images/TopBar/Clock.svg', 'alt' => 'Clock']
+                'email' => [
+                    'text' => 'dus.eddus@gmail.com',
+                    'icon' => $asset('images/TopBar/Email.svg'),
+                    'alt' => 'Email'
+                ],
+                'phone' => [
+                    'text' => '+880 1761-493412',
+                    'icon' => $asset('images/TopBar/Phone.svg'),
+                    'alt' => 'Phone'
+                ],
+                'hours' => [
+                    'text' => 'Sun - Thu 9:00AM - 5:00PM',
+                    'icon' => $asset('images/TopBar/Clock.svg'),
+                    'alt' => 'Clock'
+                ]
             ],
             'languages' => [
-                ['code' => 'us', 'name' => 'English', 'flag' => $storageUrl . '/images/Flags/united-states.png'],
-                ['code' => 'bd', 'name' => 'Bengali', 'flag' => $storageUrl . '/images/Flags/bangladesh.png'],
-                ['code' => 'fr', 'name' => 'French', 'flag' => $storageUrl . '/images/Flags/france.png'],
+                ['code' => 'us', 'name' => 'English', 'flag' => $asset('images/Flags/united-states.png')],
+                ['code' => 'bd', 'name' => 'Bengali', 'flag' => $asset('images/Flags/bangladesh.png')],
+                ['code' => 'fr', 'name' => 'French', 'flag' => $asset('images/Flags/france.png')],
             ],
             'userMenu' => [
                 'guest' => [
@@ -55,7 +104,7 @@ class FrontendController extends Controller
         // Navbar Data
         $navbarData = [
             'logo' => [
-                'src' => $storageUrl . '/images/Icon.svg',
+                'src' => $asset('images/Icon.svg'),
                 'alt' => 'DUS Logo',
                 'className' => 'h-17.5 w-auto',
                 'href' => '/'
@@ -78,7 +127,7 @@ class FrontendController extends Controller
 
         $footerData = [
             'logo' => [
-                'src' => $storageUrl . '/images/Icon-bottom.svg',
+                'src' => $asset('images/Icon-bottom.svg'),
                 'alt' => 'DUS Logo',
                 'className' => 'h-41.25 w-auto'
             ],
@@ -149,11 +198,11 @@ class FrontendController extends Controller
                 ]
             ]
         ];
+
         return [
             'topBarData' => $topBarData,
             'navbarData' => $navbarData,
             'footerData' => $footerData,
-            'storageUrl' => $storageUrl
         ];
     }
 
@@ -162,13 +211,14 @@ class FrontendController extends Controller
      */
     public function home(): Response
     {
-        // Get storage URL from config
-        $storageUrl = asset('storage');
+        $asset = function ($path) {
+            return route('asset', ['path' => ltrim($path, '/')]);
+        };
 
         // Banner Data
         $bannerData = [
             'background' => [
-                'src' => $storageUrl . '/Banner/64065404ef679e54d2dabd90bba3b1744817c578.webp',
+                'src' => $asset('Banner/64065404ef679e54d2dabd90bba3b1744817c578.webp'),
                 'alt' => 'Background'
             ],
             'overlay' => [
@@ -222,28 +272,28 @@ class FrontendController extends Controller
                 'items' => [
                     [
                         'id' => 1,
-                        'icon' => $storageUrl . '/AboutUs/65af8a95ec6612fa3ef2941b_011-charity-1%201.svg',
+                        'icon' => $asset('AboutUs/65af8a95ec6612fa3ef2941b_011-charity-1%201.svg'),
                         'title' => 'Education for All',
                         'description' => 'Charity is dedicated to ensuring that every child has access to quality education.',
                         'alt' => 'Education Icon'
                     ],
                     [
                         'id' => 2,
-                        'icon' => $storageUrl . '/AboutUs/65af8a95c570e47bd1123b4e_033-hospital%201.svg',
+                        'icon' => $asset('AboutUs/65af8a95c570e47bd1123b4e_033-hospital%201.svg'),
                         'title' => 'Health and Wellness',
                         'description' => 'Our commitment to health and wellness extends across borders.',
                         'alt' => 'Health Icon'
                     ],
                     [
                         'id' => 3,
-                        'icon' => $storageUrl . '/AboutUs/65af8a95cee257c23ab03ff8_040-shelter%201.svg',
+                        'icon' => $asset('AboutUs/65af8a95cee257c23ab03ff8_040-shelter%201.svg'),
                         'title' => 'Disaster Relief',
                         'description' => 'In times of crisis, Charity responds swiftly to provide emergency relief.',
                         'alt' => 'Disaster Relief Icon'
                     ],
                     [
                         'id' => 4,
-                        'icon' => $storageUrl . '/AboutUs/65af8a958d27ad8d830434f4_022-family-1%201.svg',
+                        'icon' => $asset('AboutUs/65af8a958d27ad8d830434f4_022-family-1%201.svg'),
                         'title' => 'Community Development',
                         'description' => 'Charity invests in sustainable community development projects to create.',
                         'alt' => 'Community Development Icon'
@@ -259,7 +309,7 @@ class FrontendController extends Controller
                 ]
             ],
             'image' => [
-                'src' => $storageUrl . '/AboutUs/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff.webp',
+                'src' => $asset('AboutUs/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff.webp'),
                 'alt' => 'About Us Image'
             ]
         ];
@@ -271,15 +321,15 @@ class FrontendController extends Controller
                 'description' => 'We turn compassion into action by implementing community-led programs, advocating for social justice, and promoting education, health, and equality'
             ],
             'actions' => [
-                ['id' => 1, 'icon' => $storageUrl . '/OurActions/fi_1940611.svg', 'title' => 'Education', 'description' => 'We empower communities by investing in sustainable projects, training livelihood programs.', 'alt' => 'Education Icon'],
-                ['id' => 2, 'icon' => $storageUrl . '/OurActions/fi_14888982.svg', 'title' => 'Microfinance', 'description' => 'We empower communities by investing in sustainable projects, training livelihood programs.', 'alt' => 'Microfinance Icon'],
-                ['id' => 3, 'icon' => $storageUrl . '/OurActions/fi_3004451.svg', 'title' => 'Health', 'description' => 'Providing nutritious meals and groceries to individuals and families in need.', 'alt' => 'Health Icon'],
-                ['id' => 4, 'icon' => $storageUrl . '/OurActions/fi_17316107.svg', 'title' => 'Organizational Development', 'description' => 'We empower underprivileged children with the opportunity to learn, grow, and succeed.', 'alt' => 'Organizational Development Icon'],
-                ['id' => 5, 'icon' => $storageUrl . '/OurActions/fi_6786176.svg', 'title' => 'Climate Change', 'description' => 'From free medical camps to life-saving treatments, we support initiatives that provide critical aid to access to proper.', 'alt' => 'Climate Change Icon'],
-                ['id' => 6, 'icon' => $storageUrl . '/OurActions/fi_1176562.svg', 'title' => 'Human Rights', 'description' => 'From free medical camps to life-saving treatments, we support initiatives that provide critical aid to access to proper.', 'alt' => 'Human Rights Icon'],
-                ['id' => 7, 'icon' => $storageUrl . '/OurActions/fi_8992468.svg', 'title' => 'Human Resource', 'description' => 'Bringing clean and safe drinking water to communities, improving sanitation, and preventing waterborne diseases.', 'alt' => 'Human Resource Icon'],
-                ['id' => 8, 'icon' => $storageUrl . '/OurActions/fi_726211.svg', 'title' => 'Social Enterprises', 'description' => 'We empower communities by investing in sustainable projects, training livelihood programs.', 'alt' => 'Social Enterprises Icon'],
-                ['id' => 9, 'icon' => $storageUrl . '/OurActions/fi_4994126.svg', 'title' => 'Agriculture Food Security', 'description' => 'Bringing clean and safe drinking water to communities, improving sanitation, and preventing waterborne diseases.', 'alt' => 'Agriculture Food Security Icon']
+                ['id' => 1, 'icon' => $asset('OurActions/fi_1940611.svg'), 'title' => 'Education', 'description' => 'We empower communities by investing in sustainable projects, training livelihood programs.', 'alt' => 'Education Icon'],
+                ['id' => 2, 'icon' => $asset('OurActions/fi_14888982.svg'), 'title' => 'Microfinance', 'description' => 'We empower communities by investing in sustainable projects, training livelihood programs.', 'alt' => 'Microfinance Icon'],
+                ['id' => 3, 'icon' => $asset('OurActions/fi_3004451.svg'), 'title' => 'Health', 'description' => 'Providing nutritious meals and groceries to individuals and families in need.', 'alt' => 'Health Icon'],
+                ['id' => 4, 'icon' => $asset('OurActions/fi_17316107.svg'), 'title' => 'Organizational Development', 'description' => 'We empower underprivileged children with the opportunity to learn, grow, and succeed.', 'alt' => 'Organizational Development Icon'],
+                ['id' => 5, 'icon' => $asset('OurActions/fi_6786176.svg'), 'title' => 'Climate Change', 'description' => 'From free medical camps to life-saving treatments, we support initiatives that provide critical aid to access to proper.', 'alt' => 'Climate Change Icon'],
+                ['id' => 6, 'icon' => $asset('OurActions/fi_1176562.svg'), 'title' => 'Human Rights', 'description' => 'From free medical camps to life-saving treatments, we support initiatives that provide critical aid to access to proper.', 'alt' => 'Human Rights Icon'],
+                ['id' => 7, 'icon' => $asset('OurActions/fi_8992468.svg'), 'title' => 'Human Resource', 'description' => 'Bringing clean and safe drinking water to communities, improving sanitation, and preventing waterborne diseases.', 'alt' => 'Human Resource Icon'],
+                ['id' => 8, 'icon' => $asset('OurActions/fi_726211.svg'), 'title' => 'Social Enterprises', 'description' => 'We empower communities by investing in sustainable projects, training livelihood programs.', 'alt' => 'Social Enterprises Icon'],
+                ['id' => 9, 'icon' => $asset('OurActions/fi_4994126.svg'), 'title' => 'Agriculture Food Security', 'description' => 'Bringing clean and safe drinking water to communities, improving sanitation, and preventing waterborne diseases.', 'alt' => 'Agriculture Food Security Icon']
             ]
         ];
 
@@ -287,15 +337,15 @@ class FrontendController extends Controller
         $whereWeWorkData = [
             'section' => ['title' => 'Where We Work'],
             'stats' => [
-                ['id' => 1, 'icon' => $storageUrl . '/WhereWeWork/image%206-3.png', 'value' => '450K', 'label' => 'Total Member Reach', 'alt' => 'Member Reach Icon'],
-                ['id' => 2, 'icon' => $storageUrl . '/WhereWeWork/image%206-2.png', 'value' => '41,382', 'label' => 'Mail Engaged in Divers Livelihoods Options', 'alt' => 'Member Reach Icon'],
-                ['id' => 3, 'icon' => $storageUrl . '/WhereWeWork/image%206-1.png', 'value' => '35,193', 'label' => 'Women Engaged in Diverse Livelihoods Options', 'alt' => 'Member Reach Icon'],
-                ['id' => 4, 'icon' => $storageUrl . '/WhereWeWork/image%206.png', 'value' => '35,193', 'label' => 'Women Engaged in Diverse Livelihoods Options', 'alt' => 'Mail Engaged Icon'],
-                ['id' => 5, 'icon' => $storageUrl . '/WhereWeWork/image%206-1.png', 'value' => '38.0 M', 'label' => 'Digital media Outreach', 'alt' => 'Women Engaged Icon'],
-                ['id' => 6, 'icon' => $storageUrl . '/WhereWeWork/image%206.png', 'value' => '35,193', 'label' => 'Women Engagement in Diverse Livelihood Options', 'alt' => 'Mail Engaged Icon']
+                ['id' => 1, 'icon' => $asset('WhereWeWork/image%206-3.png'), 'value' => '450K', 'label' => 'Total Member Reach', 'alt' => 'Member Reach Icon'],
+                ['id' => 2, 'icon' => $asset('WhereWeWork/image%206-2.png'), 'value' => '41,382', 'label' => 'Mail Engaged in Divers Livelihoods Options', 'alt' => 'Member Reach Icon'],
+                ['id' => 3, 'icon' => $asset('WhereWeWork/image%206-1.png'), 'value' => '35,193', 'label' => 'Women Engaged in Diverse Livelihoods Options', 'alt' => 'Member Reach Icon'],
+                ['id' => 4, 'icon' => $asset('WhereWeWork/image%206.png'), 'value' => '35,193', 'label' => 'Women Engaged in Diverse Livelihoods Options', 'alt' => 'Mail Engaged Icon'],
+                ['id' => 5, 'icon' => $asset('WhereWeWork/image%206-1.png'), 'value' => '38.0 M', 'label' => 'Digital media Outreach', 'alt' => 'Women Engaged Icon'],
+                ['id' => 6, 'icon' => $asset('WhereWeWork/image%206.png'), 'value' => '35,193', 'label' => 'Women Engagement in Diverse Livelihood Options', 'alt' => 'Mail Engaged Icon']
             ],
             'image' => [
-                'src' => $storageUrl . '/WhereWeWork/image.png',
+                'src' => $asset('WhereWeWork/image.png'),
                 'alt' => 'Map Place holder Text',
                 'className' => 'w-full h-232.5 object-cover rounded-4xl'
             ]
@@ -316,7 +366,7 @@ class FrontendController extends Controller
                     'id' => 1,
                     'title' => 'Micro-Finance <br /> Program',
                     'description' => '<div class="space-y-3"><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">Micro finance Program is the core program of DUS activities implemented in partnership with <strong class="text-[#009BE2]">Palli Karma Sahayak Foundation (PKSF)</strong> since 2000. It provides collateral free micro-credit to 40K+ group members where 97% are female.</p><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">The program includes savings schemes for poor women with no access to mainstream banks, helping them promote income generating activities and achieve economic empowerment.</p></div>',
-                    'image' => $storageUrl . '/OurPrograms/945e2496664a40b12a1cddd6561e954cdc78e255.webp',
+                    'image' => $asset('OurPrograms/945e2496664a40b12a1cddd6561e954cdc78e255.webp'),
                     'bgColor' => 'bg-[#E6F3E7]',
                     'link' => '/projects-programs/micro-finance'
                 ],
@@ -324,7 +374,7 @@ class FrontendController extends Controller
                     'id' => 2,
                     'title' => 'Climate Change and <br /> Disaster Management',
                     'description' => '<div class="space-y-3"><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">DUS operates in highly disaster-prone coastal areas of Bangladesh, working with communities to build <strong class="text-[#009BE2]">resilience against natural disasters</strong> like cyclones, floods, and storm surges.</p><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">Moving beyond relief, we focus on institutionalized preparedness, risk reduction, early warning systems, and long-term climate adaptation strategies for vulnerable coastal communities.</p></div>',
-                    'image' => $storageUrl . '/OurPrograms/a03fa6dba9fcdac0a5aedf2d337b118228a03298.webp',
+                    'image' => $asset('OurPrograms/a03fa6dba9fcdac0a5aedf2d337b118228a03298.webp'),
                     'bgColor' => 'bg-[#F3EDE6]',
                     'link' => '/projects-programs/climate-change'
                 ],
@@ -332,7 +382,7 @@ class FrontendController extends Controller
                     'id' => 3,
                     'title' => 'Community Radio',
                     'description' => '<div class="space-y-3"><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">Empowering Hatiya Island communities by giving them a <strong class="text-[#009BE2]">voice for change</strong> through community radio. Bangladesh is the 2nd country in South Asia with a Community Radio Policy.</p><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">The radio broadcasts agricultural information, health awareness, local news, women empowerment programs, and cultural content, reaching thousands of listeners daily.</p></div>',
-                    'image' => $storageUrl . '/OurPrograms/e280b627b1771904c38022aac2566b932e248887.webp',
+                    'image' => $asset('OurPrograms/e280b627b1771904c38022aac2566b932e248887.webp'),
                     'bgColor' => 'bg-[#E8E6F3]',
                     'link' => '/projects-programs/community-radio'
                 ],
@@ -340,7 +390,7 @@ class FrontendController extends Controller
                     'id' => 4,
                     'title' => 'Research and <br /> Documentation',
                     'description' => '<div class="space-y-3"><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">DUS has a strong <strong class="text-[#009BE2]">Research and Documentation Cell</strong> conducting quality research in education, health, livelihood, environment, human rights, and social justice.</p><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">The cell engages in surveys, impact assessments, and documentation of best practices, helping shape effective development interventions and policy advocacy.</p></div>',
-                    'image' => $storageUrl . '/OurPrograms/a496922a3fc00992b6c454822d60bde51dc001e5.webp',
+                    'image' => $asset('OurPrograms/a496922a3fc00992b6c454822d60bde51dc001e5.webp'),
                     'bgColor' => 'bg-[#F3E6EA]',
                     'link' => '/projects-programs/research-documentation'
                 ],
@@ -348,7 +398,7 @@ class FrontendController extends Controller
                     'id' => 5,
                     'title' => 'WATSAN <br /> Program',
                     'description' => '<div class="space-y-3"><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">Providing sustainable <strong class="text-[#009BE2]">water and sanitation services</strong> to rural communities with support from the Netherland Government, implemented in Nangolia Char and Nalerchar under Hatiya Upazilla.</p><p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed">Target: 4,605 households with sanitation, 250 deep tube wells for safe water, and hygiene education for 20,000 people.</p></div>',
-                    'image' => $storageUrl . '/OurPrograms/be14c45848898048e7b7832affc4dc713b032e10.webp',
+                    'image' => $asset('OurPrograms/be14c45848898048e7b7832affc4dc713b032e10.webp'),
                     'bgColor' => 'bg-[#F2F3E6]',
                     'link' => '/projects-programs/watsan'
                 ]
@@ -364,7 +414,7 @@ class FrontendController extends Controller
             'stories' => [
                 [
                     'id' => 1,
-                    'image' => $storageUrl . '/Stories/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp',
+                    'image' => $asset('Stories/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp'),
                     'date' => 'June 6, 2023',
                     'title' => 'Invest in Kindness, Reap a Better Future',
                     'description' => 'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
@@ -372,7 +422,7 @@ class FrontendController extends Controller
                 ],
                 [
                     'id' => 2,
-                    'image' => $storageUrl . '/Stories/b3d758bf8cd7985c857cdbe55b5101b105ee9f75.webp',
+                    'image' => $asset('Stories/b3d758bf8cd7985c857cdbe55b5101b105ee9f75.webp'),
                     'date' => 'June 6, 2023',
                     'title' => 'How to Design a Custom Pool That Perfectly Fits Your Charlotte Backyard',
                     'description' => 'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
@@ -380,7 +430,7 @@ class FrontendController extends Controller
                 ],
                 [
                     'id' => 3,
-                    'image' => $storageUrl . '/Stories/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff%20(1).webp',
+                    'image' => $asset('Stories/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff%20(1).webp'),
                     'date' => 'June 6, 2023',
                     'title' => 'The Benefits of Mindfulness in Daily Life',
                     'description' => 'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
@@ -388,7 +438,7 @@ class FrontendController extends Controller
                 ],
                 [
                     'id' => 4,
-                    'image' => $storageUrl . '/Stories/3fe55eb9ebcfd7efb80f559a00b8b5a1da0e8c3e.webp',
+                    'image' => $asset('Stories/3fe55eb9ebcfd7efb80f559a00b8b5a1da0e8c3e.webp'),
                     'date' => 'July 15, 2023',
                     'title' => 'Empowering Women Through Microfinance',
                     'description' => 'Discover how small loans are making a big difference...',
@@ -396,7 +446,7 @@ class FrontendController extends Controller
                 ],
                 [
                     'id' => 5,
-                    'image' => $storageUrl . '/Stories/de90e922c05aa3585b8f65361c306413c3b3d7be.webp',
+                    'image' => $asset('Stories/de90e922c05aa3585b8f65361c306413c3b3d7be.webp'),
                     'date' => 'August 2, 2023',
                     'title' => 'Building Resilient Communities Against Climate Change',
                     'description' => 'Learn about our initiatives to help coastal communities...',
@@ -404,7 +454,7 @@ class FrontendController extends Controller
                 ],
                 [
                     'id' => 6,
-                    'image' => $storageUrl . '/Stories/f465fcbdab4004cd25dba4df06b9f8d5f2648620.webp',
+                    'image' => $asset('Stories/f465fcbdab4004cd25dba4df06b9f8d5f2648620.webp'),
                     'date' => 'September 10, 2023',
                     'title' => 'Providing Clean Water to Remote Villages',
                     'description' => 'Access to clean water is a basic human right...',
@@ -424,7 +474,7 @@ class FrontendController extends Controller
                 ]
             ],
             'image' => [
-                'src' => $storageUrl . '/UpcomingEvent/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp',
+                'src' => $asset('UpcomingEvent/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp'),
                 'alt' => 'Events Image',
                 'className' => 'mt-15 rounded-2xl h-139.25 w-auto'
             ],
@@ -547,32 +597,32 @@ class FrontendController extends Controller
                 'title' => 'Program Impact and SDGs',
                 'mainImage' => [
                     'images' => [
-                        $storageUrl . '/ProgramImpact/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff%20(1).webp',
-                        $storageUrl . '/ProgramImpact/64065404ef679e54d2dabd90bba3b1744817c578.webp',
-                        $storageUrl . '/ProgramImpact/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff%20(1).webp',
-                        $storageUrl . '/ProgramImpact/64065404ef679e54d2dabd90bba3b1744817c578.webp'
+                        $asset('ProgramImpact/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff%20(1).webp'),
+                        $asset('ProgramImpact/64065404ef679e54d2dabd90bba3b1744817c578.webp'),
+                        $asset('ProgramImpact/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff%20(1).webp'),
+                        $asset('ProgramImpact/64065404ef679e54d2dabd90bba3b1744817c578.webp')
                     ]
                 ]
             ],
             'sdgImages' => [
-                ['id' => 1, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_18732_www.figma.com.webp', 'alt' => 'No Poverty'],
-                ['id' => 2, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_18742_www.figma.com.webp', 'alt' => 'Zero Hunger'],
-                ['id' => 3, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_18750_www.figma.com.webp', 'alt' => 'Good Health'],
-                ['id' => 4, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_1887_www.figma.com.webp', 'alt' => 'Quality Education'],
-                ['id' => 5, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_18823_www.figma.com.webp', 'alt' => 'Gender Equality'],
-                ['id' => 6, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_18837_www.figma.com.webp', 'alt' => 'Clean Water'],
-                ['id' => 7, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_1894_www.figma.com.webp', 'alt' => 'Clean Energy'],
-                ['id' => 8, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_18913_www.figma.com.webp', 'alt' => 'Decent Work'],
-                ['id' => 9, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_18920_www.figma.com.webp', 'alt' => 'Industry Innovation'],
-                ['id' => 10, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_18930_www.figma.com.webp', 'alt' => 'Reduced Inequalities'],
-                ['id' => 11, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_18939_www.figma.com.webp', 'alt' => 'Sustainable Cities'],
-                ['id' => 12, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_18949_www.figma.com.webp', 'alt' => 'Responsible Consumption'],
-                ['id' => 13, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_18108_www.figma.com.webp', 'alt' => 'Climate Action'],
-                ['id' => 14, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_181017_www.figma.com.webp', 'alt' => 'Life Below Water'],
-                ['id' => 15, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_181031_www.figma.com.webp', 'alt' => 'Life On Land'],
-                ['id' => 16, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_181046_www.figma.com.webp', 'alt' => 'Peace Justice'],
-                ['id' => 17, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_181055_www.figma.com.webp', 'alt' => 'Partnerships'],
-                ['id' => 18, 'src' => $storageUrl . '/ProgramImpact/Screenshot_17-5-2026_181133_www.figma.com.webp', 'alt' => 'SDG 18']
+                ['id' => 1, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_18732_www.figma.com.webp'), 'alt' => 'No Poverty'],
+                ['id' => 2, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_18742_www.figma.com.webp'), 'alt' => 'Zero Hunger'],
+                ['id' => 3, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_18750_www.figma.com.webp'), 'alt' => 'Good Health'],
+                ['id' => 4, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_1887_www.figma.com.webp'), 'alt' => 'Quality Education'],
+                ['id' => 5, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_18823_www.figma.com.webp'), 'alt' => 'Gender Equality'],
+                ['id' => 6, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_18837_www.figma.com.webp'), 'alt' => 'Clean Water'],
+                ['id' => 7, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_1894_www.figma.com.webp'), 'alt' => 'Clean Energy'],
+                ['id' => 8, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_18913_www.figma.com.webp'), 'alt' => 'Decent Work'],
+                ['id' => 9, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_18920_www.figma.com.webp'), 'alt' => 'Industry Innovation'],
+                ['id' => 10, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_18930_www.figma.com.webp'), 'alt' => 'Reduced Inequalities'],
+                ['id' => 11, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_18939_www.figma.com.webp'), 'alt' => 'Sustainable Cities'],
+                ['id' => 12, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_18949_www.figma.com.webp'), 'alt' => 'Responsible Consumption'],
+                ['id' => 13, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_18108_www.figma.com.webp'), 'alt' => 'Climate Action'],
+                ['id' => 14, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_181017_www.figma.com.webp'), 'alt' => 'Life Below Water'],
+                ['id' => 15, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_181031_www.figma.com.webp'), 'alt' => 'Life On Land'],
+                ['id' => 16, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_181046_www.figma.com.webp'), 'alt' => 'Peace Justice'],
+                ['id' => 17, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_181055_www.figma.com.webp'), 'alt' => 'Partnerships'],
+                ['id' => 18, 'src' => $asset('ProgramImpact/Screenshot_17-5-2026_181133_www.figma.com.webp'), 'alt' => 'SDG 18']
             ]
         ];
 
@@ -593,20 +643,19 @@ class FrontendController extends Controller
         ));
     }
 
-
     /**
      * Display the about page
      */
-
     public function about(): Response
     {
-        // Get storage URL from config
-        $storageUrl = asset('storage');
+        $asset = function ($path) {
+            return route('asset', ['path' => ltrim($path, '/')]);
+        };
 
         // Banner Data
         $bannerData = [
             'background' => [
-                'src' => $storageUrl . '/AboutUs/9734ab42cfed2d40c8ed08cbc3059b227d9aee8b.jpg',
+                'src' => $asset('AboutUs/9734ab42cfed2d40c8ed08cbc3059b227d9aee8b.jpg'),
                 'alt' => 'Background'
             ],
             'overlay' => [
@@ -650,7 +699,7 @@ class FrontendController extends Controller
                 'link' => '/about/vision-mission'
             ],
             'image' => [
-                'src' => $storageUrl . '/AboutUs/c9c3585f93806d98cf9e2fbeadccb32a66efb4b5.jpg',
+                'src' => $asset('AboutUs/c9c3585f93806d98cf9e2fbeadccb32a66efb4b5.jpg'),
                 'alt' => 'Vision and Mission',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -678,7 +727,7 @@ class FrontendController extends Controller
                 'link' => '/about/functions'
             ],
             'image' => [
-                'src' => $storageUrl . '/AboutUs/f465fcbdab4004cd25dba4df06b9f8d5f2648620.jpg',
+                'src' => $asset('AboutUs/f465fcbdab4004cd25dba4df06b9f8d5f2648620.jpg'),
                 'alt' => 'Background',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -687,7 +736,7 @@ class FrontendController extends Controller
         // Legal Data
         $legalData = [
             'background' => [
-                'src' => $storageUrl . '/AboutUs/64065404ef679e54d2dabd90bba3b1744817c578.jpg',
+                'src' => $asset('AboutUs/64065404ef679e54d2dabd90bba3b1744817c578.jpg'),
                 'alt' => 'Background'
             ],
             'overlay' => [
@@ -730,7 +779,7 @@ class FrontendController extends Controller
                 'link' => '/about/interventional-approaches'
             ],
             'image' => [
-                'src' => $storageUrl . '/AboutUs/d3afc7e94d5609f2c2356758f463ee15af0450fe.jpg',
+                'src' => $asset('AboutUs/d3afc7e94d5609f2c2356758f463ee15af0450fe.jpg'),
                 'alt' => 'Interventional Approaches',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -781,7 +830,7 @@ class FrontendController extends Controller
                 'link' => '/about/evolutionary-changes'
             ],
             'image' => [
-                'src' => $storageUrl . '/AboutUs/962bd5ee9dacf1f4261d0592856f5716dcffb725.jpg',
+                'src' => $asset('AboutUs/962bd5ee9dacf1f4261d0592856f5716dcffb725.jpg'),
                 'alt' => 'Evolutionary Changes',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -814,7 +863,7 @@ class FrontendController extends Controller
                 'link' => '/about/governance'
             ],
             'image' => [
-                'src' => $storageUrl . '/AboutUs/ce88efc81f8b1fe8d4f757eba85f05717acb68e4.jpg',
+                'src' => $asset('AboutUs/ce88efc81f8b1fe8d4f757eba85f05717acb68e4.jpg'),
                 'alt' => 'Governance',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -829,7 +878,7 @@ class FrontendController extends Controller
                 [
                     'id' => 'operational-areas',
                     'image' => [
-                        'src' => $storageUrl . '/AboutUs/image.png',
+                        'src' => $asset('AboutUs/image.png'),
                         'alt' => 'Operational Areas',
                         'className' => 'mx-auto object-contain'
                     ],
@@ -842,7 +891,7 @@ class FrontendController extends Controller
                 [
                     'id' => 'achievements',
                     'image' => [
-                        'src' => $storageUrl . '/AboutUs/fcbbf1e10ca75bccf6a608e1de01306d56897811.png',
+                        'src' => $asset('AboutUs/fcbbf1e10ca75bccf6a608e1de01306d56897811.png'),
                         'alt' => 'Our Achievements',
                         'className' => 'mx-auto object-contain'
                     ],
@@ -881,7 +930,7 @@ class FrontendController extends Controller
                 'link' => '/about/programs-activities'
             ],
             'image' => [
-                'src' => $storageUrl . '/AboutUs/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff.jpg',
+                'src' => $asset('AboutUs/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff.jpg'),
                 'alt' => 'Programs',
                 'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
             ]
@@ -988,8 +1037,9 @@ class FrontendController extends Controller
      */
     public function aboutDetails(string $slug): Response
     {
-        // Get storage URL from config
-        $storageUrl = asset('storage');
+        $asset = function ($path) {
+            return route('asset', ['path' => ltrim($path, '/')]);
+        };
 
         // Map slugs to the data from the about page
         $subPageData = [
@@ -1187,7 +1237,7 @@ class FrontendController extends Controller
         // Banner Data for sub-page
         $bannerData = [
             'background' => [
-                'src' => $storageUrl . '/OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png',
+                'src' => $asset('OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png'),
                 'alt' => 'Background'
             ],
             'overlay' => [
@@ -1263,7 +1313,7 @@ class FrontendController extends Controller
                 ]
             ],
             'image' => [
-                'src' => $storageUrl . '/UpcomingEvent/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp',
+                'src' => $asset('UpcomingEvent/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp'),
                 'alt' => 'Events Image',
                 'className' => 'mt-15 rounded-2xl h-139.25 w-auto'
             ],
@@ -1331,8 +1381,9 @@ class FrontendController extends Controller
      */
     public function projectsPrograms(): Response
     {
-        // Get storage URL from config
-        $storageUrl = asset('storage');
+        $asset = function ($path) {
+            return route('asset', ['path' => ltrim($path, '/')]);
+        };
 
         // Banner Data for sub-page
         $bannerData = [
@@ -1349,7 +1400,6 @@ class FrontendController extends Controller
                     'text' => 'Meet Our Charity Projects',
                     'className' => 'font-bold leading-tight'
                 ],
-
             ],
         ];
 
@@ -1378,7 +1428,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/945e2496664a40b12a1cddd6561e954cdc78e255.webp',
+                    'image' => $asset('OurPrograms/945e2496664a40b12a1cddd6561e954cdc78e255.webp'),
                     'bgColor' => 'bg-[#E6F3E7]',
                     'link' => '/projects-programs/micro-finance'
                 ],
@@ -1405,7 +1455,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/a03fa6dba9fcdac0a5aedf2d337b118228a03298.webp',
+                    'image' => $asset('OurPrograms/a03fa6dba9fcdac0a5aedf2d337b118228a03298.webp'),
                     'bgColor' => 'bg-[#F3EDE6]',
                     'link' => '/projects-programs/climate-change'
                 ],
@@ -1429,7 +1479,7 @@ class FrontendController extends Controller
                         </ul>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/e280b627b1771904c38022aac2566b932e248887.webp',
+                    'image' => $asset('OurPrograms/e280b627b1771904c38022aac2566b932e248887.webp'),
                     'bgColor' => 'bg-[#E8E6F3]',
                     'link' => '/projects-programs/community-radio'
                 ],
@@ -1456,7 +1506,7 @@ class FrontendController extends Controller
                         <p class="font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed mt-3"><strong class="text-[#080C14]">Impact:</strong> Over 10,000 children have benefited from our education programs, with a 85% retention rate and significant improvement in learning outcomes.</p>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/42ccde89743ee9405c6546567e02dfbb36759866.jpg',
+                    'image' => $asset('OurPrograms/42ccde89743ee9405c6546567e02dfbb36759866.jpg'),
                     'bgColor' => 'bg-[#EEF3E6]',
                     'link' => '/projects-programs/dwip-education'
                 ],
@@ -1481,7 +1531,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/41146cd8c06fe1e0af97901abf7120a065421b19.jpg',
+                    'image' => $asset('OurPrograms/41146cd8c06fe1e0af97901abf7120a065421b19.jpg'),
                     'bgColor' => 'bg-[#E6F3F1]',
                     'link' => '/projects-programs/information-and-communication-technology'
                 ],
@@ -1508,7 +1558,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/a496922a3fc00992b6c454822d60bde51dc001e5.webp',
+                    'image' => $asset('OurPrograms/a496922a3fc00992b6c454822d60bde51dc001e5.webp'),
                     'bgColor' => 'bg-[#F3E6EA]',
                     'link' => '/projects-programs/research-and-documentation'
                 ],
@@ -1533,7 +1583,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/1b7d77f85b29f0b12d98e2a09ddc1d734c6f6ea1.jpg',
+                    'image' => $asset('OurPrograms/1b7d77f85b29f0b12d98e2a09ddc1d734c6f6ea1.jpg'),
                     'bgColor' => 'bg-[#E6ECF3]',
                     'link' => '/projects-programs/livelihood-restoration-project'
                 ],
@@ -1558,7 +1608,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/21f2ed036293018aac5b8d98c97bc26201e92f68.jpg',
+                    'image' => $asset('OurPrograms/21f2ed036293018aac5b8d98c97bc26201e92f68.jpg'),
                     'bgColor' => 'bg-[#F3E6F1]',
                     'link' => '/projects-programs/group-member-insurance-savings-scheme'
                 ],
@@ -1583,7 +1633,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/a00b43d1f3ee0f568f2e058ee39101be8911c1a0.jpg',
+                    'image' => $asset('OurPrograms/a00b43d1f3ee0f568f2e058ee39101be8911c1a0.jpg'),
                     'bgColor' => 'bg-[#F3E6EA]',
                     'link' => '/projects-programs/social-development-program'
                 ],
@@ -1608,7 +1658,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/1c54b2045a0958af86f3c81624c73f0b8e23b6f7.jpg',
+                    'image' => $asset('OurPrograms/1c54b2045a0958af86f3c81624c73f0b8e23b6f7.jpg'),
                     'bgColor' => 'bg-[#E6F1F3]',
                     'link' => '/projects-programs/legal-and-human-rights'
                 ],
@@ -1635,7 +1685,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/42d5b669fc99984337547c6028cb9251bc1b306d.jpg',
+                    'image' => $asset('OurPrograms/42d5b669fc99984337547c6028cb9251bc1b306d.jpg'),
                     'bgColor' => 'bg-[#F2F3E6]',
                     'link' => '/projects-programs/watsan-program'
                 ],
@@ -1660,7 +1710,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/be14c45848898048e7b7832affc4dc713b032e10.jpg',
+                    'image' => $asset('OurPrograms/be14c45848898048e7b7832affc4dc713b032e10.webp'),
                     'bgColor' => 'bg-[#E6EDF3]',
                     'link' => '/projects-programs/training-and-other-facilities'
                 ],
@@ -1685,7 +1735,7 @@ class FrontendController extends Controller
                         </div>
                     </div>
                 ',
-                    'image' => $storageUrl . '/OurPrograms/83260e25460beb43cd8a9c084bb311328e8f24d7.jpg',
+                    'image' => $asset('OurPrograms/83260e25460beb43cd8a9c084bb311328e8f24d7.jpg'),
                     'bgColor' => 'bg-[#EAE6F3]',
                     'link' => '/projects-programs/tourism-and-hospitality'
                 ],
@@ -1758,15 +1808,16 @@ class FrontendController extends Controller
      */
     public function projectsProgramsDetails(string $slug): Response
     {
-        // Get storage URL from config
-        $storageUrl = asset('storage');
+        $asset = function ($path) {
+            return route('asset', ['path' => ltrim($path, '/')]);
+        };
 
         // Define all programs data with their details
         $programsData = [
             'micro-finance' => [
                 'title' => 'Micro-Finance Program',
                 'breadcrumb' => 'Micro-Finance Program',
-                'image' => $storageUrl . '/OurPrograms/945e2496664a40b12a1cddd6561e954cdc78e255.webp',
+                'image' => $asset('OurPrograms/945e2496664a40b12a1cddd6561e954cdc78e255.webp'),
                 'bgColor' => 'bg-[#E6F3E7]',
                 'content' => '
                 <div class="space-y-6">
@@ -1795,7 +1846,7 @@ class FrontendController extends Controller
             'climate-change' => [
                 'title' => 'Climate Change and Disaster Management Program',
                 'breadcrumb' => 'Climate Change & Disaster Management',
-                'image' => $storageUrl . '/OurPrograms/a03fa6dba9fcdac0a5aedf2d337b118228a03298.webp',
+                'image' => $asset('OurPrograms/a03fa6dba9fcdac0a5aedf2d337b118228a03298.webp'),
                 'bgColor' => 'bg-[#F3EDE6]',
                 'content' => '
                 <div class="space-y-6">
@@ -1830,7 +1881,7 @@ class FrontendController extends Controller
             'community-radio' => [
                 'title' => 'Community Radio Program',
                 'breadcrumb' => 'Community Radio',
-                'image' => $storageUrl . '/OurPrograms/e280b627b1771904c38022aac2566b932e248887.webp',
+                'image' => $asset('OurPrograms/e280b627b1771904c38022aac2566b932e248887.webp'),
                 'bgColor' => 'bg-[#E8E6F3]',
                 'content' => '
                 <div class="space-y-6">
@@ -2114,7 +2165,7 @@ class FrontendController extends Controller
         // Banner Data for sub-page
         $bannerData = [
             'background' => [
-                'src' => $storageUrl . '/OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png',
+                'src' => $asset('OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png'),
                 'alt' => 'Background'
             ],
             'overlay' => [
@@ -2128,7 +2179,6 @@ class FrontendController extends Controller
                 ],
             ],
         ];
-
 
         // FAQ Data
         $faqData = [
@@ -2191,7 +2241,7 @@ class FrontendController extends Controller
                 ]
             ],
             'image' => [
-                'src' => $storageUrl . '/UpcomingEvent/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp',
+                'src' => $asset('UpcomingEvent/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp'),
                 'alt' => 'Events Image',
                 'className' => 'mt-15 rounded-2xl h-139.25 w-auto'
             ],

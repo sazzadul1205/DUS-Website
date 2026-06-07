@@ -30,6 +30,7 @@ use App\Http\Controllers\Settings\ProfileController;
 
 // Laravel
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -42,6 +43,14 @@ use Illuminate\Http\Request;
 | Frontend Routes
 |--------------------------------------------------------------------------
 */
+
+Route::get('/storage/{path}', function ($path) {
+    if (str_contains($path, '..')) abort(404);
+    $disk = Storage::disk('public');
+    if (!$disk->exists($path)) abort(404);
+    return response()->file($disk->path($path));
+})->where('path', '.*')->name('storage.file');
+
 
 Route::get('/unauthorized', function () {
     return Inertia::render('UnauthorizedAccess', [
@@ -437,3 +446,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
 */
 
 require __DIR__ . '/auth.php';
+
+Route::get('/asset/{path}', [FrontendController::class, 'asset'])
+    ->where('path', '.*')
+    ->name('asset');

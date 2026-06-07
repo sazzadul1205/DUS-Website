@@ -26,7 +26,7 @@ return new class extends Migration
             $table->unsignedInteger('years_of_experience')->nullable();
 
             // Additional fields
-            $table->string('resume_path')->nullable();+
+            $table->string('resume_path')->nullable();
             
             $table->decimal('expected_salary', 12, 2)->nullable();
 
