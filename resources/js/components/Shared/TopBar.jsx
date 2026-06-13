@@ -28,10 +28,66 @@ const TopBar = ({ topBarData, storageUrl }) => {
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState({
-    code: 'us',
-    name: 'English',
-    flag: `${storageUrl}/images/link.svg`
+
+  // Hardcoded user menu items
+  const userMenu = {
+    guest: [
+      { label: 'Login', route: 'login', type: 'link' },
+      { label: 'Register', route: 'register', type: 'link' }
+    ],
+    authenticated: [
+      { divider: true },
+      { label: 'Dashboard', route: 'dashboard', type: 'link' },
+      { label: 'Logout', type: 'button', action: 'logout' }
+    ]
+  };
+
+  // Function to get saved language from localStorage
+  const getSavedLanguage = () => {
+    try {
+      const savedLang = localStorage.getItem('selectedLanguage');
+      if (savedLang) {
+        return JSON.parse(savedLang);
+      }
+    } catch (error) {
+      console.error('Error loading language from localStorage:', error);
+    }
+    return null;
+  };
+
+  // Function to save language to localStorage
+  const saveLanguage = (language) => {
+    try {
+      localStorage.setItem('selectedLanguage', JSON.stringify(language));
+    } catch (error) {
+      console.error('Error saving language to localStorage:', error);
+    }
+  };
+
+  // Filter to only show English (us) and Bengali (bd) from server data
+  const languagesToShow = topBarData.languages.filter(lang =>
+    lang.code === 'us' || lang.code === 'bd'
+  );
+
+  // Initialize language from localStorage or default to English from server data
+  const [selectedLanguage, setSelectedLanguage] = useState(() => {
+    const savedLang = getSavedLanguage();
+    const englishLang = languagesToShow.find(lang => lang.code === 'us');
+
+    if (savedLang && (savedLang.code === 'us' || savedLang.code === 'bd')) {
+      // Check if saved language exists in current languages
+      const existsInData = languagesToShow.find(lang => lang.code === savedLang.code);
+      if (existsInData) {
+        return savedLang;
+      }
+    }
+
+    // Default to English if found, otherwise first language
+    return englishLang || languagesToShow[0] || {
+      code: 'us',
+      name: 'English',
+      flag: `${storageUrl}/images/Flags/united-states.png`
+    };
   });
 
   // Refs
@@ -61,7 +117,11 @@ const TopBar = ({ topBarData, storageUrl }) => {
 
   const handleLanguageSelect = (language) => {
     setSelectedLanguage(language);
+    saveLanguage(language);
     setIsLangDropdownOpen(false);
+
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('languageChanged', { detail: language }));
   };
 
   const handleSearchSubmit = (e) => {
@@ -81,6 +141,8 @@ const TopBar = ({ topBarData, storageUrl }) => {
       <div className='hidden lg:flex justify-between items-center px-10 py-3 bg-[#080C14] relative z-50'>
         {/* Left - Contact Info */}
         <div className='flex items-center space-x-6'>
+
+          {/* Email */}
           <div className='flex items-center space-x-2'>
             <img src={topBarData.contactInfo.email.icon} alt={topBarData.contactInfo.email.alt} className="w-4 h-4" />
             <a href={`mailto:${topBarData.contactInfo.email.text}`} className='text-white text-sm hover:text-[#009BE2] transition-colors'>
@@ -88,6 +150,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
             </a>
           </div>
 
+          {/* Phone */}
           <div className='flex items-center space-x-2'>
             <img src={topBarData.contactInfo.phone.icon} alt={topBarData.contactInfo.phone.alt} className="w-4 h-4" />
             <a href={`tel:${topBarData.contactInfo.phone.text.replace(/\s/g, '')}`} className='text-white text-sm hover:text-[#009BE2] transition-colors'>
@@ -95,6 +158,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
             </a>
           </div>
 
+          {/* Hours */}
           <div className='flex items-center space-x-2'>
             <img src={topBarData.contactInfo.hours.icon} alt={topBarData.contactInfo.hours.alt} className="w-4 h-4" />
             <p className='text-white text-sm'>{topBarData.contactInfo.hours.text}</p>
@@ -114,6 +178,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
               aria-label="Select language"
             >
               <img src={selectedLanguage.flag} alt={selectedLanguage.name} className="w-5 h-5" />
+              <span className="text-white text-sm hidden md:inline">{selectedLanguage.name}</span>
               {isLangDropdownOpen ? <FaAngleUp className="text-white transition-transform duration-200" /> : <FaAngleDown className="text-white transition-transform duration-200" />}
             </button>
 
@@ -124,7 +189,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                   ? 'opacity-100 scale-100 visible'
                   : 'opacity-0 scale-95 invisible'}`}
             >
-              {topBarData.languages.map((lang) => (
+              {languagesToShow.map((lang) => (
                 <button
                   key={lang.code}
                   onClick={() => handleLanguageSelect(lang)}
@@ -159,7 +224,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder={topBarData.search.placeholder}
+                      placeholder="Search ..."
                       className="px-3 py-1 rounded-l-md text-sm focus:outline-none text-white focus:ring-1 focus:ring-[#009BE2] w-full"
                       autoFocus
                     />
@@ -213,7 +278,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                     <p className="text-sm font-medium text-gray-900">{user.name}</p>
                     <p className="text-xs text-gray-500 truncate">{user.email}</p>
                   </div>
-                  {topBarData.userMenu.authenticated.map((item, index) => (
+                  {userMenu.authenticated.map((item, index) => (
                     item.divider ? (
                       <div key={index} className="border-t border-gray-200 my-1"></div>
                     ) : item.type === 'link' ? (
@@ -241,7 +306,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                 </>
               ) : (
                 // Guest User Menu
-                topBarData.userMenu.guest.map((item) => (
+                userMenu.guest.map((item) => (
                   <Link
                     key={item.label}
                     href={route(item.route)}
@@ -283,15 +348,6 @@ const TopBar = ({ topBarData, storageUrl }) => {
         {/* Mobile Header with Logo and Menu Button */}
         <div className='flex justify-between items-center'>
 
-          {/* Mobile Logo */}
-          <Link href="/" className="flex items-center">
-            <img
-              src={`${storageUrl}/images/Icon.svg`}
-              alt="DUS Logo"
-              className="h-8 w-auto"
-            />
-          </Link>
-
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -310,7 +366,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
           </button>
         </div>
 
-        {/* Mobile Dropdown Menu - Same as before but with icon fix */}
+        {/* Mobile Dropdown Menu */}
         <div
           className={`transition-all duration-300 ease-in-out overflow-hidden ${isMobileMenuOpen ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'
             }`}
@@ -343,7 +399,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={topBarData.search.placeholder}
+                placeholder="Search..."
                 className="flex-1 px-3 py-2 rounded-l-md text-sm focus:outline-none focus:ring-1 focus:ring-[#009BE2] bg-white"
               />
               <button
@@ -373,7 +429,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
 
               {isLangDropdownOpen && (
                 <div className="mt-2 bg-white rounded-md shadow-lg py-2">
-                  {topBarData.languages.map((lang) => (
+                  {languagesToShow.map((lang) => (
                     <button
                       key={lang.code}
                       onClick={() => handleLanguageSelect(lang)}
@@ -384,6 +440,9 @@ const TopBar = ({ topBarData, storageUrl }) => {
                       <span className={`text-sm ${selectedLanguage.code === lang.code ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
                         {lang.name}
                       </span>
+                      {selectedLanguage.code === lang.code && (
+                        <span className="ml-auto text-blue-600">✓</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -412,7 +471,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                         <p className="text-sm font-medium text-gray-900">{user.name}</p>
                         <p className="text-xs text-gray-500 truncate">{user.email}</p>
                       </div>
-                      {topBarData.userMenu.authenticated.map((item, index) => (
+                      {userMenu.authenticated.map((item, index) => (
                         item.divider ? (
                           <div key={index} className="border-t border-gray-200 my-1"></div>
                         ) : item.type === 'link' ? (
@@ -443,7 +502,7 @@ const TopBar = ({ topBarData, storageUrl }) => {
                       ))}
                     </>
                   ) : (
-                    topBarData.userMenu.guest.map((item) => (
+                    userMenu.guest.map((item) => (
                       <Link
                         key={item.label}
                         href={route(item.route)}

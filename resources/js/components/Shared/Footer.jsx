@@ -253,7 +253,7 @@ const Footer = ({ footerData, storageUrl }) => {
                     {footerData.quickLinks.map((link, index) => (
                       <li key={index} className='flex items-center group'>
                         <img
-                          src={`${storageUrl}/images/link.svg`}
+                          src={footerData?.quickLinkLinkIcon}
                           alt=""
                           className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
                           aria-hidden="true"
@@ -291,7 +291,7 @@ const Footer = ({ footerData, storageUrl }) => {
                     {footerData.programs.map((program, index) => (
                       <li key={index} className='flex items-center group'>
                         <img
-                          src={`${storageUrl}/images/link.svg`}
+                          src={footerData?.OurProgramLinkIcon}
                           alt=""
                           className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
                           aria-hidden="true"

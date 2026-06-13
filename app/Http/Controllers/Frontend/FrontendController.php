@@ -76,18 +76,6 @@ class FrontendController extends Controller
             'languages' => [
                 ['code' => 'us', 'name' => 'English', 'flag' => $asset('images/Flags/united-states.png')],
                 ['code' => 'bd', 'name' => 'Bengali', 'flag' => $asset('images/Flags/bangladesh.png')],
-                ['code' => 'fr', 'name' => 'French', 'flag' => $asset('images/Flags/france.png')],
-            ],
-            'userMenu' => [
-                'guest' => [
-                    ['label' => 'Login', 'route' => 'login', 'type' => 'link'],
-                    ['label' => 'Register', 'route' => 'register', 'type' => 'link']
-                ],
-                'authenticated' => [
-                    ['divider' => true],
-                    ['label' => 'Dashboard', 'route' => 'dashboard', 'type' => 'link'],
-                    ['label' => 'Logout', 'type' => 'button', 'action' => 'logout']
-                ]
             ],
             'socialLinks' => [
                 ['id' => 1, 'name' => 'Facebook', 'url' => 'https://facebook.com', 'iconName' => 'FaFacebook', 'hoverColor' => 'hover:text-blue-400'],
@@ -95,10 +83,6 @@ class FrontendController extends Controller
                 ['id' => 3, 'name' => 'Twitter', 'url' => 'https://twitter.com', 'iconName' => 'FaXTwitter', 'hoverColor' => 'hover:text-gray-400'],
                 ['id' => 4, 'name' => 'LinkedIn', 'url' => 'https://linkedin.com', 'iconName' => 'FaLinkedin', 'hoverColor' => 'hover:text-blue-500']
             ],
-            'search' => [
-                'placeholder' => 'Search...',
-                'buttonText' => 'Search'
-            ]
         ];
 
         // Navbar Data
