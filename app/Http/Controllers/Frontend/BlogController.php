@@ -38,11 +38,14 @@ class BlogController extends Controller
       ],
     ];
 
-    // Main Blog Data
-    $mainBlog = $this->getMainBlogData();
+    // Get all blogs data from single source
+    $allBlogs = $this->getAllBlogsData();
 
-    // Blog Posts Data (10 posts as before)
-    $blogPosts = $this->getBlogPostsData();
+    // Main Blog Data (first blog or featured)
+    $mainBlog = $this->getMainBlogData($allBlogs);
+
+    // Blog Posts Data (all except main)
+    $blogPosts = $this->getBlogPostsData($allBlogs, $mainBlog['slug']);
 
     // FAQ Data
     $faqData = $this->getBlogFaqData();
@@ -68,26 +71,18 @@ class BlogController extends Controller
       return route('asset', ['path' => ltrim($path, '/')]);
     };
 
-    // Full blog posts data with HTML content
-    $blogPostsData = $this->getFullBlogPostsData();
+    // Get all blogs data from single source
+    $allBlogs = $this->getAllBlogsData();
 
     // Check if the blog post exists
-    if (!isset($blogPostsData[$slug])) {
+    if (!isset($allBlogs[$slug])) {
       abort(404, 'Blog post not found');
     }
 
-    $blogData = $blogPostsData[$slug];
-
-    // All blog posts for related posts (excluding current one)
-    $allBlogPosts = $this->getBlogPostsData();
+    $blogData = $allBlogs[$slug];
 
     // Get related blogs (excluding current, limit to 3)
-    $relatedBlogs = array_filter($allBlogPosts, function ($post) use ($slug) {
-      return $post['slug'] !== $slug;
-    });
-
-    // Limit to 3
-    $relatedBlogs = array_slice($relatedBlogs, 0, 3);
+    $relatedBlogs = $this->getRelatedBlogsData($allBlogs, $slug);
 
     // Upcoming Events Data
     $upcomingEventsData = $this->getUpcomingEventsData($asset);
@@ -136,7 +131,6 @@ class BlogController extends Controller
           'id' => 'blog-section',
           'component' => 'BlogSection',
           'enabled' => true,
-          // No propName/dataKey - handled by registry config
           'order' => 2,
           'customProps' => []
         ],
@@ -204,135 +198,10 @@ class BlogController extends Controller
   }
 
   /**
-   * Get Main Blog Data for the featured blog post
+   * Get ALL blogs data - SINGLE SOURCE OF TRUTH
+   * This contains the full data for each blog post
    */
-  private function getMainBlogData(): array
-  {
-    return [
-      'id' => 1,
-      'date' => "June 6, 2023",
-      'title' => "Invest in Kindness, Reap a Better Future",
-      'description' => "Micro finance Program is the core program of all DUS activities. DUS has been implementing its major program in partnership with Palli Karma Sahayak Foundation (PKSF) since 2000. It provides collateral free micro-credit to its around 40K+ group members where 97 percent are female. Under this program, DUS has savings scheme for poor women who has no access in mainstream banks due to lack of capital and assets. Most of the targeted beneficiaries of DUS are poor women, marginal farmers and small micro entrepreneurs. Major borrowers are women who used these loan funds to promote various income generating activities for their earnings and employments. As a result, micro finance program has positive impact on poverty reduction especially at grass root level, income enhancement, consumption, the promotion of rural businesses, education and health and finally the empowerment of women and their employment in rural island communities.",
-      'image' => "https://placehold.co/750x450",
-      'slug' => "invest-in-kindness-reap-a-better-future",
-      'tags' => ["Kindness", "Future", "Investment"],
-      'createdBy' => "Admin",
-      'timerRead' => "5 min read"
-    ];
-  }
-
-  /**
-   * Get Blog Posts Data (listing page)
-   */
-  private function getBlogPostsData(): array
-  {
-    return [
-      [
-        'id' => 2,
-        'date' => "June 5, 2023",
-        'title' => "How Technology is Changing Education",
-        'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        'image' => "https://placehold.co/420x250",
-        'slug' => "how-technology-is-changing-education",
-        'tags' => ["Technology", "Education", "Innovation"],
-        'createdBy' => "Admin",
-        'timerRead' => "4 min read"
-      ],
-      [
-        'id' => 3,
-        'date' => "June 4, 2023",
-        'title' => "Sustainable Living: Small Changes, Big Impact",
-        'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        'image' => "https://placehold.co/420x250",
-        'slug' => "sustainable-living-small-changes-big-impact",
-        'tags' => ["Sustainability", "Environment", "Lifestyle"],
-        'createdBy' => "Admin",
-        'timerRead' => "6 min read"
-      ],
-      [
-        'id' => 4,
-        'date' => "June 3, 2023",
-        'title' => "The Future of Remote Work",
-        'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        'image' => "https://placehold.co/420x250",
-        'slug' => "the-future-of-remote-work",
-        'tags' => ["Work", "Technology", "Future"],
-        'createdBy' => "Admin",
-        'timerRead' => "5 min read"
-      ],
-      [
-        'id' => 5,
-        'date' => "June 2, 2023",
-        'title' => "Mental Health Awareness in the Workplace",
-        'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        'image' => "https://placehold.co/420x250",
-        'slug' => "mental-health-awareness-in-the-workplace",
-        'tags' => ["Health", "Wellness", "Workplace"],
-        'createdBy' => "Admin",
-        'timerRead' => "7 min read"
-      ],
-      [
-        'id' => 6,
-        'date' => "June 1, 2023",
-        'title' => "Innovations in Renewable Energy",
-        'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        'image' => "https://placehold.co/420x250",
-        'slug' => "innovations-in-renewable-energy",
-        'tags' => ["Energy", "Innovation", "Sustainability"],
-        'createdBy' => "Admin",
-        'timerRead' => "5 min read"
-      ],
-      [
-        'id' => 7,
-        'date' => "May 31, 2023",
-        'title' => "Building a Personal Brand Online",
-        'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        'image' => "https://placehold.co/420x250",
-        'slug' => "building-a-personal-brand-online",
-        'tags' => ["Branding", "Marketing", "Career"],
-        'createdBy' => "Admin",
-        'timerRead' => "4 min read"
-      ],
-      [
-        'id' => 8,
-        'date' => "May 30, 2023",
-        'title' => "The Art of Effective Communication",
-        'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        'image' => "https://placehold.co/420x250",
-        'slug' => "the-art-of-effective-communication",
-        'tags' => ["Communication", "Skills", "Leadership"],
-        'createdBy' => "Admin",
-        'timerRead' => "6 min read"
-      ],
-      [
-        'id' => 9,
-        'date' => "May 29, 2023",
-        'title' => "Financial Planning for Young Professionals",
-        'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        'image' => "https://placehold.co/420x250",
-        'slug' => "financial-planning-for-young-professionals",
-        'tags' => ["Finance", "Planning", "Career"],
-        'createdBy' => "Admin",
-        'timerRead' => "5 min read"
-      ],
-      [
-        'id' => 10,
-        'date' => "May 28, 2023",
-        'title' => "Tech is Changing the World",
-        'description' => "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-        'image' => "https://placehold.co/420x250",
-        'slug' => "tech-is-changing-the-world",
-        'tags' => ["Technology", "Innovation", "Future"],
-        'createdBy' => "Admin",
-        'timerRead' => "4 min read"
-      ]
-    ];
-  }
-
-  /**
-   * Get Full Blog Posts Data with detailed HTML content for details page
-   */
-  private function getFullBlogPostsData(): array
+  private function getAllBlogsData(): array
   {
     return [
       'invest-in-kindness-reap-a-better-future' => [
@@ -345,6 +214,7 @@ class BlogController extends Controller
         'tags' => ["Kindness", "Future", "Investment"],
         'createdBy' => "Admin",
         'timerRead' => "5 min read",
+        'excerpt' => $this->getInvestInKindnessExcerpt(),
         'fullContent' => $this->getInvestInKindnessContent()
       ],
       'how-technology-is-changing-education' => [
@@ -357,6 +227,7 @@ class BlogController extends Controller
         'tags' => ["Technology", "Education", "Innovation"],
         'createdBy' => "Admin",
         'timerRead' => "4 min read",
+        'excerpt' => $this->getTechnologyInEducationExcerpt(),
         'fullContent' => $this->getTechnologyInEducationContent()
       ],
       'sustainable-living-small-changes-big-impact' => [
@@ -369,6 +240,7 @@ class BlogController extends Controller
         'tags' => ["Sustainability", "Environment", "Lifestyle"],
         'createdBy' => "Admin",
         'timerRead' => "6 min read",
+        'excerpt' => $this->getSustainableLivingExcerpt(),
         'fullContent' => $this->getSustainableLivingContent()
       ],
       'the-future-of-remote-work' => [
@@ -381,6 +253,7 @@ class BlogController extends Controller
         'tags' => ["Work", "Technology", "Future"],
         'createdBy' => "Admin",
         'timerRead' => "5 min read",
+        'excerpt' => $this->getRemoteWorkExcerpt(),
         'fullContent' => $this->getRemoteWorkContent()
       ],
       'mental-health-awareness-in-the-workplace' => [
@@ -393,6 +266,7 @@ class BlogController extends Controller
         'tags' => ["Health", "Wellness", "Workplace"],
         'createdBy' => "Admin",
         'timerRead' => "7 min read",
+        'excerpt' => $this->getMentalHealthExcerpt(),
         'fullContent' => $this->getMentalHealthContent()
       ],
       'innovations-in-renewable-energy' => [
@@ -405,6 +279,7 @@ class BlogController extends Controller
         'tags' => ["Energy", "Innovation", "Sustainability"],
         'createdBy' => "Admin",
         'timerRead' => "5 min read",
+        'excerpt' => $this->getRenewableEnergyExcerpt(),
         'fullContent' => $this->getRenewableEnergyContent()
       ],
       'building-a-personal-brand-online' => [
@@ -417,6 +292,7 @@ class BlogController extends Controller
         'tags' => ["Branding", "Marketing", "Career"],
         'createdBy' => "Admin",
         'timerRead' => "4 min read",
+        'excerpt' => $this->getPersonalBrandExcerpt(),
         'fullContent' => $this->getPersonalBrandContent()
       ],
       'the-art-of-effective-communication' => [
@@ -429,6 +305,7 @@ class BlogController extends Controller
         'tags' => ["Communication", "Skills", "Leadership"],
         'createdBy' => "Admin",
         'timerRead' => "6 min read",
+        'excerpt' => $this->getCommunicationExcerpt(),
         'fullContent' => $this->getCommunicationContent()
       ],
       'financial-planning-for-young-professionals' => [
@@ -441,6 +318,7 @@ class BlogController extends Controller
         'tags' => ["Finance", "Planning", "Career"],
         'createdBy' => "Admin",
         'timerRead' => "5 min read",
+        'excerpt' => $this->getFinancialPlanningExcerpt(),
         'fullContent' => $this->getFinancialPlanningContent()
       ],
       'tech-is-changing-the-world' => [
@@ -453,9 +331,84 @@ class BlogController extends Controller
         'tags' => ["Technology", "Innovation", "Future"],
         'createdBy' => "Admin",
         'timerRead' => "4 min read",
+        'excerpt' => $this->getTechWorldExcerpt(),
         'fullContent' => $this->getTechWorldContent()
       ]
     ];
+  }
+
+  /**
+   * Get Main Blog Data for the featured blog post
+   */
+  private function getMainBlogData(array $allBlogs): array
+  {
+    // Get first blog as main (you can change logic to mark a specific blog as featured)
+    $firstBlog = reset($allBlogs);
+
+    return [
+      'id' => $firstBlog['id'],
+      'date' => $firstBlog['date'],
+      'title' => $firstBlog['title'],
+      'description' => $firstBlog['description'],
+      'image' => $firstBlog['image'],
+      'slug' => $firstBlog['slug'],
+      'tags' => $firstBlog['tags'],
+      'createdBy' => $firstBlog['createdBy'],
+      'timerRead' => $firstBlog['timerRead']
+    ];
+  }
+
+  /**
+   * Get Blog Posts Data for listing page (excluding main blog)
+   */
+  private function getBlogPostsData(array $allBlogs, string $mainSlug): array
+  {
+    $blogPosts = [];
+
+    foreach ($allBlogs as $slug => $blog) {
+      if ($slug !== $mainSlug) {
+        $blogPosts[] = [
+          'id' => $blog['id'],
+          'date' => $blog['date'],
+          'title' => $blog['title'],
+          'description' => $blog['excerpt'],
+          'image' => $blog['image'],
+          'slug' => $blog['slug'],
+          'tags' => $blog['tags'],
+          'createdBy' => $blog['createdBy'],
+          'timerRead' => $blog['timerRead']
+        ];
+      }
+    }
+
+    return $blogPosts;
+  }
+
+  /**
+   * Get Related Blogs Data (excluding current, limit to 3)
+   */
+  private function getRelatedBlogsData(array $allBlogs, string $currentSlug): array
+  {
+    $relatedBlogs = [];
+
+    foreach ($allBlogs as $slug => $blog) {
+      if ($slug !== $currentSlug) {
+        $relatedBlogs[] = [
+          'id' => $blog['id'],
+          'date' => $blog['date'],
+          'title' => $blog['title'],
+          'description' => $blog['excerpt'],
+          'image' => $blog['image'],
+          'slug' => $blog['slug'],
+          'tags' => $blog['tags'],
+          'createdBy' => $blog['createdBy'],
+          'timerRead' => $blog['timerRead']
+        ];
+      }
+    }
+
+    // Limit to 3
+    return array_slice($relatedBlogs, 0, 3);
   }
 
   /**
@@ -513,75 +466,59 @@ class BlogController extends Controller
     ];
   }
 
-  /**
-   * Get Upcoming Events Data
-   */
-  private function getUpcomingEventsData($asset): array
+  // ==================== EXCERPT METHODS (for listing page) ====================
+
+  private function getInvestInKindnessExcerpt(): string
   {
-    return [
-      'section' => [
-        'title' => 'Upcoming Events & Community Actions',
-        'description' => 'Read real stories from the field, community experiences, and thought-provoking perspectives that reflect our mission and impact.',
-        'button' => [
-          'text' => 'Explore All Events',
-          'link' => '/events'
-        ]
-      ],
-      'image' => [
-        'src' => $asset('UpcomingEvent/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp'),
-        'alt' => 'Events Image',
-        'className' => 'mt-15 rounded-2xl h-139.25 w-auto'
-      ],
-      'events' => [
-        [
-          'id' => 1,
-          'date' => [
-            'day' => '25',
-            'month' => 'Apr',
-            'weekday' => 'THU',
-            'dayNumber' => '1',
-            'time' => '10:30AM'
-          ],
-          'location' => 'International Convention City Bashundhara - ICCB',
-          'title' => 'Participate in our community clean-up day and make a difference together',
-          'description' => 'Let\'s shape the future of the food industry together! Participate at the 9th Food Bangladesh Int\'l Expo 2026,',
-          'link' => '/events/community-cleanup'
-        ],
-        [
-          'id' => 2,
-          'date' => [
-            'day' => '28',
-            'month' => 'Apr',
-            'weekday' => 'SUN',
-            'dayNumber' => '2',
-            'time' => '02:00PM'
-          ],
-          'location' => 'Dhaka University Campus - Dhaka',
-          'title' => 'Education for All: Scholarship Distribution Ceremony',
-          'description' => 'Join us as we distribute scholarships to underprivileged students and celebrate their achievements in pursuing quality education.',
-          'link' => '/events/scholarship-ceremony'
-        ],
-        [
-          'id' => 3,
-          'date' => [
-            'day' => '05',
-            'month' => 'May',
-            'weekday' => 'MON',
-            'dayNumber' => '3',
-            'time' => '09:00AM'
-          ],
-          'location' => 'Hatiya Island Community Center - Noakhali',
-          'title' => 'Climate Adaptation Workshop for Coastal Communities',
-          'description' => 'Learn sustainable farming techniques and disaster preparedness strategies to combat climate change impacts in coastal areas.',
-          'link' => '/events/climate-workshop'
-        ]
-      ]
-    ];
+    return "Micro finance Program is the core program of all DUS activities. DUS has been implementing its major program in partnership with Palli Karma Sahayak Foundation (PKSF) since 2000. It provides collateral free micro-credit to its around 40K+ group members where 97 percent are female. Under this program, DUS has savings scheme for poor women who has no access in mainstream banks due to lack of capital and assets.";
   }
 
-  /**
-   * Blog Content Helper Methods
-   */
+  private function getTechnologyInEducationExcerpt(): string
+  {
+    return "Technology is revolutionizing education in ways we could never have imagined. From digital classrooms to online learning platforms, students now have access to a world of knowledge at their fingertips.";
+  }
+
+  private function getSustainableLivingExcerpt(): string
+  {
+    return "Sustainable living is not just a trend—it's a necessity for our planet's future. Small changes in our daily habits can collectively make a significant impact on environmental conservation.";
+  }
+
+  private function getRemoteWorkExcerpt(): string
+  {
+    return "The COVID-19 pandemic accelerated the adoption of remote work, transforming how businesses operate and how employees balance their professional and personal lives.";
+  }
+
+  private function getMentalHealthExcerpt(): string
+  {
+    return "Mental health awareness in the workplace has gained significant attention in recent years, with organizations recognizing the importance of supporting employee well-being.";
+  }
+
+  private function getRenewableEnergyExcerpt(): string
+  {
+    return "Renewable energy technologies are advancing rapidly, offering sustainable alternatives to fossil fuels and helping combat climate change.";
+  }
+
+  private function getPersonalBrandExcerpt(): string
+  {
+    return "Building a personal brand online has become essential for career advancement and professional opportunities in the digital age.";
+  }
+
+  private function getCommunicationExcerpt(): string
+  {
+    return "Effective communication is a critical skill that impacts every aspect of our lives, from personal relationships to professional success.";
+  }
+
+  private function getFinancialPlanningExcerpt(): string
+  {
+    return "Financial planning is crucial for young professionals to build wealth, achieve financial independence, and secure their future.";
+  }
+
+  private function getTechWorldExcerpt(): string
+  {
+    return "Technology is fundamentally reshaping our world, from how we work and communicate to how we access information and healthcare.";
+  }
+
+  // ==================== FULL CONTENT METHODS (for details page) ====================
 
   private function getInvestInKindnessContent(): string
   {
@@ -597,18 +534,9 @@ class BlogController extends Controller
                     <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">The Power of Microfinance</h2>
                     <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Microfinance has proven to be one of the most effective tools for poverty alleviation in developing countries. By providing small loans to those who lack access to traditional banking services, we enable families to start businesses, generate income, and build a better future for their children.</p>
                     
-                    <!-- Two Images Side by Side -->
                     <div class="flex flex-col sm:flex-row gap-12 my-8">
-                        <img 
-                            src="https://placehold.co/460x400" 
-                            alt="Microfinance beneficiaries"
-                            class="w-full sm:w-115 h-100 object-cover rounded-2xl shadow-lg"
-                        />
-                        <img 
-                            src="https://placehold.co/460x400" 
-                            alt="Community empowerment"
-                            class="w-full sm:w-115 h-100 object-cover rounded-2xl shadow-lg"
-                        />
+                        <img src="https://placehold.co/460x400" alt="Microfinance beneficiaries" class="w-full sm:w-115 h-100 object-cover rounded-2xl shadow-lg" />
+                        <img src="https://placehold.co/460x400" alt="Community empowerment" class="w-full sm:w-115 h-100 object-cover rounded-2xl shadow-lg" />
                     </div>
                     
                     <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Success Stories</h2>
@@ -627,7 +555,6 @@ class BlogController extends Controller
                     
                     <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Looking Ahead</h2>
                     <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">As we continue to expand our microfinance program, we remain committed to reaching more underserved communities. Your support helps us create lasting change and build a more equitable future for all.</p>
-                    
                 </div>
             </div>
         ';
@@ -687,7 +614,7 @@ class BlogController extends Controller
                     </div>
                     
                     <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Community-Led Initiatives</h2>
-                    <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">DUS has launched several community-led sustainability projects, including tree planting campaigns, waste management programs, and awareness workshops on environmental conservation. These initiatives not only protect our planet but also create green jobs for local residents.</p>
+                    <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">DUS has launched several community-led sustainability projects, including tree planting campaigns, waste management programs, and awareness workshops on environmental conservation.</p>
                     
                     <div class="bg-white/50 rounded-lg p-6 mt-6">
                         <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Our Environmental Achievements</h3>
@@ -717,9 +644,6 @@ class BlogController extends Controller
                         <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Lower overhead costs for businesses</li>
                     </ul>
                     
-                    <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Challenges and Solutions</h2>
-                    <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">While remote work offers many advantages, it also presents challenges such as isolation, communication barriers, and difficulty maintaining work-life boundaries. Companies are addressing these through virtual team-building activities, regular check-ins, and providing resources for home office setups.</p>
-                    
                     <div class="bg-white/50 rounded-lg p-6 mt-6">
                         <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Remote Work Statistics</h3>
                         <ul class="list-disc pl-6 space-y-2">
@@ -739,14 +663,6 @@ class BlogController extends Controller
             <div class="space-y-6">
                 <div>
                     <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Mental health awareness in the workplace has gained significant attention in recent years, with organizations recognizing the importance of supporting employee well-being.</p>
-                    
-                    <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Common Mental Health Challenges</h2>
-                    <ul class="list-disc pl-6 space-y-3 mb-6">
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Work-related stress and burnout</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Anxiety and depression</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Imposter syndrome</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Work-life balance issues</li>
-                    </ul>
                     
                     <div class="bg-white/50 rounded-lg p-6 mt-6">
                         <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Employer Best Practices</h3>
@@ -769,14 +685,6 @@ class BlogController extends Controller
                 <div>
                     <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Renewable energy technologies are advancing rapidly, offering sustainable alternatives to fossil fuels and helping combat climate change.</p>
                     
-                    <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Latest Innovations</h2>
-                    <ul class="list-disc pl-6 space-y-3 mb-6">
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Solar panel efficiency improvements</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Offshore wind farms</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Tidal and wave energy converters</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Green hydrogen production</li>
-                    </ul>
-                    
                     <div class="bg-white/50 rounded-lg p-6 mt-6">
                         <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Global Impact</h3>
                         <ul class="list-disc pl-6 space-y-2">
@@ -796,14 +704,6 @@ class BlogController extends Controller
             <div class="space-y-6">
                 <div>
                     <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Building a personal brand online has become essential for career advancement and professional opportunities in the digital age.</p>
-                    
-                    <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Key Elements of Personal Branding</h2>
-                    <ul class="list-disc pl-6 space-y-3 mb-6">
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Define your unique value proposition</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Consistent visual identity across platforms</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Share valuable content regularly</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Engage authentically with your audience</li>
-                    </ul>
                     
                     <div class="bg-white/50 rounded-lg p-6 mt-6">
                         <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Platforms for Personal Branding</h3>
@@ -826,14 +726,6 @@ class BlogController extends Controller
                 <div>
                     <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Effective communication is a critical skill that impacts every aspect of our lives, from personal relationships to professional success.</p>
                     
-                    <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Core Communication Skills</h2>
-                    <ul class="list-disc pl-6 space-y-3 mb-6">
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Active listening and empathy</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Clear and concise messaging</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Non-verbal communication awareness</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Conflict resolution techniques</li>
-                    </ul>
-                    
                     <div class="bg-white/50 rounded-lg p-6 mt-6">
                         <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Communication in the Digital Age</h3>
                         <ul class="list-disc pl-6 space-y-2">
@@ -854,14 +746,6 @@ class BlogController extends Controller
             <div class="space-y-6">
                 <div>
                     <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Financial planning is crucial for young professionals to build wealth, achieve financial independence, and secure their future.</p>
-                    
-                    <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Essential Financial Strategies</h2>
-                    <ul class="list-disc pl-6 space-y-3 mb-6">
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Create and stick to a budget</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Build an emergency fund (3-6 months of expenses)</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Pay off high-interest debt aggressively</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Start investing early for compound growth</li>
-                    </ul>
                     
                     <div class="bg-white/50 rounded-lg p-6 mt-6">
                         <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Investment Options for Beginners</h3>
@@ -884,14 +768,6 @@ class BlogController extends Controller
                 <div>
                     <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed mb-4">Technology is fundamentally reshaping our world, from how we work and communicate to how we access information and healthcare.</p>
                     
-                    <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">Transformative Technologies</h2>
-                    <ul class="list-disc pl-6 space-y-3 mb-6">
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Artificial Intelligence and Machine Learning</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Internet of Things (IoT)</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">Blockchain and cryptocurrencies</li>
-                        <li class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">5G and edge computing</li>
-                    </ul>
-                    
                     <div class="bg-white/50 rounded-lg p-6 mt-6">
                         <h3 class="font-600 text-xl sm:text-2xl text-[#080C14] mb-3">Technology Impact by Sector</h3>
                         <ul class="list-disc pl-6 space-y-2">
@@ -901,9 +777,6 @@ class BlogController extends Controller
                             <li class="font-400 text-base sm:text-lg text-[#333333]">Transportation: Autonomous vehicles and ride-sharing</li>
                         </ul>
                     </div>
-                    
-                    <h2 class="font-700 text-2xl sm:text-3xl lg:text-4xl text-[#080C14] mt-8 mb-4">The Future of Technology</h2>
-                    <p class="font-400 text-base sm:text-lg lg:text-xl text-[#333333] leading-relaxed">As technology continues to evolve, we can expect even more groundbreaking innovations that will further transform our society. The key is to harness these technologies responsibly and ensure they benefit everyone, not just a select few.</p>
                 </div>
             </div>
         ';

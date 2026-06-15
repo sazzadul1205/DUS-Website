@@ -5,13 +5,16 @@ import { Head } from "@inertiajs/react";
 import PublicLayout from '../../../layouts/PublicLayout';
 import DynamicSectionRenderer from '../../../components/Shared/DynamicSectionRenderer';
 
-// Program Content Section Component
+// Program Content Section Component - FIXED
 const ProgramContentSection = ({ programData, slug, bgColor, paddingY, paddingX, sectionClassName, sectionId }) => {
   const renderHTML = (htmlString) => ({ __html: htmlString });
   if (!programData) return null;
 
+  // Use fullContent instead of content
+  const content = programData.fullContent || programData.content;
+
   return (
-    <section id={sectionId} className={`${bgColor} ${paddingY} ${paddingX} ${sectionClassName}`}>
+    <section id={sectionId} className={`${bgColor || ''} ${paddingY || ''} ${paddingX || ''} ${sectionClassName || ''}`}>
       <h1 className='font-700 text-[100px] leading-tight pb-12.5'>
         {programData?.title}
       </h1>
@@ -33,7 +36,7 @@ const ProgramContentSection = ({ programData, slug, bgColor, paddingY, paddingX,
           prose-ul:text-[#333333] prose-ul:leading-relaxed
           prose-li:text-[#333333] prose-li:leading-relaxed
           prose-strong:text-[#009BE2]"
-        dangerouslySetInnerHTML={renderHTML(programData.content)}
+        dangerouslySetInnerHTML={renderHTML(content)}
       />
     </section>
   );
@@ -48,6 +51,8 @@ const ProjectsAndProgramsDetails = ({
   slug,
   ...pageData
 }) => {
+  console.log(pageData);
+
   const sectionsToRender = (sectionConfig?.sections || [])
     .filter(section => section.enabled === true)
     .sort((a, b) => a.order - b.order);

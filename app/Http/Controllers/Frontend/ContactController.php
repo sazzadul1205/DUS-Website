@@ -55,7 +55,7 @@ class ContactController extends Controller
     $officesLocation = $this->getOfficesLocationData($offices);
 
     // FAQ Data
-    $faqData = $this->getContactFaqData();
+    $faqData = $this->getFaqData();
 
     // Stories Data
     $storiesData = $this->getStoriesData($asset);
@@ -228,61 +228,6 @@ class ContactController extends Controller
         'emails' => $office['emails'],
       ];
     }, $offices);
-  }
-
-  /**
-   * Get FAQ Data for Contact page
-   */
-  private function getContactFaqData(): array
-  {
-    return [
-      'section' => [
-        'title' => 'Key Questions Answered About Our Blogs',
-        'subtitle' => 'Explore our Frequently Asked Questions for answers about our charity\'s blog content, mission, projects, and how to help.'
-      ],
-      'faqs' => [
-        [
-          'id' => 1,
-          'question' => 'What is the mission of your charity?',
-          'answer' => 'Any company that is using spreadsheets and emails to manage the people side of their business is wasting time on admin and making life more difficult for themselves. A well-designed HR system like PiHR automates menial tasks allowing business owners to focus on the strategic work of growing the business. It improves the recruitment process, enriches payroll management, provides real-time feedback, improves employees, improves data security, helps make decisions.',
-        ],
-        [
-          'id' => 2,
-          'question' => 'Who benefits from your programs?',
-          'answer' => 'Our programs benefit underprivileged communities, women and children, disaster-affected families, and landless poor in coastal areas of Bangladesh.',
-        ],
-        [
-          'id' => 3,
-          'question' => 'Can I make a recurring donation?',
-          'answer' => 'Yes, you can make recurring donations monthly, quarterly, or annually. Visit our donation page to set up your recurring contribution.',
-        ],
-        [
-          'id' => 4,
-          'question' => 'Can I visit the projects I support?',
-          'answer' => 'Yes, we welcome donors to visit our project sites. Please contact our office in advance to arrange a visit and meet the communities you are supporting.',
-        ],
-        [
-          'id' => 5,
-          'question' => 'How can I get involved?',
-          'answer' => 'You can get involved by donating, volunteering, sponsoring a child, or becoming a community ambassador. Visit our "Get Involved" page for more details.',
-        ],
-        [
-          'id' => 6,
-          'question' => 'How can I make a donation?',
-          'answer' => 'You can make a donation online through our secure payment portal, bank transfer, or by visiting our office. We accept one-time and recurring donations.',
-        ],
-        [
-          'id' => 7,
-          'question' => 'How do you maintain accountability?',
-          'answer' => 'We maintain transparency through regular audits, annual reports, community feedback mechanisms, and public disclosure of our financial statements.',
-        ],
-        [
-          'id' => 8,
-          'question' => 'Are donations tax-deductible?',
-          'answer' => 'Yes, donations to DUS are tax-deductible under applicable tax laws. You will receive a receipt for your donation for tax purposes.',
-        ]
-      ]
-    ];
   }
 
   /**

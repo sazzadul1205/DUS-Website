@@ -151,4 +151,123 @@ trait SharedDataTrait
       'footerData' => $footerData,
     ];
   }
+
+  // 
+  public function getUpcomingEventsData($asset): array
+  {
+    return [
+      'section' => [
+        'title' => 'Upcoming Events & Community Actions',
+        'description' => 'Read real stories from the field, community experiences, and thought-provoking perspectives that reflect our mission and impact.',
+        'button' => [
+          'text' => 'Explore All Events',
+          'link' => '/events'
+        ]
+      ],
+      'image' => [
+        'src' => $asset('UpcomingEvent/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp'),
+        'alt' => 'Events Image',
+        'className' => 'mt-15 rounded-2xl h-139.25 w-auto'
+      ],
+      'events' => [
+        [
+          'id' => 1,
+          'date' => [
+            'day' => '25',
+            'month' => 'Apr',
+            'weekday' => 'THU',
+            'dayNumber' => '1',
+            'time' => '10:30AM'
+          ],
+          'location' => 'International Convention City Bashundhara - ICCB',
+          'title' => 'Participate in our community clean-up day and make a difference together',
+          'description' => 'Let\'s shape the future of the food industry together! Participate at the 9th Food Bangladesh Int\'l Expo 2026,',
+          'link' => '/events/community-cleanup'
+        ],
+        [
+          'id' => 2,
+          'date' => [
+            'day' => '28',
+            'month' => 'Apr',
+            'weekday' => 'SUN',
+            'dayNumber' => '2',
+            'time' => '02:00PM'
+          ],
+          'location' => 'Dhaka University Campus - Dhaka',
+          'title' => 'Education for All: Scholarship Distribution Ceremony',
+          'description' => 'Join us as we distribute scholarships to underprivileged students and celebrate their achievements in pursuing quality education.',
+          'link' => '/events/scholarship-ceremony'
+        ],
+        [
+          'id' => 3,
+          'date' => [
+            'day' => '05',
+            'month' => 'May',
+            'weekday' => 'MON',
+            'dayNumber' => '3',
+            'time' => '09:00AM'
+          ],
+          'location' => 'Hatiya Island Community Center - Noakhali',
+          'title' => 'Climate Adaptation Workshop for Coastal Communities',
+          'description' => 'Learn sustainable farming techniques and disaster preparedness strategies to combat climate change impacts in coastal areas.',
+          'link' => '/events/climate-workshop'
+        ]
+      ]
+    ];
+  }
+
+  /**
+   * Get FAQ Data for Projects & Programs page
+   */
+  public function getFaqData(): array
+  {
+    return [
+      'section' => [
+        'title' => 'Key Questions Answered About Our Programs',
+        'subtitle' => 'Explore our Frequently Asked Questions for answers about our charity\'s projects, programs, and how you can get involved.'
+      ],
+      'faqs' => [
+        [
+          'id' => 1,
+          'question' => 'How can I participate in your programs?',
+          'answer' => 'You can participate by becoming a volunteer, donor, or partner organization. Visit our "Get Involved" page or contact our office directly to learn about current opportunities.',
+        ],
+        [
+          'id' => 2,
+          'question' => 'Who is eligible for micro-finance support?',
+          'answer' => 'Our micro-finance program primarily serves poor women, marginal farmers, and small micro-entrepreneurs in coastal communities. Priority is given to landless households and disaster-affected families.',
+        ],
+        [
+          'id' => 3,
+          'question' => 'How do you ensure program sustainability?',
+          'answer' => 'We ensure sustainability through community ownership, capacity building, income generation mechanisms, and partnerships with local government and development organizations.',
+        ],
+        [
+          'id' => 4,
+          'question' => 'Can international donors support your programs?',
+          'answer' => 'Yes, we welcome international support. DUS is registered with the NGO Affairs Bureau and can receive foreign donations. Contact us for partnership opportunities.',
+        ],
+        [
+          'id' => 5,
+          'question' => 'How do you measure program impact?',
+          'answer' => 'We conduct regular monitoring, baseline and end-line surveys, impact assessments, and participatory evaluations involving community members to measure our program effectiveness.',
+        ],
+        [
+          'id' => 6,
+          'question' => 'What geographical areas do you cover?',
+          'answer' => 'Our primary focus is Hatiya Island and surrounding coastal areas in Noakhali district, including Subarnachar, Companyganj, and Noakhali Sadar Upazilas.',
+        ],
+        [
+          'id' => 7,
+          'question' => 'How can I volunteer with DUS?',
+          'answer' => 'You can apply through our website\'s volunteer section, attend our orientation sessions, or contact our HR department. We welcome both local and international volunteers.',
+        ],
+        [
+          'id' => 8,
+          'question' => 'Are your financial reports publicly available?',
+          'answer' => 'Yes, we maintain transparency by publishing annual reports, audit statements, and financial summaries on our website and making them available to stakeholders upon request.',
+        ]
+      ]
+    ];
+  }
 }
