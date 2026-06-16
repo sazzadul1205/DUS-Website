@@ -9,12 +9,10 @@ import DynamicSectionRenderer from '../../../components/Shared/DynamicSectionRen
 const ProgramContentSection = ({ programData, slug, bgColor, paddingY, paddingX, sectionClassName, sectionId }) => {
   const renderHTML = (htmlString) => ({ __html: htmlString });
 
-  // Handle both possible prop names
   const data = programData || window.programData;
   if (!data) return null;
 
   const content = data.fullContentHtml || data.fullContent || data?.content;
-  console.log('Rendering ProgramContentSection with content:', content ? 'Yes' : 'No');
 
   return (
     <section id={sectionId} className={`${bgColor || ''} ${paddingY || ''} ${paddingX || ''} ${sectionClassName || ''}`}>
@@ -59,16 +57,17 @@ const ProjectsAndProgramsDetails = ({
   const allSections = (sectionConfig?.sections || [])
     .filter(section => section.enabled === true);
 
-  // Separate sections by type
-  const bannerSection = allSections.find(section => section.component === 'PageBannerSection');
-  const programContentSection = allSections.find(section => section.component === 'ProgramContentSection');
-  const otherSections = allSections.filter(
-    section => section.component !== 'PageBannerSection' && section.component !== 'ProgramContentSection'
-  ).sort((a, b) => a.order - b.order);
+  // Separate fixed sections vs dynamic sections
+  const fixedSections = allSections.filter(section => section.isFixedSection === true);
+  const dynamicSections = allSections.filter(section => section.isFixedSection !== true)
+    .sort((a, b) => a.order - b.order);
 
-  console.log('Banner Section:', bannerSection);
-  console.log('Program Content Section:', programContentSection);
-  console.log('Other Sections:', otherSections);
+  console.log('Fixed Sections:', fixedSections);
+  console.log('Dynamic Sections:', dynamicSections);
+
+  // Find specific sections for ordering
+  const bannerSection = dynamicSections.find(s => s.component === 'PageBannerSection');
+  const otherDynamicSections = dynamicSections.filter(s => s.component !== 'PageBannerSection');
 
   return (
     <PublicLayout
@@ -79,7 +78,7 @@ const ProjectsAndProgramsDetails = ({
     >
       <Head title={`${pageData.programContentData?.title || 'Program'} | DUS - Dwip Unnayan Society`} />
 
-      {/* 1. Banner FIRST */}
+      {/* 1. Banner (first dynamic section) */}
       {bannerSection && (
         <DynamicSectionRenderer
           key={bannerSection.id}
@@ -89,18 +88,24 @@ const ProjectsAndProgramsDetails = ({
         />
       )}
 
-      {/* 2. Program Content SECOND (right after banner) */}
-      {programContentSection && (
-        <ProgramContentSection
-          key={programContentSection.id}
-          programData={pageData.programContentData}
-          slug={slug}
-          {...programContentSection.customProps}
-        />
-      )}
+      {/* 2. All Fixed Sections (ProgramContentSection, etc.) */}
+      {fixedSections.map((section) => {
+        if (section.component === 'ProgramContentSection') {
+          return (
+            <ProgramContentSection
+              key={section.id}
+              programData={pageData.programContentData}
+              slug={slug}
+              {...section.customProps}
+            />
+          );
+        }
+        // Handle other fixed components here if needed
+        return null;
+      })}
 
-      {/* 3. Everything else (FAQ, Events, etc.) at the bottom */}
-      {otherSections.map((section) => (
+      {/* 3. Other Dynamic Sections (FAQ, Events, etc.) */}
+      {otherDynamicSections.map((section) => (
         <DynamicSectionRenderer
           key={section.id}
           section={section}

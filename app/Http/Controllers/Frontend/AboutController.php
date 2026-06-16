@@ -20,61 +20,33 @@ class AboutController extends Controller
       return route('asset', ['path' => ltrim($path, '/')]);
     };
 
-    // Banner Data
-    $bannerData = $this->getBannerData($asset);
+    // Mock SQL Data Structure - follows ProjectsProgramsController pattern
+    $mockData = [
+      'section_configs'          => $this->getAboutSectionConfigs(),
+      'banner_data'              => $this->getBannerData($asset),
+      'vision_and_mission_data'  => $this->getVisionAndMissionData($asset),
+      'background_data'          => $this->getBackgroundData($asset),
+      'legal_data'               => $this->getLegalData($asset),
+      'interventional_data'      => $this->getInterventionalData($asset),
+      'evolutionary_changes_data' => $this->getEvolutionaryChangesData($asset),
+      'governance_data'          => $this->getGovernanceData($asset),
+      'cards_data'               => $this->getCardsData($asset),
+      'programs_data'            => $this->getProgramsData($asset),
+      'training_data'            => $this->getTrainingData($asset),
+      'faq_data'                 => $this->getFaqData(),
+    ];
 
-    // Vision & Mission Data
-    $visionAndMissionData = $this->getVisionAndMissionData($asset);
-
-    // Background Data
-    $backgroundData = $this->getBackgroundData($asset);
-
-    // Legal Data
-    $legalData = $this->getLegalData($asset);
-
-    // Interventional Data
-    $interventionalData = $this->getInterventionalData($asset);
-
-    // Evolutionary Changes Data
-    $evolutionaryChangesData = $this->getEvolutionaryChangesData($asset);
-
-    // Governance Data
-    $governanceData = $this->getGovernanceData($asset);
-
-    // Cards Data
-    $cardsData = $this->getCardsData($asset);
-
-    // Programs Data
-    $programsData = $this->getProgramsData($asset);
-
-    // Training Data
-    $trainingData = $this->getTrainingData($asset);
-
-    // FAQ Data
-    $faqData = $this->getFaqData();
+    $transformedData = $this->transformAssetUrls($mockData, $asset);
+    $pageData = $this->buildPageDataFromConfigs($transformedData);
 
     return Inertia::render('Frontend/About/About', array_merge(
       $this->getSharedData(),
-      [
-        'sectionConfig' => $this->getAboutSectionConfig(),
-        'bannerData' => $bannerData,
-        'visionAndMissionData' => $visionAndMissionData,
-        'backgroundData' => $backgroundData,
-        'legalData' => $legalData,
-        'interventionalData' => $interventionalData,
-        'evolutionaryChangesData' => $evolutionaryChangesData,
-        'governanceData' => $governanceData,
-        'cardsData' => $cardsData,
-        'programsData' => $programsData,
-        'trainingData' => $trainingData,
-        'faqData' => $faqData,
-      ]
+      $pageData
     ));
   }
 
   /**
    * Display about details-page dynamically based on slug
-   * Now pulls data from the main section data arrays instead of duplicating
    */
   public function aboutDetails(string $slug): Response
   {
@@ -82,18 +54,251 @@ class AboutController extends Controller
       return route('asset', ['path' => ltrim($path, '/')]);
     };
 
-    // Map slugs to their corresponding data from the main page
+    // Get sub-page config from SharedDataTrait
     $subPageConfig = $this->getSubPageConfig($asset);
-
-    // Check if the slug exists
     if (!isset($subPageConfig[$slug])) {
       abort(404, 'Page not found');
     }
-
     $pageData = $subPageConfig[$slug];
 
-    // Banner Data for sub-page
-    $bannerData = [
+    $mockData = [
+      'section_configs'          => $this->getAboutDetailsSectionConfigs(),
+      'banner_data'              => $this->getDetailsBannerData($pageData['title'], $asset),
+      'content_section_data'     => $this->getContentSectionData($pageData),
+      'faq_data'                 => $this->getFaqData(),
+      'upcoming_events_data'     => $this->getUpcomingEventsData($asset),
+    ];
+
+    $transformedData = $this->transformAssetUrls($mockData, $asset);
+    $pageData = $this->buildPageDataFromConfigs($transformedData);
+    $pageData['slug'] = $slug;
+
+    return Inertia::render('Frontend/AboutDetails/AboutDetails', array_merge(
+      $this->getSharedData(),
+      $pageData
+    ));
+  }
+
+  // ==================== Section Configurations ====================
+
+  private function getAboutSectionConfigs(): array
+  {
+    return [
+      [
+        'id'                => 1,
+        'page'              => 'about',
+        'section_key'       => 'banner',
+        'component'         => 'PageBannerSection',
+        'enabled'           => true,
+        'data_table'        => 'banner_data',
+        'data_key'          => 'bannerData',
+        'prop_name'         => 'bannerData',
+        'display_order'     => 1,
+        'is_fixed_section'  => false,
+        'customProps'       => ['sectionId' => 'about-us-banner']
+      ],
+      [
+        'id'                => 2,
+        'page'              => 'about',
+        'section_key'       => 'background',
+        'component'         => 'HeroFigureSection',
+        'enabled'           => true,
+        'data_table'        => 'background_data',
+        'data_key'          => 'backgroundData',
+        'prop_name'         => 'data',
+        'display_order'     => 2,
+        'is_fixed_section'  => false,
+        'customProps'       => ['layout' => 'text-left', 'sectionId' => 'background']
+      ],
+      [
+        'id'                => 3,
+        'page'              => 'about',
+        'section_key'       => 'vision-and-mission',
+        'component'         => 'HeroFigureSection',
+        'enabled'           => true,
+        'data_table'        => 'vision_and_mission_data',
+        'data_key'          => 'visionAndMissionData',
+        'prop_name'         => 'data',
+        'display_order'     => 3,
+        'is_fixed_section'  => false,
+        'customProps'       => ['layout' => 'text-right', 'sectionId' => 'vision-and-mission', 'bgColor' => 'bg-[#F5F5F5]']
+      ],
+      [
+        'id'                => 4,
+        'page'              => 'about',
+        'section_key'       => 'interventional-approaches',
+        'component'         => 'HeroFigureSection',
+        'enabled'           => true,
+        'data_table'        => 'interventional_data',
+        'data_key'          => 'interventionalData',
+        'prop_name'         => 'data',
+        'display_order'     => 4,
+        'is_fixed_section'  => false,
+        'customProps'       => ['layout' => 'text-left', 'sectionId' => 'interventional-approaches']
+      ],
+      [
+        'id'                => 5,
+        'page'              => 'about',
+        'section_key'       => 'legal',
+        'component'         => 'LegalSection',
+        'enabled'           => true,
+        'data_table'        => 'legal_data',
+        'data_key'          => 'legalData',
+        'prop_name'         => 'legalData',
+        'display_order'     => 5,
+        'is_fixed_section'  => false,
+        'customProps'       => []
+      ],
+      [
+        'id'                => 6,
+        'page'              => 'about',
+        'section_key'       => 'evolutionary-changes',
+        'component'         => 'HeroFigureSection',
+        'enabled'           => true,
+        'data_table'        => 'evolutionary_changes_data',
+        'data_key'          => 'evolutionaryChangesData',
+        'prop_name'         => 'data',
+        'display_order'     => 6,
+        'is_fixed_section'  => false,
+        'customProps'       => ['layout' => 'text-left', 'sectionId' => 'evolutionary-changes']
+      ],
+      [
+        'id'                => 7,
+        'page'              => 'about',
+        'section_key'       => 'governance',
+        'component'         => 'HeroFigureSection',
+        'enabled'           => true,
+        'data_table'        => 'governance_data',
+        'data_key'          => 'governanceData',
+        'prop_name'         => 'data',
+        'display_order'     => 7,
+        'is_fixed_section'  => false,
+        'customProps'       => ['layout' => 'text-right', 'sectionId' => 'governance', 'bgColor' => 'bg-[#F5F5F5]']
+      ],
+      [
+        'id'                => 8,
+        'page'              => 'about',
+        'section_key'       => 'cards',
+        'component'         => 'CardsSection',
+        'enabled'           => true,
+        'data_table'        => 'cards_data',
+        'data_key'          => 'cardsData',
+        'prop_name'         => 'cardsData',
+        'display_order'     => 8,
+        'is_fixed_section'  => false,
+        'customProps'       => []
+      ],
+      [
+        'id'                => 9,
+        'page'              => 'about',
+        'section_key'       => 'programs-activities',
+        'component'         => 'HeroFigureSection',
+        'enabled'           => true,
+        'data_table'        => 'programs_data',
+        'data_key'          => 'programsData',
+        'prop_name'         => 'data',
+        'display_order'     => 9,
+        'is_fixed_section'  => false,
+        'customProps'       => ['layout' => 'text-right', 'sectionId' => 'programs-activities', 'bgColor' => 'bg-[#F5F5F5]']
+      ],
+      [
+        'id'                => 10,
+        'page'              => 'about',
+        'section_key'       => 'training',
+        'component'         => 'HeroFigureSection',
+        'enabled'           => true,
+        'data_table'        => 'training_data',
+        'data_key'          => 'trainingData',
+        'prop_name'         => 'data',
+        'display_order'     => 10,
+        'is_fixed_section'  => false,
+        'customProps'       => ['layout' => 'text-left', 'sectionId' => 'training']
+      ],
+      [
+        'id'                => 11,
+        'page'              => 'about',
+        'section_key'       => 'faq',
+        'component'         => 'FAQSection',
+        'enabled'           => true,
+        'data_table'        => 'faq_data',
+        'data_key'          => 'faqData',
+        'prop_name'         => 'faqData',
+        'display_order'     => 11,
+        'is_fixed_section'  => false,
+        'customProps'       => []
+      ],
+    ];
+  }
+
+  private function getAboutDetailsSectionConfigs(): array
+  {
+    return [
+      [
+        'id'                => 1,
+        'page'              => 'about-details',
+        'section_key'       => 'banner',
+        'component'         => 'PageBannerSection',
+        'enabled'           => true,
+        'data_table'        => 'banner_data',
+        'data_key'          => 'bannerData',
+        'prop_name'         => 'bannerData',
+        'display_order'     => 1,
+        'is_fixed_section'  => false,
+        'customProps'       => ['sectionId' => 'about-details-banner']
+      ],
+      [
+        'id'                => 2,
+        'page'              => 'about-details',
+        'section_key'       => 'content',
+        'component'         => 'ContentSection',
+        'enabled'           => true,
+        'isSpecialComponent' => true,
+        'data_table'        => 'content_section_data',
+        'data_key'          => 'contentSectionData',
+        'prop_name'         => 'subPageData',
+        'display_order'     => 2,
+        'is_fixed_section'  => true,
+        'customProps'       => [
+          'bgColor'   => 'bg-white',
+          'paddingY'  => 'py-37.5',
+          'paddingX'  => 'px-100',
+          'sectionId' => 'main-content'
+        ]
+      ],
+      [
+        'id'                => 3,
+        'page'              => 'about-details',
+        'section_key'       => 'faq',
+        'component'         => 'FAQSection',
+        'enabled'           => true,
+        'data_table'        => 'faq_data',
+        'data_key'          => 'faqData',
+        'prop_name'         => 'faqData',
+        'display_order'     => 3,
+        'is_fixed_section'  => false,
+        'customProps'       => []
+      ],
+      [
+        'id'                => 4,
+        'page'              => 'about-details',
+        'section_key'       => 'upcoming-events',
+        'component'         => 'UpcomingEventsSection',
+        'enabled'           => true,
+        'data_table'        => 'upcoming_events_data',
+        'data_key'          => 'upcomingEventsData',
+        'prop_name'         => 'eventsData',
+        'display_order'     => 4,
+        'is_fixed_section'  => false,
+        'customProps'       => []
+      ],
+    ];
+  }
+
+  // ==================== Data Providers ====================
+
+  private function getDetailsBannerData(string $title, callable $asset): array
+  {
+    return [
       'background' => [
         'src' => $asset('OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png'),
         'alt' => 'Background'
@@ -104,266 +309,83 @@ class AboutController extends Controller
       ],
       'content' => [
         'title' => [
-          'text' => $pageData['title'],
+          'text' => $title,
           'className' => 'font-bold leading-tight'
         ],
       ],
     ];
-
-    // FAQ Data
-    $faqData = $this->getAboutFaqData();
-
-    // Upcoming Events Data
-    $upcomingEventsData = $this->getUpcomingEventsData($asset);
-
-    return Inertia::render('Frontend/AboutDetails/AboutDetails', array_merge(
-      $this->getSharedData(),
-      [
-        'sectionConfig' => $this->getAboutDetailsSectionConfig($slug),
-        'slug' => $slug,
-        'faqData' => $faqData,
-        'subPageData' => $pageData,
-        'bannerData' => $bannerData,
-        'upcomingEventsData' => $upcomingEventsData,
-      ]
-    ));
   }
 
-  /**
-   * Get About page section configuration
-   */
-  private function getAboutSectionConfig(): array
+  private function getContentSectionData(array $subPageData): array
   {
     return [
-      'sections' => [
-        [
-          'id' => 'banner',
-          'component' => 'PageBannerSection',
-          'enabled' => true,
-          'propName' => 'bannerData',
-          'dataKey' => 'bannerData',
-          'order' => 1,
-          'customProps' => ['sectionId' => 'about-us-banner']
-        ],
-        [
-          'id' => 'background',
-          'component' => 'HeroFigureSection',
-          'enabled' => true,
-          'propName' => 'data',
-          'dataKey' => 'backgroundData',
-          'order' => 2,
-          'customProps' => ['layout' => 'text-left', 'sectionId' => 'background']
-        ],
-        [
-          'id' => 'vision-and-mission',
-          'component' => 'HeroFigureSection',
-          'enabled' => true,
-          'propName' => 'data',
-          'dataKey' => 'visionAndMissionData',
-          'order' => 3,
-          'customProps' => ['layout' => 'text-right', 'sectionId' => 'vision-and-mission', 'bgColor' => 'bg-[#F5F5F5]']
-        ],
-        [
-          'id' => 'interventional-approaches',
-          'component' => 'HeroFigureSection',
-          'enabled' => true,
-          'propName' => 'data',
-          'dataKey' => 'interventionalData',
-          'order' => 4,
-          'customProps' => ['layout' => 'text-left', 'sectionId' => 'interventional-approaches']
-        ],
-        [
-          'id' => 'legal',
-          'component' => 'LegalSection',
-          'enabled' => true,
-          'propName' => 'legalData',
-          'dataKey' => 'legalData',
-          'order' => 5,
-          'customProps' => []
-        ],
-        [
-          'id' => 'evolutionary-changes',
-          'component' => 'HeroFigureSection',
-          'enabled' => true,
-          'propName' => 'data',
-          'dataKey' => 'evolutionaryChangesData',
-          'order' => 6,
-          'customProps' => ['layout' => 'text-left', 'sectionId' => 'evolutionary-changes']
-        ],
-        [
-          'id' => 'governance',
-          'component' => 'HeroFigureSection',
-          'enabled' => true,
-          'propName' => 'data',
-          'dataKey' => 'governanceData',
-          'order' => 7,
-          'customProps' => ['layout' => 'text-right', 'sectionId' => 'governance', 'bgColor' => 'bg-[#F5F5F5]']
-        ],
-        [
-          'id' => 'cards',
-          'component' => 'CardsSection',
-          'enabled' => true,
-          'propName' => 'cardsData',
-          'dataKey' => 'cardsData',
-          'order' => 8,
-          'customProps' => []
-        ],
-        [
-          'id' => 'programs-activities',
-          'component' => 'HeroFigureSection',
-          'enabled' => true,
-          'propName' => 'data',
-          'dataKey' => 'programsData',
-          'order' => 9,
-          'customProps' => ['layout' => 'text-right', 'sectionId' => 'programs-activities', 'bgColor' => 'bg-[#F5F5F5]']
-        ],
-        [
-          'id' => 'training',
-          'component' => 'HeroFigureSection',
-          'enabled' => true,
-          'propName' => 'data',
-          'dataKey' => 'trainingData',
-          'order' => 10,
-          'customProps' => ['layout' => 'text-left', 'sectionId' => 'training']
-        ],
-        [
-          'id' => 'faq',
-          'component' => 'FAQSection',
-          'enabled' => true,
-          'propName' => 'faqData',
-          'dataKey' => 'faqData',
-          'order' => 11,
-          'customProps' => []
-        ],
-      ],
+      'title'   => $subPageData['title'] ?? '',
+      'content' => $subPageData['content'] ?? '',
+      'image'   => $subPageData['image'] ?? null,
+      'btn'     => $subPageData['btn'] ?? null,
     ];
   }
 
-  /**
-   * Get About Details page section configuration
-   */
-  private function getAboutDetailsSectionConfig(string $slug): array
+  private function getFaqData(): array
   {
-    return [
-      'sections' => [
-        [
-          'id' => 'banner',
-          'component' => 'PageBannerSection',
-          'enabled' => true,
-          'propName' => 'bannerData',
-          'dataKey' => 'bannerData',
-          'order' => 1,
-          'customProps' => ['sectionId' => "about-{$slug}-banner"]
-        ],
-        [
-          'id' => 'main-content',
-          'component' => 'ContentSection',
-          'isSpecialComponent' => true,
-          'enabled' => true,
-          'order' => 2,
-          'customProps' => [
-            'bgColor' => 'bg-white',
-            'paddingY' => 'py-37.5',
-            'paddingX' => 'px-100',
-            'sectionId' => 'main-content'
-          ]
-        ],
-        [
-          'id' => 'faq',
-          'component' => 'FAQSection',
-          'enabled' => true,
-          'propName' => 'faqData',
-          'dataKey' => 'faqData',
-          'order' => 3,
-          'customProps' => []
-        ],
-        [
-          'id' => 'upcoming-events',
-          'component' => 'UpcomingEventsSection',
-          'enabled' => true,
-          'propName' => 'eventsData',
-          'dataKey' => 'upcomingEventsData',
-          'order' => 4,
-          'customProps' => []
-        ],
-      ],
-    ];
+    $config = $this->getFaqConfigs();
+    return $config['data'];
   }
 
-  /**
-   * Get Sub-page configuration by mapping slugs to their source data
-   * This eliminates duplication by referencing the main data arrays
-   */
-  private function getSubPageConfig($asset): array
+  private function getUpcomingEventsData(callable $asset): array
   {
-    // Get all the main data arrays
-    $visionAndMissionData = $this->getVisionAndMissionData($asset);
-    $backgroundData = $this->getBackgroundData($asset);
-    $legalData = $this->getLegalData($asset);
-    $interventionalData = $this->getInterventionalData($asset);
-    $evolutionaryChangesData = $this->getEvolutionaryChangesData($asset);
-    $governanceData = $this->getGovernanceData($asset);
-    $programsData = $this->getProgramsData($asset);
-    $trainingData = $this->getTrainingData($asset);
-
-    // Map slugs to their corresponding data
-    return [
-      'vision-mission' => [
-        'title' => 'Vision, Mission, Goal, Objectives and Core values',
-        'content' => $visionAndMissionData['content']['html'],
-        'image' => $visionAndMissionData['image']['src'] ?? null,
-        'btn' => $visionAndMissionData['btn'] ?? null,
-      ],
-      'functions' => [
-        'title' => 'Background, Roles and Functions',
-        'content' => $backgroundData['content']['html'],
-        'image' => $backgroundData['image']['src'] ?? null,
-        'btn' => $backgroundData['btn'] ?? null,
-      ],
-      'legal-affiliations' => [
-        'title' => 'Legal Status and Organizational Affiliations',
-        'content' => $this->getLegalAffiliationsContent(),
-      ],
-      'interventional-approaches' => [
-        'title' => 'Interventional Approaches and DUS Priorities',
-        'content' => $interventionalData['content']['html'],
-        'image' => $interventionalData['image']['src'] ?? null,
-        'btn' => $interventionalData['btn'] ?? null,
-      ],
-      'evolutionary-changes' => [
-        'title' => 'Evolutionary Changes and Footings',
-        'content' => $evolutionaryChangesData['content']['html'],
-        'image' => $evolutionaryChangesData['image']['src'] ?? null,
-        'btn' => $evolutionaryChangesData['btn'] ?? null,
-      ],
-      'governance' => [
-        'title' => 'Governance Structure',
-        'content' => $governanceData['content']['html'],
-        'image' => $governanceData['image']['src'] ?? null,
-        'btn' => $governanceData['btn'] ?? null,
-      ],
-      'operational-areas' => [
-        'title' => 'Operational Areas of DUS',
-        'content' => $this->getOperationalAreasContent(),
-      ],
-      'achievements' => [
-        'title' => 'Our Achievements',
-        'content' => $this->getAchievementsContent(),
-      ],
-      'programs-activities' => [
-        'title' => 'Programs & Activities',
-        'content' => $programsData['content']['html'],
-        'image' => $programsData['image']['src'] ?? null,
-        'btn' => $programsData['btn'] ?? null,
-      ],
-      'facilities' => [
-        'title' => 'Training and Other Facilities',
-        'content' => $trainingData['content']['html'],
-        'image' => $trainingData['image']['src'] ?? null,
-        'btn' => $trainingData['btn'] ?? null,
-      ],
-    ];
+    $config = $this->getUpcomingEventsConfigs();
+    return $this->transformAssetUrls($config['data'], $asset);
   }
+
+  // ==================== Helper: Build Page Data from Configs ====================
+
+  private function buildPageDataFromConfigs(array $mockData): array
+  {
+    $pageData = [];
+    $sectionConfigs = $mockData['section_configs'] ?? [];
+
+    usort($sectionConfigs, fn($a, $b) => $a['display_order'] <=> $b['display_order']);
+
+    foreach ($sectionConfigs as $config) {
+      if (!$config['enabled']) {
+        continue;
+      }
+
+      $dataTable = $config['data_table'];
+      $dataKey = $config['data_key'];
+
+      if (isset($mockData[$dataTable])) {
+        $pageData[$dataKey] = $mockData[$dataTable];
+      }
+
+      // Add customProps to section config (optional)
+      if (!empty($config['customProps']) && isset($pageData[$dataKey])) {
+        $pageData[$dataKey]['_customProps'] = $config['customProps'];
+      }
+    }
+
+    // Build sectionConfig for frontend with all necessary flags
+    $pageData['sectionConfig'] = [
+      'sections' => array_map(function ($config) {
+        return [
+          'id'                    => $config['section_key'],
+          'component'             => $config['component'],
+          'enabled'               => $config['enabled'],
+          'propName'              => $config['prop_name'],
+          'dataKey'               => $config['data_key'],
+          'order'                 => $config['display_order'],
+          'customProps'           => $config['customProps'] ?? [],
+          'isFixedSection'        => $config['is_fixed_section'] ?? false,
+          'isSpecialComponent'    => $config['isSpecialComponent'] ?? false,
+        ];
+      }, $sectionConfigs)
+    ];
+
+    return $pageData;
+  }
+
+    // ==================== Original Data Providers ====================
 
   /**
    * Get Banner Data
@@ -457,28 +479,6 @@ class AboutController extends Controller
         'src' => $asset('AboutUs/f465fcbdab4004cd25dba4df06b9f8d5f2648620.jpg'),
         'alt' => 'Background',
         'className' => 'w-full h-auto lg:h-full object-cover rounded-2xl sm:rounded-3xl lg:rounded-4xl'
-      ]
-    ];
-  }
-
-  /**
-   * Get Legal Data
-   */
-  private function getLegalData($asset): array
-  {
-    return [
-      'background' => [
-        'src' => $asset('AboutUs/64065404ef679e54d2dabd90bba3b1744817c578.jpg'),
-        'alt' => 'Background'
-      ],
-      'overlay' => [
-        'darkOverlay' => 'bg-black/40',
-      ],
-      'textBox' => [
-        'title' => 'Legal Status and Org.',
-        'titleLine2' => 'Affiliations',
-        'buttonText' => 'Learn More Affiliations',
-        'buttonLink' => '/about/legal-affiliations'
       ]
     ];
   }
@@ -618,46 +618,6 @@ class AboutController extends Controller
   }
 
   /**
-   * Get Cards Data
-   */
-  private function getCardsData($asset): array
-  {
-    return [
-      'section' => [
-        'title' => 'Cards Section'
-      ],
-      'cards' => [
-        [
-          'id' => 'operational-areas',
-          'image' => [
-            'src' => $asset('AboutUs/image.png'),
-            'alt' => 'Operational Areas',
-            'className' => 'mx-auto object-contain'
-          ],
-          'title' => 'Operational Areas',
-          'buttonText' => 'Explore Our Areas of Operation',
-          'buttonLink' => '/about/operational-areas',
-          'bgColor' => 'bg-[#F5F5F5]',
-          'cardBgColor' => 'bg-white'
-        ],
-        [
-          'id' => 'achievements',
-          'image' => [
-            'src' => $asset('AboutUs/fcbbf1e10ca75bccf6a608e1de01306d56897811.png'),
-            'alt' => 'Our Achievements',
-            'className' => 'mx-auto object-contain'
-          ],
-          'title' => 'Our Achievements',
-          'buttonText' => 'Explore Our Evolution',
-          'buttonLink' => '/about/achievements',
-          'bgColor' => 'bg-[#F5F5F5]',
-          'cardBgColor' => 'bg-white'
-        ]
-      ]
-    ];
-  }
-
-  /**
    * Get Programs Data
    */
   private function getProgramsData($asset): array
@@ -727,7 +687,80 @@ class AboutController extends Controller
   }
 
   /**
-   * Get Legal Affiliations Content (only for sub-page, not on main page)
+   * Get Sub-page configuration by mapping slugs to their source data
+   */
+  private function getSubPageConfig($asset): array
+  {
+    // Get all the main data arrays
+    $visionAndMissionData = $this->getVisionAndMissionData($asset);
+    $backgroundData = $this->getBackgroundData($asset);
+    $interventionalData = $this->getInterventionalData($asset);
+    $evolutionaryChangesData = $this->getEvolutionaryChangesData($asset);
+    $governanceData = $this->getGovernanceData($asset);
+    $programsData = $this->getProgramsData($asset);
+    $trainingData = $this->getTrainingData($asset);
+
+    // Map slugs to their corresponding data
+    return [
+      'vision-mission' => [
+        'title' => 'Vision, Mission, Goal, Objectives and Core values',
+        'content' => $visionAndMissionData['content']['html'],
+        'image' => $visionAndMissionData['image']['src'] ?? null,
+        'btn' => $visionAndMissionData['btn'] ?? null,
+      ],
+      'functions' => [
+        'title' => 'Background, Roles and Functions',
+        'content' => $backgroundData['content']['html'],
+        'image' => $backgroundData['image']['src'] ?? null,
+        'btn' => $backgroundData['btn'] ?? null,
+      ],
+      'legal-affiliations' => [
+        'title' => 'Legal Status and Organizational Affiliations',
+        'content' => $this->getLegalAffiliationsContent(),
+      ],
+      'interventional-approaches' => [
+        'title' => 'Interventional Approaches and DUS Priorities',
+        'content' => $interventionalData['content']['html'],
+        'image' => $interventionalData['image']['src'] ?? null,
+        'btn' => $interventionalData['btn'] ?? null,
+      ],
+      'evolutionary-changes' => [
+        'title' => 'Evolutionary Changes and Footings',
+        'content' => $evolutionaryChangesData['content']['html'],
+        'image' => $evolutionaryChangesData['image']['src'] ?? null,
+        'btn' => $evolutionaryChangesData['btn'] ?? null,
+      ],
+      'governance' => [
+        'title' => 'Governance Structure',
+        'content' => $governanceData['content']['html'],
+        'image' => $governanceData['image']['src'] ?? null,
+        'btn' => $governanceData['btn'] ?? null,
+      ],
+      'operational-areas' => [
+        'title' => 'Operational Areas of DUS',
+        'content' => $this->getOperationalAreasContent(),
+      ],
+      'achievements' => [
+        'title' => 'Our Achievements',
+        'content' => $this->getAchievementsContent(),
+      ],
+      'programs-activities' => [
+        'title' => 'Programs & Activities',
+        'content' => $programsData['content']['html'],
+        'image' => $programsData['image']['src'] ?? null,
+        'btn' => $programsData['btn'] ?? null,
+      ],
+      'facilities' => [
+        'title' => 'Training and Other Facilities',
+        'content' => $trainingData['content']['html'],
+        'image' => $trainingData['image']['src'] ?? null,
+        'btn' => $trainingData['btn'] ?? null,
+      ],
+    ];
+  }
+
+  /**
+   * Get Legal Affiliations Content (only for sub-page)
    */
   private function getLegalAffiliationsContent(): string
   {
@@ -746,7 +779,7 @@ class AboutController extends Controller
   }
 
   /**
-   * Get Operational Areas Content (only for sub-page, not on main page)
+   * Get Operational Areas Content (only for sub-page)
    */
   private function getOperationalAreasContent(): string
   {
@@ -767,7 +800,7 @@ class AboutController extends Controller
   }
 
   /**
-   * Get Achievements Content (only for sub-page, not on main page)
+   * Get Achievements Content (only for sub-page)
    */
   private function getAchievementsContent(): string
   {
@@ -787,6 +820,4 @@ class AboutController extends Controller
         </div>
         ';
   }
-
-
 }

@@ -78,40 +78,43 @@ class ProjectsProgramsController extends Controller
   {
     return [
       [
-        'id'            => 1,
-        'page'          => 'projects-programs',
-        'section_key'   => 'banner',
-        'component'     => 'PageBannerSection',
-        'enabled'       => true,
-        'data_table'    => 'banner_data',
-        'data_key'      => 'bannerData',
-        'prop_name'     => 'bannerData',
-        'display_order' => 1,
-        'customProps'   => ['sectionId' => 'projects-programs-banner']
+        'id'                => 1,
+        'page'              => 'projects-programs',
+        'section_key'       => 'banner',
+        'component'         => 'PageBannerSection',
+        'enabled'           => true,
+        'data_table'        => 'banner_data',
+        'data_key'          => 'bannerData',
+        'prop_name'         => 'bannerData',
+        'display_order'     => 1,
+        'is_fixed_section'  => false,
+        'customProps'       => ['sectionId' => 'projects-programs-banner']
       ],
       [
-        'id'            => 2,
-        'page'          => 'projects-programs',
-        'section_key'   => 'our-programs',
-        'component'     => 'OurProgramsSection',
-        'enabled'       => true,
-        'data_table'    => 'our_programs_data',
-        'data_key'      => 'ourProgramsData',
-        'prop_name'     => 'programsData',
-        'display_order' => 2,
-        'customProps'   => []
+        'id'                => 2,
+        'page'              => 'projects-programs',
+        'section_key'       => 'our-programs',
+        'component'         => 'OurProgramsSection',
+        'enabled'           => true,
+        'data_table'        => 'our_programs_data',
+        'data_key'          => 'ourProgramsData',
+        'prop_name'         => 'programsData',
+        'display_order'     => 2,
+        'is_fixed_section'  => false,
+        'customProps'       => []
       ],
       [
-        'id'            => 3,
-        'page'          => 'projects-programs',
-        'section_key'   => 'faq',
-        'component'     => 'FAQSection',
-        'enabled'       => true,
-        'data_table'    => 'faq_data',
-        'data_key'      => 'faqData',
-        'prop_name'     => 'faqData',
-        'display_order' => 3,
-        'customProps'   => []
+        'id'                => 3,
+        'page'              => 'projects-programs',
+        'section_key'       => 'faq',
+        'component'         => 'FAQSection',
+        'enabled'           => true,
+        'data_table'        => 'faq_data',
+        'data_key'          => 'faqData',
+        'prop_name'         => 'faqData',
+        'display_order'     => 3,
+        'is_fixed_section'  => false,
+        'customProps'       => []
       ],
     ];
   }
@@ -120,57 +123,64 @@ class ProjectsProgramsController extends Controller
   {
     return [
       [
-        'id'            => 1,
-        'page'          => 'projects-programs-details',
-        'section_key'   => 'banner',
-        'component'     => 'PageBannerSection',
-        'enabled'       => true,
-        'data_table'    => 'banner_data',
-        'data_key'      => 'bannerData',
-        'prop_name'     => 'bannerData',
-        'display_order' => 1,
-        'customProps'   => [] // dynamic slug will be added later
+        'id'                    => 1,
+        'page'                  => 'projects-programs-details',
+        'section_key'           => 'banner',
+        'component'             => 'PageBannerSection',
+        'enabled'               => true,
+        'data_table'            => 'banner_data',
+        'data_key'              => 'bannerData',
+        'prop_name'             => 'bannerData',
+        'display_order'         => 1,
+        'is_fixed_section'      => false,
+        'isSpecialComponent'    => false,
+        'customProps'           => []
       ],
       [
-        'id'            => 2,
-        'page'          => 'projects-programs-details',
-        'section_key'   => 'program-content',
-        'component'     => 'ProgramContentSection',
-        'enabled'       => true,
-        'isSpecialComponent' => true,
-        'data_table'    => 'program_content_data',
-        'data_key'      => 'programContentData',
-        'prop_name'     => 'programData', // matches prop name in Vue
-        'display_order' => 2,
-        'customProps'   => [
+        'id'                    => 2,
+        'page'                  => 'projects-programs-details',
+        'section_key'           => 'program-content',
+        'component'             => 'ProgramContentSection',
+        'enabled'               => true,
+        'isSpecialComponent'    => true,
+        'data_table'            => 'program_content_data',
+        'data_key'              => 'programContentData',
+        'prop_name'             => 'programData',
+        'display_order'         => 2,
+        'is_fixed_section'      => true, // ← MARKED AS FIXED
+        'customProps'           => [
           'bgColor'   => 'bg-white',
           'paddingY'  => 'py-37.5',
           'paddingX'  => 'px-100'
         ]
       ],
       [
-        'id'            => 3,
-        'page'          => 'projects-programs-details',
-        'section_key'   => 'faq',
-        'component'     => 'FAQSection',
-        'enabled'       => true,
-        'data_table'    => 'faq_data',
-        'data_key'      => 'faqData',
-        'prop_name'     => 'faqData',
-        'display_order' => 3,
-        'customProps'   => []
+        'id'                    => 3,
+        'page'                  => 'projects-programs-details',
+        'section_key'           => 'faq',
+        'component'             => 'FAQSection',
+        'enabled'               => true,
+        'data_table'            => 'faq_data',
+        'data_key'              => 'faqData',
+        'prop_name'             => 'faqData',
+        'display_order'         => 3,
+        'is_fixed_section'      => false,
+        'isSpecialComponent'    => false,
+        'customProps'           => []
       ],
       [
-        'id'            => 4,
-        'page'          => 'projects-programs-details',
-        'section_key'   => 'upcoming-events',
-        'component'     => 'UpcomingEventsSection',
-        'enabled'       => true,
-        'data_table'    => 'upcoming_events_data',
-        'data_key'      => 'upcomingEventsData',
-        'prop_name'     => 'eventsData',
-        'display_order' => 4,
-        'customProps'   => []
+        'id'                    => 4,
+        'page'                  => 'projects-programs-details',
+        'section_key'           => 'upcoming-events',
+        'component'             => 'UpcomingEventsSection',
+        'enabled'               => true,
+        'data_table'            => 'upcoming_events_data',
+        'data_key'              => 'upcomingEventsData',
+        'prop_name'             => 'eventsData',
+        'display_order'         => 4,
+        'is_fixed_section'      => false,
+        'isSpecialComponent'    => false,
+        'customProps'           => []
       ],
     ];
   }
@@ -180,10 +190,10 @@ class ProjectsProgramsController extends Controller
   private function getBannerData(): array
   {
     return [
-      'id'         => 1,
-      'page'       => 'projects-programs',
+      'id'          => 1,
+      'page'        => 'projects-programs',
       'section_key' => 'banner',
-      'data'       => [
+      'data'        => [
         'background' => [
           'src'   => 'https://placehold.co/1920x589',
           'alt'   => 'Background'
@@ -205,10 +215,10 @@ class ProjectsProgramsController extends Controller
   private function getDetailsBannerData(array $program, callable $asset): array
   {
     return [
-      'id'         => 1,
-      'page'       => 'projects-programs-details',
+      'id'          => 1,
+      'page'        => 'projects-programs-details',
       'section_key' => 'banner',
-      'data'       => [
+      'data'        => [
         'background' => [
           'src'   => $asset('OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png'),
           'alt'   => 'Background'
@@ -247,10 +257,10 @@ class ProjectsProgramsController extends Controller
     }
 
     return [
-      'id'    => 1,
-      'page'  => 'projects-programs',
+      'id'          => 1,
+      'page'        => 'projects-programs',
       'section_key' => 'our-programs',
-      'data'  => ['programs' => $programs]
+      'data'        => ['programs' => $programs]
     ];
   }
 
@@ -274,26 +284,21 @@ class ProjectsProgramsController extends Controller
   private function getProgramContentData(array $program): array
   {
     return [
-      'id'    => $program['id'],
-      'page'  => 'projects-programs-details',
+      'id'          => $program['id'],
+      'page'        => 'projects-programs-details',
       'section_key' => 'program-content',
-      'data'  => $program, // passes full program data (title, image, fullContentHtml, etc.)
+      'data'        => $program, // passes full program data (title, image, fullContentHtml, etc.)
     ];
   }
-
-  // FAQ and Upcoming Events are already available in SharedDataTrait:
-  // - getFaqConfigs() / getFaqData()
-  // - getUpcomingEventsConfigs() / getUpcomingEventsData()
-  // We wrap them to match the expected structure.
 
   private function getFaqData(): array
   {
     $config = $this->getFaqConfigs();
     return [
-      'id'    => $config['id'],
-      'page'  => $config['page'],
+      'id'          => $config['id'],
+      'page'        => $config['page'],
       'section_key' => 'faq',
-      'data'  => $config['data'],
+      'data'        => $config['data'],
     ];
   }
 
@@ -303,10 +308,10 @@ class ProjectsProgramsController extends Controller
     // transform asset URLs inside the config data
     $transformedData = $this->transformAssetUrls($config['data'], $asset);
     return [
-      'id'    => $config['id'],
-      'page'  => $config['page'],
+      'id'          => $config['id'],
+      'page'        => $config['page'],
       'section_key' => 'upcoming-events',
-      'data'  => $transformedData,
+      'data'        => $transformedData,
     ];
   }
 
@@ -324,7 +329,6 @@ class ProjectsProgramsController extends Controller
         continue;
       }
       $dataTable = $config['data_table'];
-      $propName = $config['prop_name'];
       $dataKey = $config['data_key'];
 
       if (isset($mockData[$dataTable]) && isset($mockData[$dataTable]['data'])) {
@@ -337,17 +341,19 @@ class ProjectsProgramsController extends Controller
       }
     }
 
-    // Build sectionConfig for frontend
+    // Build sectionConfig for frontend with all necessary flags
     $pageData['sectionConfig'] = [
       'sections' => array_map(function ($config) {
         return [
-          'id'          => $config['section_key'],
-          'component'   => $config['component'],
-          'enabled'     => $config['enabled'],
-          'propName'    => $config['prop_name'],
-          'dataKey'     => $config['data_key'],
-          'order'       => $config['display_order'],
-          'customProps' => $config['customProps'] ?? [],
+          'id'                    => $config['section_key'],
+          'component'             => $config['component'],
+          'enabled'               => $config['enabled'],
+          'propName'              => $config['prop_name'],
+          'dataKey'               => $config['data_key'],
+          'order'                 => $config['display_order'],
+          'customProps'           => $config['customProps'] ?? [],
+          'isFixedSection'        => $config['is_fixed_section'] ?? false,
+          'isSpecialComponent'    => $config['isSpecialComponent'] ?? false,
         ];
       }, $sectionConfigs)
     ];

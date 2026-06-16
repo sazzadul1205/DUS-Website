@@ -20,204 +20,324 @@ class ContactController extends Controller
       return route('asset', ['path' => ltrim($path, '/')]);
     };
 
-    // Banner Data for sub-page
-    $bannerData = [
-      'background' => [
-        'src' => $asset('OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png'),
-        'alt' => 'Background'
-      ],
-      'overlay' => [
-        'darkOverlay' => 'bg-black/40 lg:bg-black/50',
-        'gradient' => 'bg-gradient-to-r from-black/85 via-black/10 to-transparent'
-      ],
-      'content' => [
-        'title' => [
-          'text' => "Let's Get in Touch",
-          'className' => 'font-bold leading-tight'
-        ],
-        'description' => [
-          'text' => 'Reach out today and let\'s create meaningful, lasting positive change together worldwide',
-          'className' => 'font-normal leading-tight'
-        ]
-      ],
+    // Mock SQL Data Structure - follows HomeController pattern
+    $mockData = [
+      // Table: section_configs
+      'section_configs' => $this->getContactUsSectionConfigs(),
+
+      // Table: banner_data (JSON stored in database)
+      'banner_data' => $this->getBannerData(),
+
+      // Table: offices_data (JSON stored in database)
+      'offices_data' => $this->getOfficesData(),
+
+      // Table: social_items_data (JSON stored in database)
+      'social_items_data' => $this->getSocialItemsData(),
+
+      // Table: contact_reach_data (JSON stored in database)
+      'contact_reach_data' => $this->getContactReachData($asset),
+
+      // Table: offices_location_data (JSON stored in database)
+      'offices_location_data' => $this->getOfficesLocationData(),
+
+      // Table: faq_data (JSON stored in database)
+      'faq_data' => $this->getFaqData(),
+
+      // Table: stories_data (JSON stored in database)
+      'stories_data' => $this->getStoriesData(),
+
+      // Table: upcoming_events_data (JSON stored in database)
+      'upcoming_events_data' => $this->getUpcomingEventsData($asset),
     ];
 
-    // Office data from database or config
-    $offices = $this->getOfficesData();
+    // Transform mock data by replacing asset placeholders with actual URLs
+    $transformedData = $this->transformAssetUrls($mockData, $asset);
 
-    // Social media links
-    $socialItems = $this->getSocialItemsData();
-
-    // Reach section image
-    $reachUsImage = $asset('ContactUs/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff.jpg');
-
-    // Office locations for map section
-    $officesLocation = $this->getOfficesLocationData($offices);
-
-    // FAQ Data
-    $faqData = $this->getFaqData();
-
-    // Stories Data
-    $storiesData = $this->getStoriesData($asset);
-
-    // Upcoming Events Data
-    $upcomingEventsData = $this->getUpcomingEventsData($asset);
+    // Build page data from section configs
+    $pageData = $this->buildPageDataFromConfigs($transformedData);
 
     return Inertia::render('Frontend/ContactUs/ContactUs', array_merge(
       $this->getSharedData(),
-      [
-        'sectionConfig' => $this->getContactUsSectionConfig(),
-        'bannerData' => $bannerData,
-        'offices' => $offices,
-        'socialItems' => $socialItems,
-        'reachUsImage' => $reachUsImage,
-        'officesLocation' => $officesLocation,
-        'faqData' => $faqData,
-        'storiesData' => $storiesData,
-        'upcomingEventsData' => $upcomingEventsData
-      ]
+      $pageData
     ));
   }
 
   /**
-   * Get Contact Us page section configuration
+   * Transform asset placeholders in data
    */
-  private function getContactUsSectionConfig(): array
+  private function transformAssetUrls(array $data, callable $asset): array
+  {
+    $transformed = [];
+
+    foreach ($data as $key => $value) {
+      if (is_array($value)) {
+        $transformed[$key] = $this->transformAssetUrls($value, $asset);
+      } elseif (is_string($value) && str_starts_with($value, 'asset:')) {
+        $path = substr($value, 6);
+        $transformed[$key] = $asset($path);
+      } else {
+        $transformed[$key] = $value;
+      }
+    }
+
+    return $transformed;
+  }
+
+  /**
+   * Get section configurations (Table: section_configs)
+   */
+  private function getContactUsSectionConfigs(): array
   {
     return [
-      'sections' => [
-        [
-          'id' => 'banner',
-          'component' => 'PageBannerSection',
-          'enabled' => true,
-          'propName' => 'bannerData',
-          'dataKey' => 'bannerData',
-          'order' => 1,
-          'customProps' => ['sectionId' => 'contact-us-banner']
-        ],
-        [
-          'id' => 'contact-offices',
-          'component' => 'ContactOfficeSection',
-          'enabled' => true,
-          'propName' => 'offices',
-          'dataKey' => 'offices',
-          'order' => 2,
-          'customProps' => []
-        ],
-        [
-          'id' => 'contact-reach',
-          'component' => 'ContactReachSection',
-          'enabled' => true,
-          'propName' => 'image',
-          'dataKey' => 'reachUsImage',
-          'order' => 3,
-          'customProps' => []
-        ],
-        [
-          'id' => 'follow-us',
-          'component' => 'FollowUSSection',
-          'enabled' => true,
-          'propName' => 'socialItems',
-          'dataKey' => 'socialItems',
-          'order' => 4,
-          'customProps' => []
-        ],
-        [
-          'id' => 'address',
-          'component' => 'AddressSection',
-          'enabled' => true,
-          'propName' => 'officesLocation',
-          'dataKey' => 'officesLocation',
-          'order' => 5,
-          'customProps' => []
-        ],
-        [
-          'id' => 'faq',
-          'component' => 'FAQSection',
-          'enabled' => true,
-          'propName' => 'faqData',
-          'dataKey' => 'faqData',
-          'order' => 6,
-          'customProps' => ['bgColor' => 'bg-white']
-        ],
-        [
-          'id' => 'stories',
-          'component' => 'StoriesSection',
-          'enabled' => true,
-          'propName' => 'storiesData',
-          'dataKey' => 'storiesData',
-          'order' => 7,
-          'customProps' => []
-        ],
-        [
-          'id' => 'upcoming-events',
-          'component' => 'UpcomingEventsSection',
-          'enabled' => true,
-          'propName' => 'eventsData',
-          'dataKey' => 'upcomingEventsData',
-          'order' => 8,
-          'customProps' => []
-        ],
+      [
+        'id' => 1,
+        'page' => 'contact',
+        'section_key' => 'banner',
+        'component' => 'PageBannerSection',
+        'enabled' => true,
+        'data_table' => 'banner_data',
+        'data_key' => 'bannerData',
+        'prop_name' => 'bannerData',
+        'display_order' => 1,
+        'is_fixed_section' => false,
+        'customProps' => ['sectionId' => 'contact-us-banner'],
+        'created_at' => '2024-01-01 00:00:00',
+        'updated_at' => '2024-01-01 00:00:00'
+      ],
+      [
+        'id' => 2,
+        'page' => 'contact',
+        'section_key' => 'contact-offices',
+        'component' => 'ContactOfficeSection',
+        'enabled' => true,
+        'data_table' => 'offices_data',
+        'data_key' => 'offices',
+        'prop_name' => 'offices',
+        'display_order' => 2,
+        'is_fixed_section' => false,
+        'customProps' => [],
+        'created_at' => '2024-01-01 00:00:00',
+        'updated_at' => '2024-01-01 00:00:00'
+      ],
+      [
+        'id' => 3,
+        'page' => 'contact',
+        'section_key' => 'contact-reach',
+        'component' => 'ContactReachSection',
+        'enabled' => true,
+        'data_table' => 'contact_reach_data',
+        'data_key' => 'reachUsData',
+        'prop_name' => 'image',
+        'display_order' => 3,
+        'is_fixed_section' => false,
+        'customProps' => [],
+        'created_at' => '2024-01-01 00:00:00',
+        'updated_at' => '2024-01-01 00:00:00'
+      ],
+      [
+        'id' => 4,
+        'page' => 'contact',
+        'section_key' => 'follow-us',
+        'component' => 'FollowUSSection',
+        'enabled' => true,
+        'data_table' => 'social_items_data',
+        'data_key' => 'socialItems',
+        'prop_name' => 'socialItems',
+        'display_order' => 4,
+        'is_fixed_section' => false,
+        'customProps' => [],
+        'created_at' => '2024-01-01 00:00:00',
+        'updated_at' => '2024-01-01 00:00:00'
+      ],
+      [
+        'id' => 5,
+        'page' => 'contact',
+        'section_key' => 'address',
+        'component' => 'AddressSection',
+        'enabled' => true,
+        'data_table' => 'offices_location_data',
+        'data_key' => 'officesLocation',
+        'prop_name' => 'officesLocation',
+        'display_order' => 5,
+        'is_fixed_section' => false,
+        'customProps' => [],
+        'created_at' => '2024-01-01 00:00:00',
+        'updated_at' => '2024-01-01 00:00:00'
+      ],
+      [
+        'id' => 6,
+        'page' => 'contact',
+        'section_key' => 'faq',
+        'component' => 'FAQSection',
+        'enabled' => true,
+        'data_table' => 'faq_data',
+        'data_key' => 'faqData',
+        'prop_name' => 'faqData',
+        'display_order' => 6,
+        'is_fixed_section' => false,
+        'customProps' => ['bgColor' => 'bg-white'],
+        'created_at' => '2024-01-01 00:00:00',
+        'updated_at' => '2024-01-01 00:00:00'
+      ],
+      [
+        'id' => 7,
+        'page' => 'contact',
+        'section_key' => 'stories',
+        'component' => 'StoriesSection',
+        'enabled' => true,
+        'data_table' => 'stories_data',
+        'data_key' => 'storiesData',
+        'prop_name' => 'storiesData',
+        'display_order' => 7,
+        'is_fixed_section' => false,
+        'customProps' => [],
+        'created_at' => '2024-01-01 00:00:00',
+        'updated_at' => '2024-01-01 00:00:00'
+      ],
+      [
+        'id' => 8,
+        'page' => 'contact',
+        'section_key' => 'upcoming-events',
+        'component' => 'UpcomingEventsSection',
+        'enabled' => true,
+        'data_table' => 'upcoming_events_data',
+        'data_key' => 'upcomingEventsData',
+        'prop_name' => 'eventsData',
+        'display_order' => 8,
+        'is_fixed_section' => false,
+        'customProps' => [],
+        'created_at' => '2024-01-01 00:00:00',
+        'updated_at' => '2024-01-01 00:00:00'
       ],
     ];
   }
 
   /**
-   * Get Offices Data
+   * Get Banner Data (Table: banner_data - JSON stored)
+   */
+  private function getBannerData(): array
+  {
+    return [
+      'id' => 1,
+      'page' => 'contact',
+      'section_key' => 'banner',
+      'data' => [
+        'background' => [
+          'src' => 'asset:OurPrograms/db1b2b6eae5fc260b4204f8257dadbd5a7aa0af7.png',
+          'alt' => 'Background'
+        ],
+        'overlay' => [
+          'darkOverlay' => 'bg-black/40 lg:bg-black/50',
+          'gradient' => 'bg-gradient-to-r from-black/85 via-black/10 to-transparent'
+        ],
+        'content' => [
+          'title' => [
+            'text' => "Let's Get in Touch",
+            'className' => 'font-bold leading-tight'
+          ],
+          'description' => [
+            'text' => 'Reach out today and let\'s create meaningful, lasting positive change together worldwide',
+            'className' => 'font-normal leading-tight'
+          ]
+        ],
+      ],
+      'created_at' => '2024-01-01 00:00:00',
+      'updated_at' => '2024-01-01 00:00:00'
+    ];
+  }
+
+  /**
+   * Get Offices Data (Table: offices_data - JSON stored)
    */
   private function getOfficesData(): array
   {
     return [
-      [
-        'title' => "Head Office",
-        'address' => "24/5 Mollika, Prominent Housing, 3 Pisciculture Road, Mohammadpur, Dhaka -1207.",
-        'phones' => ["+880 1761-493412", "+880 1781 732352"],
-        'emails' => ["dusdhaka@gmail.com", "dus.eddus@gmail.com"],
-        'map_url' => "https://www.google.com/maps?q=23.7570,90.3620&output=embed",
-        'coordinates' => ['lat' => 23.7570, 'lng' => 90.3620],
-        'is_active' => true
+      'id' => 1,
+      'page' => 'contact',
+      'section_key' => 'contact-offices',
+      'data' => [
+        [
+          'title' => "Head Office",
+          'address' => "24/5 Mollika, Prominent Housing, 3 Pisciculture Road, Mohammadpur, Dhaka -1207.",
+          'phones' => ["+880 1761-493412", "+880 1781 732352"],
+          'emails' => ["dusdhaka@gmail.com", "dus.eddus@gmail.com"],
+          'map_url' => "https://www.google.com/maps?q=23.7570,90.3620&output=embed",
+          'coordinates' => ['lat' => 23.7570, 'lng' => 90.3620],
+          'is_active' => true
+        ],
+        [
+          'title' => "Regional Office",
+          'address' => "Delower Commission Road, Sonapur, Sadar, Noakhali",
+          'phones' => ["+880 1761-493411", "+880 1761-493414"],
+          'emails' => ["dusreg@gmail.com"],
+          'map_url' => "https://www.google.com/maps?q=22.8256,91.1039&output=embed",
+          'coordinates' => ['lat' => 22.8256, 'lng' => 91.1039],
+          'is_active' => false
+        ],
+        [
+          'title' => "Foundation Office",
+          'address' => "DUS Centre, Sayedia Bazar, Hatiya, Noakhali",
+          'phones' => ["+880 1761-493418", "+880 1673-011347"],
+          'emails' => ["dusreg@gmail.com"],
+          'map_url' => "https://www.google.com/maps?q=22.4082,91.0909&output=embed",
+          'coordinates' => ['lat' => 22.4082, 'lng' => 91.0909],
+          'is_active' => false
+        ],
       ],
-      [
-        'title' => "Regional Office",
-        'address' => "Delower Commission Road, Sonapur, Sadar, Noakhali",
-        'phones' => ["+880 1761-493411", "+880 1761-493414"],
-        'emails' => ["dusreg@gmail.com"],
-        'map_url' => "https://www.google.com/maps?q=22.8256,91.1039&output=embed",
-        'coordinates' => ['lat' => 22.8256, 'lng' => 91.1039],
-        'is_active' => false
-      ],
-      [
-        'title' => "Foundation Office",
-        'address' => "DUS Centre, Sayedia Bazar, Hatiya, Noakhali",
-        'phones' => ["+880 1761-493418", "+880 1673-011347"],
-        'emails' => ["dusreg@gmail.com"],
-        'map_url' => "https://www.google.com/maps?q=22.4082,91.0909&output=embed",
-        'coordinates' => ['lat' => 22.4082, 'lng' => 91.0909],
-        'is_active' => false
-      ],
+      'created_at' => '2024-01-01 00:00:00',
+      'updated_at' => '2024-01-01 00:00:00'
     ];
   }
 
   /**
-   * Get Social Items Data
+   * Get Social Items Data (Table: social_items_data - JSON stored)
    */
   private function getSocialItemsData(): array
   {
     return [
-      ['icon' => 'facebook', 'label' => 'Facebook', 'url' => '#'],
-      ['icon' => 'instagram', 'label' => 'Instagram', 'url' => '#'],
-      ['icon' => 'linkedin', 'label' => 'LinkedIn', 'url' => '#'],
-      ['icon' => 'youtube', 'label' => 'YouTube', 'url' => '#'],
-      ['icon' => 'twitter', 'label' => 'X', 'url' => '#'],
+      'id' => 1,
+      'page' => 'contact',
+      'section_key' => 'follow-us',
+      'data' => [
+        ['icon' => 'facebook', 'label' => 'Facebook', 'url' => '#'],
+        ['icon' => 'instagram', 'label' => 'Instagram', 'url' => '#'],
+        ['icon' => 'linkedin', 'label' => 'LinkedIn', 'url' => '#'],
+        ['icon' => 'youtube', 'label' => 'YouTube', 'url' => '#'],
+        ['icon' => 'twitter', 'label' => 'X', 'url' => '#'],
+      ],
+      'created_at' => '2024-01-01 00:00:00',
+      'updated_at' => '2024-01-01 00:00:00'
     ];
   }
 
   /**
-   * Get Offices Location Data for map section
+   * Get Contact Reach Data (Table: contact_reach_data - JSON stored)
    */
-  private function getOfficesLocationData(array $offices): array
+  private function getContactReachData(callable $asset): array
   {
-    return array_map(function ($office) {
+    return [
+      'id' => 1,
+      'page' => 'contact',
+      'section_key' => 'contact-reach',
+      'data' => [
+        'image' => 'asset:ContactUs/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff.jpg',
+        'title' => 'Reach out to us today!',
+        'buttonText' => 'Submit Message'
+      ],
+      'created_at' => '2024-01-01 00:00:00',
+      'updated_at' => '2024-01-01 00:00:00'
+    ];
+  }
+
+  /**
+   * Get Offices Location Data (Table: offices_location_data - JSON stored)
+   */
+  private function getOfficesLocationData(): array
+  {
+    // Get offices data to build location data
+    $offices = $this->getOfficesData()['data'];
+
+    $locationData = array_map(function ($office) {
       return [
         'id' => strtolower(str_replace(' ', '-', $office['title'])),
         'label' => $office['title'],
@@ -228,134 +348,167 @@ class ContactController extends Controller
         'emails' => $office['emails'],
       ];
     }, $offices);
-  }
 
-  /**
-   * Get Stories Data for Contact page
-   */
-  private function getStoriesData($asset): array
-  {
     return [
-      'section' => [
-        'title' => 'Insights, Stories & Impact',
-        'description' => 'Read real stories from the field, community experiences, and thought-provoking perspectives that reflect our mission and impact.'
-      ],
-      'stories' => [
-        [
-          'id' => 1,
-          'image' => $asset('Stories/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp'),
-          'date' => 'June 6, 2023',
-          'title' => 'Invest in Kindness, Reap a Better Future',
-          'description' => 'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
-          'link' => '/stories/invest-in-kindness'
-        ],
-        [
-          'id' => 2,
-          'image' => $asset('Stories/b3d758bf8cd7985c857cdbe55b5101b105ee9f75.webp'),
-          'date' => 'June 6, 2023',
-          'title' => 'How to Design a Custom Pool That Perfectly Fits Your Charlotte Backyard',
-          'description' => 'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
-          'link' => '/stories/custom-pool-design'
-        ],
-        [
-          'id' => 3,
-          'image' => $asset('Stories/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff%20(1).webp'),
-          'date' => 'June 6, 2023',
-          'title' => 'The Benefits of Mindfulness in Daily Life',
-          'description' => 'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
-          'link' => '/stories/mindfulness-benefits'
-        ],
-        [
-          'id' => 4,
-          'image' => $asset('Stories/3fe55eb9ebcfd7efb80f559a00b8b5a1da0e8c3e.webp'),
-          'date' => 'July 15, 2023',
-          'title' => 'Empowering Women Through Microfinance',
-          'description' => 'Discover how small loans are making a big difference...',
-          'link' => '/stories/empowering-women'
-        ],
-        [
-          'id' => 5,
-          'image' => $asset('Stories/de90e922c05aa3585b8f65361c306413c3b3d7be.webp'),
-          'date' => 'August 2, 2023',
-          'title' => 'Building Resilient Communities Against Climate Change',
-          'description' => 'Learn about our initiatives to help coastal communities...',
-          'link' => '/stories/climate-resilience'
-        ],
-        [
-          'id' => 6,
-          'image' => $asset('Stories/f465fcbdab4004cd25dba4df06b9f8d5f2648620.webp'),
-          'date' => 'September 10, 2023',
-          'title' => 'Providing Clean Water to Remote Villages',
-          'description' => 'Access to clean water is a basic human right...',
-          'link' => '/stories/clean-water'
-        ]
-      ]
+      'id' => 1,
+      'page' => 'contact',
+      'section_key' => 'address',
+      'data' => $locationData,
+      'created_at' => '2024-01-01 00:00:00',
+      'updated_at' => '2024-01-01 00:00:00'
     ];
   }
 
   /**
-   * Get Upcoming Events Data
+   * Get FAQ Data (Table: faq_data - JSON stored)
    */
-  private function getUpcomingEventsData($asset): array
+  private function getFaqData(): array
+  {
+    $config = $this->getFaqConfigs();
+    return [
+      'id'          => $config['id'],
+      'page'        => $config['page'],
+      'section_key' => 'faq',
+      'data'        => $config['data'],
+    ];
+  }
+
+  /**
+   * Get Stories Data (Table: stories_data - JSON stored)
+   */
+  private function getStoriesData(): array
   {
     return [
-      'section' => [
-        'title' => 'Upcoming Events & Community Actions',
-        'description' => 'Read real stories from the field, community experiences, and thought-provoking perspectives that reflect our mission and impact.',
-        'button' => [
-          'text' => 'Explore All Events',
-          'link' => '/events'
+      'id' => 1,
+      'page' => 'contact',
+      'section_key' => 'stories',
+      'data' => [
+        'section' => [
+          'title' => 'Insights, Stories & Impact',
+          'description' => 'Read real stories from the field, community experiences, and thought-provoking perspectives that reflect our mission and impact.'
+        ],
+        'stories' => [
+          [
+            'id' => 1,
+            'image' => 'asset:Stories/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp',
+            'date' => 'June 6, 2023',
+            'title' => 'Invest in Kindness, Reap a Better Future',
+            'description' => 'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
+            'link' => '/stories/invest-in-kindness'
+          ],
+          [
+            'id' => 2,
+            'image' => 'asset:Stories/b3d758bf8cd7985c857cdbe55b5101b105ee9f75.webp',
+            'date' => 'June 6, 2023',
+            'title' => 'How to Design a Custom Pool That Perfectly Fits Your Charlotte Backyard',
+            'description' => 'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
+            'link' => '/stories/custom-pool-design'
+          ],
+          [
+            'id' => 3,
+            'image' => 'asset:Stories/8235fc0d0e2c3082be7cb9ba5d6f5502a121d0ff%20(1).webp',
+            'date' => 'June 6, 2023',
+            'title' => 'The Benefits of Mindfulness in Daily Life',
+            'description' => 'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
+            'link' => '/stories/mindfulness-benefits'
+          ],
+          [
+            'id' => 4,
+            'image' => 'asset:Stories/3fe55eb9ebcfd7efb80f559a00b8b5a1da0e8c3e.webp',
+            'date' => 'July 15, 2023',
+            'title' => 'Empowering Women Through Microfinance',
+            'description' => 'Discover how small loans are making a big difference...',
+            'link' => '/stories/empowering-women'
+          ],
+          [
+            'id' => 5,
+            'image' => 'asset:Stories/de90e922c05aa3585b8f65361c306413c3b3d7be.webp',
+            'date' => 'August 2, 2023',
+            'title' => 'Building Resilient Communities Against Climate Change',
+            'description' => 'Learn about our initiatives to help coastal communities...',
+            'link' => '/stories/climate-resilience'
+          ],
+          [
+            'id' => 6,
+            'image' => 'asset:Stories/f465fcbdab4004cd25dba4df06b9f8d5f2648620.webp',
+            'date' => 'September 10, 2023',
+            'title' => 'Providing Clean Water to Remote Villages',
+            'description' => 'Access to clean water is a basic human right...',
+            'link' => '/stories/clean-water'
+          ]
         ]
       ],
-      'image' => [
-        'src' => $asset('UpcomingEvent/8107b01ed92d05bd5a6861d1ca3a78ccbffc6289.webp'),
-        'alt' => 'Events Image',
-        'className' => 'mt-15 rounded-2xl h-139.25 w-auto'
-      ],
-      'events' => [
-        [
-          'id' => 1,
-          'date' => [
-            'day' => '25',
-            'month' => 'Apr',
-            'weekday' => 'THU',
-            'dayNumber' => '1',
-            'time' => '10:30AM'
-          ],
-          'location' => 'International Convention City Bashundhara - ICCB',
-          'title' => 'Participate in our community clean-up day and make a difference together',
-          'description' => 'Let\'s shape the future of the food industry together! Participate at the 9th Food Bangladesh Int\'l Expo 2026,',
-          'link' => '/events/community-cleanup'
-        ],
-        [
-          'id' => 2,
-          'date' => [
-            'day' => '28',
-            'month' => 'Apr',
-            'weekday' => 'SUN',
-            'dayNumber' => '2',
-            'time' => '02:00PM'
-          ],
-          'location' => 'Dhaka University Campus - Dhaka',
-          'title' => 'Education for All: Scholarship Distribution Ceremony',
-          'description' => 'Join us as we distribute scholarships to underprivileged students and celebrate their achievements in pursuing quality education.',
-          'link' => '/events/scholarship-ceremony'
-        ],
-        [
-          'id' => 3,
-          'date' => [
-            'day' => '05',
-            'month' => 'May',
-            'weekday' => 'MON',
-            'dayNumber' => '3',
-            'time' => '09:00AM'
-          ],
-          'location' => 'Hatiya Island Community Center - Noakhali',
-          'title' => 'Climate Adaptation Workshop for Coastal Communities',
-          'description' => 'Learn sustainable farming techniques and disaster preparedness strategies to combat climate change impacts in coastal areas.',
-          'link' => '/events/climate-workshop'
-        ]
-      ]
+      'created_at' => '2024-01-01 00:00:00',
+      'updated_at' => '2024-01-01 00:00:00'
     ];
+  }
+
+  /**
+   * Get Upcoming Events Data (Table: upcoming_events_data - JSON stored)
+   */
+
+  private function getUpcomingEventsData(callable $asset): array
+  {
+    $config = $this->getUpcomingEventsConfigs();
+    // transform asset URLs inside the config data
+    $transformedData = $this->transformAssetUrls($config['data'], $asset);
+    return [
+      'id'          => $config['id'],
+      'page'        => $config['page'],
+      'section_key' => 'upcoming-events',
+      'data'        => $transformedData,
+    ];
+  }
+
+  /**
+   * Build page data from section configs
+   */
+  private function buildPageDataFromConfigs(array $mockData): array
+  {
+    $pageData = [];
+    $sectionConfigs = $mockData['section_configs'];
+
+    // Sort by display order
+    usort($sectionConfigs, function ($a, $b) {
+      return $a['display_order'] <=> $b['display_order'];
+    });
+
+    foreach ($sectionConfigs as $config) {
+      if (!$config['enabled']) {
+        continue;
+      }
+
+      $dataTable = $config['data_table'];
+      $propName = $config['prop_name'];
+      $dataKey = $config['data_key'];
+
+      if (isset($mockData[$dataTable]) && isset($mockData[$dataTable]['data'])) {
+        $pageData[$dataKey] = $mockData[$dataTable]['data'];
+      }
+
+      // Add customProps to section data if any
+      if (!empty($config['customProps']) && isset($pageData[$dataKey])) {
+        $pageData[$dataKey]['_customProps'] = $config['customProps'];
+      }
+    }
+
+    // Add section config for frontend use
+    $pageData['sectionConfig'] = [
+      'sections' => array_map(function ($config) {
+        return [
+          'id' => $config['section_key'],
+          'component' => $config['component'],
+          'enabled' => $config['enabled'],
+          'propName' => $config['prop_name'],
+          'dataKey' => $config['data_key'],
+          'order' => $config['display_order'],
+          'customProps' => $config['customProps'] ?? [],
+          'isFixedSection' => $config['is_fixed_section'] ?? false,
+          'isSpecialComponent' => $config['isSpecialComponent'] ?? false,
+        ];
+      }, $sectionConfigs)
+    ];
+
+    return $pageData;
   }
 }
