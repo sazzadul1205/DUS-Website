@@ -22,6 +22,8 @@ const OurProgramsSection = ({
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
   sectionClassName = '',
 }) => {
+  console.log(programsData);
+
   const [visibleCards, setVisibleCards] = useState([]);
   const cardsRef = useRef([]);
 
@@ -183,7 +185,8 @@ const OurProgramsSection = ({
                   }}
                 >
                   <div
-                    className={` ${program.bgColor || 'bg-white'} flex flex-col lg:flex-row justify-between items-center gap-8 lg:gap-25 p-5 sm:p-6 md:p-8 lg:p-25 rounded-3xl min-h-162.5 lg:h-187.5 shadow-lg`}
+                    className="flex flex-col lg:flex-row justify-between items-center gap-8 lg:gap-25 p-5 sm:p-6 md:p-8 lg:p-25 rounded-3xl min-h-162.5 lg:h-187.5 shadow-lg"
+                    style={{ backgroundColor: program.bgColor || '#ffffff' }}
                   >
                     {/* Left Content */}
                     <div className="w-full lg:w-1/2 flex flex-col justify-center">
