@@ -1,21 +1,29 @@
 // resources/js/layouts/AuthenticatedLayout.jsx
-import Sidebar from '@/components/Sidebar';
-import { useState } from 'react';
+
+import { usePage } from '@inertiajs/react';
+import JobSeekerLayout from './JobSeekerLayout';
+import AdminLayout from './AdminLayout';
 
 const AuthenticatedLayout = ({ children }) => {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { props } = usePage();
+  const { auth } = props;
+  const user = auth?.user;
+  const userRoles = user?.roles || [];
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar onCollapseChange={setIsSidebarCollapsed} />
+  // Check if user is a job seeker only (no admin/employer roles)
+  const isJobSeekerOnly = () => {
+    const hasAdminRole = userRoles.some(role =>
+      ['super-admin', 'admin', 'employer-admin', 'hr-manager', 'recruiter'].includes(role.slug)
+    );
+    return !hasAdminRole;
+  };
 
-      {/* Main Content - Adjust margin based on sidebar state */}
-      <main className={`transition-all duration-300 p-2 mx-auto text-black ${isSidebarCollapsed ? 'ml-20' : 'ml-64'
-        }`}>
-        {children}
-      </main>
-    </div>
-  );
+  // Render appropriate layout based on user role
+  if (isJobSeekerOnly()) {
+    return <JobSeekerLayout>{children}</JobSeekerLayout>;
+  }
+
+  return <AdminLayout>{children}</AdminLayout>;
 };
 
 export default AuthenticatedLayout;

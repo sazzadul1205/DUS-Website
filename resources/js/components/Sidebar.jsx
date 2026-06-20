@@ -238,7 +238,7 @@ const Sidebar = () => {
     if (hasPermission('dashboard.job_seeker')) {
       items.push({
         name: 'Dashboard',
-        routeName: 'dashboard',
+        routeName: 'backend.dashboard',
         icon: FiHome,
         description: 'Overview & stats',
       });
@@ -248,7 +248,7 @@ const Sidebar = () => {
     if (hasPermission('job.view.any')) {
       items.push({
         name: 'Browse Jobs',
-        routeName: 'backend.public-jobs.index',
+        routeName: 'public.jobs.index',
         icon: FiSearch,
         description: 'Find your next role',
       });
@@ -300,7 +300,7 @@ const Sidebar = () => {
     if (hasPermission('dashboard.employer')) {
       items.push({
         name: 'Dashboard',
-        routeName: 'dashboard',
+        routeName: 'backend.dashboard',
         icon: FiHome,
         description: 'Overview & analytics',
       });
@@ -458,7 +458,7 @@ const Sidebar = () => {
     if (hasPermission('dashboard.admin')) {
       items.push({
         name: 'Dashboard',
-        routeName: 'dashboard',
+        routeName: 'backend.dashboard',
         icon: FiHome,
         description: 'System overview',
       });
