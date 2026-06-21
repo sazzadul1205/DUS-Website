@@ -48,13 +48,13 @@ use Illuminate\Support\Facades\Storage;
 /*
 |--------------------------------------------------------------------------
 | ============================================
-| DEFAULT ROUTE - BACKEND DASHBOARD
+| DEFAULT ROUTE - Redirect to Job Seeker Login
 | ============================================
 */
 
-// Redirect root to backend dashboard
+// Redirect root to job seeker login page
 Route::get('/', function () {
-    return redirect()->route('backend.dashboard');
+    return redirect()->route('job-seeker.login');
 });
 
 /*
@@ -116,24 +116,24 @@ Route::get('/jobs/{slug}', [PublicJobListingController::class, 'show'])->name('p
 // ============================================
 Route::middleware('guest')->group(function () {
     // ============================================
-    // ADMIN / STAFF LOGIN - DEFAULT
+    // ADMIN / STAFF LOGIN
     // ============================================
     Route::get('/login/admin', [AdminLoginController::class, 'create'])
         ->name('admin.login');
     Route::post('/login/admin', [AdminLoginController::class, 'store']);
 
     // ============================================
-    // JOB SEEKER LOGIN
+    // JOB SEEKER LOGIN - THIS IS THE PRIMARY LOGIN
     // ============================================
     Route::get('/login/job-seeker', [JobSeekerLoginController::class, 'create'])
         ->name('job-seeker.login');
     Route::post('/login/job-seeker', [JobSeekerLoginController::class, 'store']);
 
     // ============================================
-    // DEFAULT LOGIN - Redirects to Admin Login
+    // DEFAULT LOGIN - Redirects to Job Seeker Login
     // ============================================
     Route::get('/login', function () {
-        return redirect()->route('admin.login');
+        return redirect()->route('job-seeker.login');
     })->name('login');
 
     // ============================================
