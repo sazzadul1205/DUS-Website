@@ -43,7 +43,7 @@ class CmsController extends Controller
     // TODO: Connect to React page: CMS/Dashboard
     // Expected props: stats with counts for all content types
 
-    return Inertia::render('CMS/Dashboard', [
+    return Inertia::render('Backend/CMS/Dashboard', [
       'stats' => [
         'pages' => Page::count(),
         'active_pages' => Page::active()->count(),
@@ -78,7 +78,7 @@ class CmsController extends Controller
       ->orderBy('name')
       ->get();
 
-    return Inertia::render('CMS/Pages/Index', [
+    return Inertia::render('Backend/CMS/Pages/Index', [
       'pages' => $pages
     ]);
   }
@@ -93,7 +93,7 @@ class CmsController extends Controller
     // TODO: Connect to React page: CMS/Pages/Create
     // Expected props: none needed for basic page creation
 
-    return Inertia::render('CMS/Pages/Create');
+    return Inertia::render('Backend/CMS/Pages/Create');
   }
 
   /**
@@ -147,7 +147,7 @@ class CmsController extends Controller
 
     $page = Page::with('sectionConfigs')->findOrFail($id);
 
-    return Inertia::render('CMS/Pages/Edit', [
+    return Inertia::render('Backend/CMS/Pages/Edit', [
       'page' => $page
     ]);
   }
@@ -219,7 +219,7 @@ class CmsController extends Controller
       $query->ordered();
     }])->findOrFail($pageId);
 
-    return Inertia::render('CMS/Pages/Sections', [
+    return Inertia::render('Backend/CMS/Pages/Sections', [
       'page' => $page,
       'sections' => $page->sectionConfigs,
     ]);
@@ -371,7 +371,7 @@ class CmsController extends Controller
 
     $aboutContents = AboutContent::ordered()->get();
 
-    return Inertia::render('CMS/About/Index', [
+    return Inertia::render('Backend/CMS/About/Index', [
       'about_contents' => $aboutContents
     ]);
   }
@@ -386,7 +386,7 @@ class CmsController extends Controller
     // TODO: Connect to React page: CMS/About/Create
     // Expected props: available_types ['main', 'detail']
 
-    return Inertia::render('CMS/About/Create', [
+    return Inertia::render('Backend/CMS/About/Create', [
       'available_types' => ['main', 'detail']
     ]);
   }
@@ -469,7 +469,7 @@ class CmsController extends Controller
 
     $aboutContent = AboutContent::findOrFail($id);
 
-    return Inertia::render('CMS/About/Edit', [
+    return Inertia::render('Backend/CMS/About/Edit', [
       'about_content' => $aboutContent
     ]);
   }
@@ -556,7 +556,7 @@ class CmsController extends Controller
 
     $blogs = Blog::latest()->get();
 
-    return Inertia::render('CMS/Blogs/Index', [
+    return Inertia::render('Backend/CMS/Blogs/Index', [
       'blogs' => $blogs
     ]);
   }
@@ -570,7 +570,7 @@ class CmsController extends Controller
   {
     // TODO: Connect to React page: CMS/Blogs/Create
 
-    return Inertia::render('CMS/Blogs/Create');
+    return Inertia::render('Backend/CMS/Blogs/Create');
   }
 
   /**
@@ -642,7 +642,7 @@ class CmsController extends Controller
 
     $blog = Blog::findOrFail($id);
 
-    return Inertia::render('CMS/Blogs/Edit', [
+    return Inertia::render('Backend/CMS/Blogs/Edit', [
       'blog' => $blog
     ]);
   }
@@ -723,7 +723,7 @@ class CmsController extends Controller
 
     $programs = Program::ordered()->get();
 
-    return Inertia::render('CMS/Programs/Index', [
+    return Inertia::render('Backend/CMS/Programs/Index', [
       'programs' => $programs
     ]);
   }
@@ -737,7 +737,7 @@ class CmsController extends Controller
   {
     // TODO: Connect to React page: CMS/Programs/Create
 
-    return Inertia::render('CMS/Programs/Create');
+    return Inertia::render('Backend/CMS/Programs/Create');
   }
 
   /**
@@ -806,7 +806,7 @@ class CmsController extends Controller
 
     $program = Program::findOrFail($id);
 
-    return Inertia::render('CMS/Programs/Edit', [
+    return Inertia::render('Backend/CMS/Programs/Edit', [
       'program' => $program
     ]);
   }
@@ -895,7 +895,7 @@ class CmsController extends Controller
       ->orderBy('section_key')
       ->get();
 
-    return Inertia::render('CMS/CustomSections/Index', [
+    return Inertia::render('Backend/CMS/CustomSections/Index', [
       'custom_sections' => $customSections
     ]);
   }
@@ -910,7 +910,7 @@ class CmsController extends Controller
     // TODO: Connect to React page: CMS/CustomSections/Create
     // Expected props: pages list for dropdown selection
 
-    return Inertia::render('CMS/CustomSections/Create', [
+    return Inertia::render('Backend/CMS/CustomSections/Create', [
       'pages' => Page::active()->get(['id', 'slug', 'name'])
     ]);
   }
@@ -963,7 +963,7 @@ class CmsController extends Controller
 
     $customSection = CustomSectionData::findOrFail($id);
 
-    return Inertia::render('CMS/CustomSections/Edit', [
+    return Inertia::render('Backend/CMS/CustomSections/Edit', [
       'custom_section' => $customSection,
       'pages' => Page::active()->get(['id', 'slug', 'name'])
     ]);
@@ -1031,7 +1031,7 @@ class CmsController extends Controller
 
     $sharedData = SharedData::orderBy('type')->get();
 
-    return Inertia::render('CMS/SharedData/Index', [
+    return Inertia::render('Backend/CMS/SharedData/Index', [
       'shared_data' => $sharedData
     ]);
   }
@@ -1046,7 +1046,7 @@ class CmsController extends Controller
     // TODO: Connect to React page: CMS/SharedData/Create
     // Expected props: available_types list from the model
 
-    return Inertia::render('CMS/SharedData/Create', [
+    return Inertia::render('Backend/CMS/SharedData/Create', [
       'available_types' => ['topbar', 'navbar', 'footer', 'faq', 'upcoming-events']
     ]);
   }
@@ -1096,7 +1096,7 @@ class CmsController extends Controller
 
     $sharedData = SharedData::findOrFail($id);
 
-    return Inertia::render('CMS/SharedData/Edit', [
+    return Inertia::render('Backend/CMS/SharedData/Edit', [
       'shared_data' => $sharedData,
       'available_types' => ['topbar', 'navbar', 'footer', 'faq', 'upcoming-events']
     ]);

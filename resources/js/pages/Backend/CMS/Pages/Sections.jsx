@@ -118,8 +118,8 @@ export default function Sections({ page, sections }) {
     setIsSubmitting(true);
 
     const url = editingSection
-      ? route('cms.sections.update', { pageId: page.id, sectionId: editingSection.id })
-      : route('cms.sections.store', page.id);
+      ? route('backend.cms.sections.update', { pageId: page.id, sectionId: editingSection.id })
+      : route('backend.cms.sections.store', page.id);
 
     const method = editingSection ? 'put' : 'post';
 
@@ -168,7 +168,7 @@ export default function Sections({ page, sections }) {
       if (result.isConfirmed) {
         setDeletingId(sectionId);
 
-        router.delete(route('cms.sections.destroy', { pageId: page.id, sectionId }), {
+        router.delete(route('backend.cms.sections.destroy', { pageId: page.id, sectionId }), {
           preserveScroll: true,
           onSuccess: () => {
             Swal.fire({
@@ -201,7 +201,7 @@ export default function Sections({ page, sections }) {
     }
 
     router.put(
-      route('cms.sections.update', { pageId: page.id, sectionId: section.id }),
+      route('backend.cms.sections.update', { pageId: page.id, sectionId: section.id }),
       { ...section, is_enabled: !section.is_enabled },
       {
         preserveScroll: true,
@@ -255,7 +255,7 @@ export default function Sections({ page, sections }) {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Link
-                  href={route('cms.pages')}
+                  href={route('backend.cms.pages')}
                   className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group"
                 >
                   <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" size={14} />

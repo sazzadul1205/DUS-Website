@@ -122,8 +122,8 @@ export default function SharedDataForm({ shared_data = null, available_types }) 
     };
 
     const url = isEdit
-      ? route('cms.shared-data.update', shared_data.id)
-      : route('cms.shared-data.store');
+      ? route('backend.cms.shared-data.update', shared_data.id)
+      : route('backend.cms.shared-data.store');
 
     const method = isEdit ? 'put' : 'post';
 
@@ -137,7 +137,7 @@ export default function SharedDataForm({ shared_data = null, available_types }) 
           timer: 1500,
           showConfirmButton: false,
         });
-        router.visit(route('cms.shared-data'));
+        router.visit(route('backend.cms.shared-data'));
       },
       onError: (error) => {
         if (error.response?.data?.errors) {
@@ -190,7 +190,7 @@ export default function SharedDataForm({ shared_data = null, available_types }) 
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Link
-                  href={route('cms.shared-data')}
+                  href={route('backend.cms.shared-data')}
                   className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group"
                 >
                   <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" size={14} />
@@ -291,7 +291,7 @@ export default function SharedDataForm({ shared_data = null, available_types }) 
               {/* Form Actions */}
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
                 <Link
-                  href={route('cms.shared-data')}
+                  href={route('backend.cms.shared-data')}
                   className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 font-medium"
                 >
                   Cancel

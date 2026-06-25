@@ -63,7 +63,7 @@ export default function PagesIndex({ pages }) {
 
     setTogglingId(page.id);
 
-    router.put(route('cms.pages.update', page.id), {
+    router.put(route('backend.cms.pages.update', page.id), {
       ...page,
       is_active: !page.is_active,
     }, {
@@ -109,7 +109,7 @@ export default function PagesIndex({ pages }) {
       if (result.isConfirmed) {
         setDeletingId(id);
 
-        router.delete(route('cms.pages.destroy', id), {
+        router.delete(route('backend.cms.pages.destroy', id), {
           preserveScroll: true,
           onSuccess: () => {
             Swal.fire({
@@ -152,7 +152,7 @@ export default function PagesIndex({ pages }) {
             </div>
             {canCreate && (
               <Link
-                href={route('cms.pages.create')}
+                href={route('backend.cms.pages.create')}
                 className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
               >
                 <FaPlus size={16} />
@@ -195,7 +195,7 @@ export default function PagesIndex({ pages }) {
                         <p className="mt-1 text-sm text-gray-500">Get started by creating your first page.</p>
                         {canCreate && (
                           <Link
-                            href={route('cms.pages.create')}
+                            href={route('backend.cms.pages.create')}
                             className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                           >
                             <FaPlus size={14} />
@@ -247,7 +247,7 @@ export default function PagesIndex({ pages }) {
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex justify-end gap-2">
                           <Link
-                            href={route('cms.pages.sections', page.id)}
+                            href={route('backend.cms.pages.sections', page.id)}
                             className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200"
                             title="Manage Sections"
                           >
@@ -255,7 +255,7 @@ export default function PagesIndex({ pages }) {
                           </Link>
                           {canEdit && (
                             <Link
-                              href={route('cms.pages.edit', page.id)}
+                              href={route('backend.cms.pages.edit', page.id)}
                               className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
                               title="Edit"
                             >

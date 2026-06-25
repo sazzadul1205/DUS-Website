@@ -1,5 +1,5 @@
 <?php
-// database/seeders/RBACSeeder.php - UPDATED WITH CMS PERMISSIONS
+// database/seeders/RBACSeeder.php - COMPLETE WITH ALL PERMISSIONS
 
 namespace Database\Seeders;
 
@@ -29,7 +29,7 @@ class RBACSeeder extends Seeder
     DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
     // ==========================================
-    // 1. INSERT ALL PERMISSIONS (COMPLETE LIST - NO DUPLICATES)
+    // 1. INSERT ALL PERMISSIONS (COMPLETE LIST)
     // ==========================================
     $permissions = [
       // Dashboard Module
@@ -220,9 +220,7 @@ class RBACSeeder extends Seeder
       ['name' => 'Manage Locations', 'slug' => 'locations.manage', 'module' => 'locations', 'action' => 'manage'],
       ['name' => 'View Location', 'slug' => 'location.view', 'module' => 'locations', 'action' => 'location_view'],
 
-      // ==========================================
-      // APPLICANT PROFILES MODULE - COMPLETE PERMISSIONS
-      // ==========================================
+      // APPLICANT PROFILES MODULE
       ['name' => 'View Applicant Profiles', 'slug' => 'applicant-profiles.view', 'module' => 'applicant_profiles', 'action' => 'view'],
       ['name' => 'View Any Applicant Profile', 'slug' => 'applicant-profiles.view.any', 'module' => 'applicant_profiles', 'action' => 'view_any'],
       ['name' => 'View Own Applicant Profile', 'slug' => 'applicant-profiles.view.own', 'module' => 'applicant_profiles', 'action' => 'view_own'],
@@ -260,7 +258,7 @@ class RBACSeeder extends Seeder
       ['name' => 'Manage All Applicant Profiles', 'slug' => 'applicant-profiles.manage', 'module' => 'applicant_profiles', 'action' => 'manage'],
       ['name' => 'Assign Applicant Profile Roles', 'slug' => 'applicant-profiles.assign_roles', 'module' => 'applicant_profiles', 'action' => 'assign_roles'],
 
-      // Profiles Module (Legacy - keeping for backward compatibility)
+      // Profiles Module (Legacy)
       ['name' => 'View Profile', 'slug' => 'profiles.view', 'module' => 'profiles', 'action' => 'view'],
       ['name' => 'View Any Profile', 'slug' => 'profiles.view.any', 'module' => 'profiles', 'action' => 'view_any'],
       ['name' => 'View My Own Profile', 'slug' => 'profiles.view.own', 'module' => 'profiles', 'action' => 'view_own'],
@@ -399,7 +397,7 @@ class RBACSeeder extends Seeder
       ['name' => 'Delete Employer', 'slug' => 'employer.destroy', 'module' => 'employer', 'action' => 'destroy'],
     ];
 
-    // Insert permissions using updateOrInsert to avoid duplicates
+    // Insert permissions
     foreach ($permissions as $permission) {
       DB::table('permissions')->updateOrInsert(
         ['slug' => $permission['slug']],
@@ -415,7 +413,7 @@ class RBACSeeder extends Seeder
     }
 
     // ==========================================
-    // 2. INSERT ROLES
+    // 2. INSERT ROLES (ONLY 4 ROLES)
     // ==========================================
     $roles = [
       [
@@ -439,50 +437,10 @@ class RBACSeeder extends Seeder
         'updated_by' => $createdBy,
       ],
       [
-        'name' => 'Employer Admin',
-        'slug' => 'employer-admin',
-        'description' => 'Full employer access for company',
-        'level' => 70,
-        'is_default' => false,
-        'is_active' => true,
-        'created_by' => $createdBy,
-        'updated_by' => $createdBy,
-      ],
-      [
-        'name' => 'HR Manager',
-        'slug' => 'hr-manager',
-        'description' => 'HR staff who can manage jobs and applications',
-        'level' => 60,
-        'is_default' => false,
-        'is_active' => true,
-        'created_by' => $createdBy,
-        'updated_by' => $createdBy,
-      ],
-      [
-        'name' => 'Recruiter',
-        'slug' => 'recruiter',
-        'description' => 'Recruiter who can post jobs and review applications',
+        'name' => 'Employer',
+        'slug' => 'employer',
+        'description' => 'Employer who can post jobs and manage applications',
         'level' => 50,
-        'is_default' => false,
-        'is_active' => true,
-        'created_by' => $createdBy,
-        'updated_by' => $createdBy,
-      ],
-      [
-        'name' => 'CMS Admin',
-        'slug' => 'cms-admin',
-        'description' => 'CMS administrator with full CMS access',
-        'level' => 80,
-        'is_default' => false,
-        'is_active' => true,
-        'created_by' => $createdBy,
-        'updated_by' => $createdBy,
-      ],
-      [
-        'name' => 'CMS Editor',
-        'slug' => 'cms-editor',
-        'description' => 'CMS editor with create/update permissions',
-        'level' => 70,
         'is_default' => false,
         'is_active' => true,
         'created_by' => $createdBy,
@@ -517,36 +475,27 @@ class RBACSeeder extends Seeder
       );
     }
 
-    // Get role IDs after upsert
+    // Get role IDs
     $superAdminRoleId = DB::table('roles')->where('slug', 'super-admin')->value('id');
     $adminRoleId = DB::table('roles')->where('slug', 'admin')->value('id');
-    $employerAdminRoleId = DB::table('roles')->where('slug', 'employer-admin')->value('id');
-    $hrManagerRoleId = DB::table('roles')->where('slug', 'hr-manager')->value('id');
-    $recruiterRoleId = DB::table('roles')->where('slug', 'recruiter')->value('id');
-    $cmsAdminRoleId = DB::table('roles')->where('slug', 'cms-admin')->value('id');
-    $cmsEditorRoleId = DB::table('roles')->where('slug', 'cms-editor')->value('id');
+    $employerRoleId = DB::table('roles')->where('slug', 'employer')->value('id');
     $jobSeekerRoleId = DB::table('roles')->where('slug', 'job-seeker')->value('id');
 
-    // Clear existing role_permissions for these roles
+    // Clear existing role_permissions
     DB::table('role_permissions')->whereIn('role_id', [
       $superAdminRoleId,
       $adminRoleId,
-      $employerAdminRoleId,
-      $hrManagerRoleId,
-      $recruiterRoleId,
-      $cmsAdminRoleId,
-      $cmsEditorRoleId,
-      $jobSeekerRoleId,
+      $employerRoleId,
+      $jobSeekerRoleId
     ])->delete();
 
     // ==========================================
     // 3. ASSIGN PERMISSIONS TO ROLES
     // ==========================================
 
-    // Get all permission IDs
     $allPermissionIds = DB::table('permissions')->pluck('id');
 
-    // Super Admin gets ALL permissions
+    // SUPER ADMIN gets ALL permissions
     foreach ($allPermissionIds as $permissionId) {
       DB::table('role_permissions')->updateOrInsert(
         ['role_id' => $superAdminRoleId, 'permission_id' => $permissionId],
@@ -554,7 +503,7 @@ class RBACSeeder extends Seeder
       );
     }
 
-    // Admin gets ALL permissions
+    // ADMIN gets ALL permissions
     foreach ($allPermissionIds as $permissionId) {
       DB::table('role_permissions')->updateOrInsert(
         ['role_id' => $adminRoleId, 'permission_id' => $permissionId],
@@ -562,179 +511,10 @@ class RBACSeeder extends Seeder
       );
     }
 
-    // CMS Admin permissions (Full CMS access)
-    $cmsAdminPermissionSlugs = [
-      // Dashboard
+    // EMPLOYER gets Employment related permissions
+    $employerPermissionSlugs = [
       'dashboard.view',
       'dashboard.stats.view',
-      'dashboard.admin',
-
-      // CMS Permissions - Full Access
-      'cms.dashboard',
-      'cms.pages',
-      'cms.about',
-      'cms.blogs',
-      'cms.programs',
-      'cms.custom-sections',
-      'cms.shared-data',
-      'cms.pages.view',
-      'cms.pages.manage',
-      'cms.about.view',
-      'cms.about.manage',
-      'cms.blogs.view',
-      'cms.blogs.manage',
-      'cms.programs.view',
-      'cms.programs.manage',
-      'cms.custom-sections.view',
-      'cms.custom-sections.manage',
-      'cms.shared-data.view',
-      'cms.shared-data.manage',
-
-      // Page CRUD
-      'pages.view',
-      'pages.create',
-      'pages.update',
-      'pages.destroy',
-      'pages.manage',
-
-      // About CRUD
-      'about.view',
-      'about.create',
-      'about.update',
-      'about.destroy',
-      'about.manage',
-
-      // Blog CRUD
-      'blogs.view',
-      'blogs.create',
-      'blogs.update',
-      'blogs.destroy',
-      'blogs.manage',
-
-      // Program CRUD
-      'programs.view',
-      'programs.create',
-      'programs.update',
-      'programs.destroy',
-      'programs.manage',
-
-      // Custom Sections CRUD
-      'custom-sections.view',
-      'custom-sections.create',
-      'custom-sections.update',
-      'custom-sections.destroy',
-      'custom-sections.manage',
-
-      // Shared Data CRUD
-      'shared-data.view',
-      'shared-data.create',
-      'shared-data.update',
-      'shared-data.destroy',
-      'shared-data.manage',
-
-      // Section Config
-      'sections.view',
-      'sections.create',
-      'sections.update',
-      'sections.destroy',
-      'sections.manage',
-
-      // Other modules needed for CMS
-      'categories.view',
-      'category.view',
-      'locations.view',
-      'location.view',
-      'notifications.view',
-    ];
-
-    foreach ($cmsAdminPermissionSlugs as $slug) {
-      $permId = DB::table('permissions')->where('slug', $slug)->value('id');
-      if ($permId) {
-        DB::table('role_permissions')->updateOrInsert(
-          ['role_id' => $cmsAdminRoleId, 'permission_id' => $permId],
-          ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
-        );
-      }
-    }
-
-    // CMS Editor permissions (Create/Update only, no delete)
-    $cmsEditorPermissionSlugs = [
-      // Dashboard
-      'dashboard.view',
-      'dashboard.stats.view',
-
-      // CMS Permissions - Limited Access
-      'cms.dashboard',
-      'cms.pages',
-      'cms.about',
-      'cms.blogs',
-      'cms.programs',
-      'cms.custom-sections',
-      'cms.shared-data',
-      'cms.pages.view',
-      'cms.about.view',
-      'cms.blogs.view',
-      'cms.programs.view',
-      'cms.custom-sections.view',
-      'cms.shared-data.view',
-
-      // Page CRUD (No Delete)
-      'pages.view',
-      'pages.create',
-      'pages.update',
-
-      // About CRUD (No Delete)
-      'about.view',
-      'about.create',
-      'about.update',
-
-      // Blog CRUD (No Delete)
-      'blogs.view',
-      'blogs.create',
-      'blogs.update',
-
-      // Program CRUD (No Delete)
-      'programs.view',
-      'programs.create',
-      'programs.update',
-
-      // Custom Sections CRUD (No Delete)
-      'custom-sections.view',
-      'custom-sections.create',
-      'custom-sections.update',
-
-      // Shared Data CRUD (No Delete)
-      'shared-data.view',
-      'shared-data.create',
-      'shared-data.update',
-
-      // Section Config (No Delete)
-      'sections.view',
-      'sections.create',
-      'sections.update',
-
-      // Other modules
-      'categories.view',
-      'locations.view',
-      'notifications.view',
-    ];
-
-    foreach ($cmsEditorPermissionSlugs as $slug) {
-      $permId = DB::table('permissions')->where('slug', $slug)->value('id');
-      if ($permId) {
-        DB::table('role_permissions')->updateOrInsert(
-          ['role_id' => $cmsEditorRoleId, 'permission_id' => $permId],
-          ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
-        );
-      }
-    }
-
-    // Employer Admin permissions (existing)
-    $employerAdminPermissionSlugs = [
-      'dashboard.view',
-      'dashboard.stats.view',
-      'dashboard.quick_actions.view',
-      'dashboard.recent_activity.view',
       'dashboard.employer',
       'job_listings.view',
       'job_listings.create',
@@ -748,6 +528,7 @@ class RBACSeeder extends Seeder
       'job.view.any',
       'job.view.own',
       'job.edit.own',
+      'jobs.manage',
       'applications.view',
       'applications.view.for_own_jobs',
       'applications.show',
@@ -772,204 +553,28 @@ class RBACSeeder extends Seeder
       'employer_profile.update',
       'employer_profile.update_password',
       'notifications.view',
-      'notification.view',
       'notifications.mark_read',
       'notifications.mark_all_read',
       'statistics.view',
       'statistics.ats',
       'statistics.jobs',
       'statistics.dashboard',
-      'report.jobs',
-      'report.applications',
       'applicant-profiles.view',
       'applicant-profiles.view.any',
       'applicant-profiles.show',
-      'applicant-profiles.filter',
-      'applicant-profiles.export',
-      'applicant-profiles.stats',
-      'applicant-profiles.download_cv',
     ];
 
-    foreach ($employerAdminPermissionSlugs as $slug) {
+    foreach ($employerPermissionSlugs as $slug) {
       $permId = DB::table('permissions')->where('slug', $slug)->value('id');
       if ($permId) {
         DB::table('role_permissions')->updateOrInsert(
-          ['role_id' => $employerAdminRoleId, 'permission_id' => $permId],
+          ['role_id' => $employerRoleId, 'permission_id' => $permId],
           ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
         );
       }
     }
 
-    // HR Manager permissions (existing)
-    $hrManagerPermissionSlugs = [
-      'dashboard.view',
-      'dashboard.employer',
-      'job_listings.view',
-      'job_listings.create',
-      'job_listings.store',
-      'job_listings.edit',
-      'job_listings.update',
-      'job_listings.show',
-      'job.view.any',
-      'job.view.own',
-      'applications.view',
-      'applications.view.for_own_jobs',
-      'applications.show',
-      'applications.status.update',
-      'applications.download_resume',
-      'applications.email.send',
-      'application.view.own',
-      'application.shortlist',
-      'categories.view',
-      'locations.view',
-      'employer_profile.view',
-      'employer_profile.edit',
-      'employer_profile.update',
-      'employer_profile.update_password',
-      'notifications.view',
-      'notifications.mark_read',
-      'applicant-profiles.view',
-      'applicant-profiles.view.any',
-      'applicant-profiles.show',
-      'applicant-profiles.filter',
-      'applicant-profiles.export',
-      'applicant-profiles.stats',
-      'applicant-profiles.download_cv',
-    ];
-
-    foreach ($hrManagerPermissionSlugs as $slug) {
-      $permId = DB::table('permissions')->where('slug', $slug)->value('id');
-      if ($permId) {
-        DB::table('role_permissions')->updateOrInsert(
-          ['role_id' => $hrManagerRoleId, 'permission_id' => $permId],
-          ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
-        );
-      }
-    }
-
-    // Recruiter permissions (existing)
-    $recruiterPermissionSlugs = [
-      'dashboard.view',
-      'job_listings.view',
-      'job_listings.create',
-      'job_listings.store',
-      'job_listings.edit',
-      'job_listings.update',
-      'job_listings.show',
-      'job.view.any',
-      'job.view.own',
-      'applications.view',
-      'applications.view.for_own_jobs',
-      'applications.show',
-      'applications.status.update',
-      'applications.download_resume',
-      'application.view.own',
-      'application.shortlist',
-      'categories.view',
-      'locations.view',
-      'employer_profile.view',
-      'employer_profile.edit',
-      'employer_profile.update',
-      'employer_profile.update_password',
-      'notifications.view',
-      'applicant-profiles.view',
-      'applicant-profiles.show',
-      'applicant-profiles.filter',
-      'applicant-profiles.download_cv',
-    ];
-
-    foreach ($recruiterPermissionSlugs as $slug) {
-      $permId = DB::table('permissions')->where('slug', $slug)->value('id');
-      if ($permId) {
-        DB::table('role_permissions')->updateOrInsert(
-          ['role_id' => $recruiterRoleId, 'permission_id' => $permId],
-          ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
-        );
-      }
-    }
-
-    // Job Seeker permissions (existing)
-    $jobSeekerPermissionSlugs = [
-      'dashboard.view',
-      'dashboard.job_seeker',
-      'public_jobs.view',
-      'public_jobs.show',
-      'public_jobs.popular',
-      'public_jobs.trending',
-      'public_jobs.bookmark',
-      'public_jobs.share',
-      'public_jobs.print',
-      'job.view.any',
-      'apply.view',
-      'apply.view.own',
-      'apply.create',
-      'apply.store',
-      'apply.show',
-      'apply.edit',
-      'apply.update',
-      'apply.destroy',
-      'apply.restore',
-      'apply.recalculate_ats',
-      'apply.ats_status',
-      'application.view.own',
-      'applicant-profiles.view',
-      'applicant-profiles.view.own',
-      'applicant-profiles.show',
-      'applicant-profiles.create',
-      'applicant-profiles.store',
-      'applicant-profiles.edit',
-      'applicant-profiles.update',
-      'applicant-profiles.destroy',
-      'applicant-profiles.upload_cv',
-      'applicant-profiles.delete_cv',
-      'applicant-profiles.set_primary_cv',
-      'applicant-profiles.download_cv',
-      'applicant-profiles.upload_photo',
-      'applicant-profiles.delete_photo',
-      'applicant-profiles.completion_view',
-      'applicant-profiles.completion_update',
-      'profiles.view.own',
-      'profiles.show',
-      'profiles.edit.own',
-      'profiles.edit_basic',
-      'profiles.edit_professional',
-      'profiles.edit_work',
-      'profiles.edit_education',
-      'profiles.edit_achievements',
-      'profiles.update_basic',
-      'profiles.update_professional',
-      'profiles.update_work',
-      'profiles.update_education',
-      'profiles.update_achievements',
-      'profiles.destroy',
-      'profiles.restore',
-      'profiles.upload_cv',
-      'profiles.destroy_cv',
-      'profiles.set_primary_cv',
-      'profiles.change_password',
-      'profiles.download_cv',
-      'profile_completion.show',
-      'profile_completion.store',
-      'profile_completion.upload_photo',
-      'profile_completion.delete_photo',
-      'profile_completion.upload_cv',
-      'profile_completion.destroy_cv',
-      'profile_completion.set_primary_cv',
-      'notifications.view',
-      'notification.view',
-      'notifications.mark_read',
-      'notifications.mark_all_read',
-    ];
-
-    foreach ($jobSeekerPermissionSlugs as $slug) {
-      $permId = DB::table('permissions')->where('slug', $slug)->value('id');
-      if ($permId) {
-        DB::table('role_permissions')->updateOrInsert(
-          ['role_id' => $jobSeekerRoleId, 'permission_id' => $permId],
-          ['granted' => true, 'created_at' => now(), 'updated_at' => now()]
-        );
-      }
-    }
+    // JOB SEEKER - NO permissions
 
     // ==========================================
     // 4. SET ROLE MODULE ACCESS
@@ -978,12 +583,8 @@ class RBACSeeder extends Seeder
     DB::table('role_module_access')->whereIn('role_id', [
       $superAdminRoleId,
       $adminRoleId,
-      $employerAdminRoleId,
-      $hrManagerRoleId,
-      $recruiterRoleId,
-      $cmsAdminRoleId,
-      $cmsEditorRoleId,
-      $jobSeekerRoleId,
+      $employerRoleId,
+      $jobSeekerRoleId
     ])->delete();
 
     $moduleAccess = [
@@ -1000,22 +601,16 @@ class RBACSeeder extends Seeder
       ['role_id' => $superAdminRoleId, 'module' => 'job_listings', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'public_jobs', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'applications', 'access_level' => 'manage'],
-      ['role_id' => $superAdminRoleId, 'module' => 'apply', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'categories', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'locations', 'access_level' => 'manage'],
-      ['role_id' => $superAdminRoleId, 'module' => 'profiles', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'applicant_profiles', 'access_level' => 'manage'],
-      ['role_id' => $superAdminRoleId, 'module' => 'profile_completion', 'access_level' => 'manage'],
+      ['role_id' => $superAdminRoleId, 'module' => 'profiles', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'admin_profile', 'access_level' => 'manage'],
-      ['role_id' => $superAdminRoleId, 'module' => 'admin', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'employer_profile', 'access_level' => 'manage'],
-      ['role_id' => $superAdminRoleId, 'module' => 'employer', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'notifications', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'roles', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'users', 'access_level' => 'manage'],
-      ['role_id' => $superAdminRoleId, 'module' => 'permissions', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'statistics', 'access_level' => 'manage'],
-      ['role_id' => $superAdminRoleId, 'module' => 'reports', 'access_level' => 'manage'],
 
       // Admin - Full Access
       ['role_id' => $adminRoleId, 'module' => 'dashboard', 'access_level' => 'manage'],
@@ -1030,91 +625,35 @@ class RBACSeeder extends Seeder
       ['role_id' => $adminRoleId, 'module' => 'job_listings', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'public_jobs', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'applications', 'access_level' => 'manage'],
-      ['role_id' => $adminRoleId, 'module' => 'apply', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'categories', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'locations', 'access_level' => 'manage'],
-      ['role_id' => $adminRoleId, 'module' => 'profiles', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'applicant_profiles', 'access_level' => 'manage'],
-      ['role_id' => $adminRoleId, 'module' => 'profile_completion', 'access_level' => 'manage'],
+      ['role_id' => $adminRoleId, 'module' => 'profiles', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'admin_profile', 'access_level' => 'manage'],
-      ['role_id' => $adminRoleId, 'module' => 'admin', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'employer_profile', 'access_level' => 'manage'],
-      ['role_id' => $adminRoleId, 'module' => 'employer', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'notifications', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'roles', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'users', 'access_level' => 'manage'],
-      ['role_id' => $adminRoleId, 'module' => 'permissions', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'statistics', 'access_level' => 'manage'],
-      ['role_id' => $adminRoleId, 'module' => 'reports', 'access_level' => 'manage'],
 
-      // CMS Admin - Full CMS Access
-      ['role_id' => $cmsAdminRoleId, 'module' => 'dashboard', 'access_level' => 'read'],
-      ['role_id' => $cmsAdminRoleId, 'module' => 'cms', 'access_level' => 'manage'],
-      ['role_id' => $cmsAdminRoleId, 'module' => 'pages', 'access_level' => 'write'],
-      ['role_id' => $cmsAdminRoleId, 'module' => 'about', 'access_level' => 'write'],
-      ['role_id' => $cmsAdminRoleId, 'module' => 'blogs', 'access_level' => 'write'],
-      ['role_id' => $cmsAdminRoleId, 'module' => 'programs', 'access_level' => 'write'],
-      ['role_id' => $cmsAdminRoleId, 'module' => 'custom_sections', 'access_level' => 'write'],
-      ['role_id' => $cmsAdminRoleId, 'module' => 'shared_data', 'access_level' => 'write'],
-      ['role_id' => $cmsAdminRoleId, 'module' => 'sections', 'access_level' => 'write'],
-      ['role_id' => $cmsAdminRoleId, 'module' => 'categories', 'access_level' => 'read'],
-      ['role_id' => $cmsAdminRoleId, 'module' => 'locations', 'access_level' => 'read'],
-      ['role_id' => $cmsAdminRoleId, 'module' => 'notifications', 'access_level' => 'read'],
+      // Employer - Employment Related
+      ['role_id' => $employerRoleId, 'module' => 'dashboard', 'access_level' => 'write'],
+      ['role_id' => $employerRoleId, 'module' => 'job_listings', 'access_level' => 'write'],
+      ['role_id' => $employerRoleId, 'module' => 'applications', 'access_level' => 'write'],
+      ['role_id' => $employerRoleId, 'module' => 'categories', 'access_level' => 'read'],
+      ['role_id' => $employerRoleId, 'module' => 'locations', 'access_level' => 'read'],
+      ['role_id' => $employerRoleId, 'module' => 'employer_profile', 'access_level' => 'write'],
+      ['role_id' => $employerRoleId, 'module' => 'notifications', 'access_level' => 'write'],
+      ['role_id' => $employerRoleId, 'module' => 'statistics', 'access_level' => 'read'],
+      ['role_id' => $employerRoleId, 'module' => 'applicant_profiles', 'access_level' => 'read'],
 
-      // CMS Editor - Limited CMS Access
-      ['role_id' => $cmsEditorRoleId, 'module' => 'dashboard', 'access_level' => 'read'],
-      ['role_id' => $cmsEditorRoleId, 'module' => 'cms', 'access_level' => 'write'],
-      ['role_id' => $cmsEditorRoleId, 'module' => 'pages', 'access_level' => 'write'],
-      ['role_id' => $cmsEditorRoleId, 'module' => 'about', 'access_level' => 'write'],
-      ['role_id' => $cmsEditorRoleId, 'module' => 'blogs', 'access_level' => 'write'],
-      ['role_id' => $cmsEditorRoleId, 'module' => 'programs', 'access_level' => 'write'],
-      ['role_id' => $cmsEditorRoleId, 'module' => 'custom_sections', 'access_level' => 'write'],
-      ['role_id' => $cmsEditorRoleId, 'module' => 'shared_data', 'access_level' => 'write'],
-      ['role_id' => $cmsEditorRoleId, 'module' => 'sections', 'access_level' => 'write'],
-      ['role_id' => $cmsEditorRoleId, 'module' => 'categories', 'access_level' => 'read'],
-      ['role_id' => $cmsEditorRoleId, 'module' => 'locations', 'access_level' => 'read'],
-      ['role_id' => $cmsEditorRoleId, 'module' => 'notifications', 'access_level' => 'read'],
-
-      // Employer Admin - Existing
-      ['role_id' => $employerAdminRoleId, 'module' => 'dashboard', 'access_level' => 'write'],
-      ['role_id' => $employerAdminRoleId, 'module' => 'job_listings', 'access_level' => 'write'],
-      ['role_id' => $employerAdminRoleId, 'module' => 'applications', 'access_level' => 'write'],
-      ['role_id' => $employerAdminRoleId, 'module' => 'categories', 'access_level' => 'read'],
-      ['role_id' => $employerAdminRoleId, 'module' => 'locations', 'access_level' => 'read'],
-      ['role_id' => $employerAdminRoleId, 'module' => 'employer_profile', 'access_level' => 'write'],
-      ['role_id' => $employerAdminRoleId, 'module' => 'notifications', 'access_level' => 'write'],
-      ['role_id' => $employerAdminRoleId, 'module' => 'statistics', 'access_level' => 'read'],
-      ['role_id' => $employerAdminRoleId, 'module' => 'reports', 'access_level' => 'read'],
-      ['role_id' => $employerAdminRoleId, 'module' => 'applicant_profiles', 'access_level' => 'write'],
-
-      // HR Manager - Existing
-      ['role_id' => $hrManagerRoleId, 'module' => 'dashboard', 'access_level' => 'write'],
-      ['role_id' => $hrManagerRoleId, 'module' => 'job_listings', 'access_level' => 'write'],
-      ['role_id' => $hrManagerRoleId, 'module' => 'applications', 'access_level' => 'write'],
-      ['role_id' => $hrManagerRoleId, 'module' => 'categories', 'access_level' => 'read'],
-      ['role_id' => $hrManagerRoleId, 'module' => 'locations', 'access_level' => 'read'],
-      ['role_id' => $hrManagerRoleId, 'module' => 'employer_profile', 'access_level' => 'write'],
-      ['role_id' => $hrManagerRoleId, 'module' => 'notifications', 'access_level' => 'read'],
-      ['role_id' => $hrManagerRoleId, 'module' => 'applicant_profiles', 'access_level' => 'write'],
-
-      // Recruiter - Existing
-      ['role_id' => $recruiterRoleId, 'module' => 'dashboard', 'access_level' => 'read'],
-      ['role_id' => $recruiterRoleId, 'module' => 'job_listings', 'access_level' => 'write'],
-      ['role_id' => $recruiterRoleId, 'module' => 'applications', 'access_level' => 'write'],
-      ['role_id' => $recruiterRoleId, 'module' => 'categories', 'access_level' => 'read'],
-      ['role_id' => $recruiterRoleId, 'module' => 'locations', 'access_level' => 'read'],
-      ['role_id' => $recruiterRoleId, 'module' => 'employer_profile', 'access_level' => 'write'],
-      ['role_id' => $recruiterRoleId, 'module' => 'notifications', 'access_level' => 'read'],
-      ['role_id' => $recruiterRoleId, 'module' => 'applicant_profiles', 'access_level' => 'read'],
-
-      // Job Seeker - Existing
-      ['role_id' => $jobSeekerRoleId, 'module' => 'dashboard', 'access_level' => 'read'],
-      ['role_id' => $jobSeekerRoleId, 'module' => 'public_jobs', 'access_level' => 'read'],
-      ['role_id' => $jobSeekerRoleId, 'module' => 'apply', 'access_level' => 'write'],
-      ['role_id' => $jobSeekerRoleId, 'module' => 'profiles', 'access_level' => 'write'],
-      ['role_id' => $jobSeekerRoleId, 'module' => 'applicant_profiles', 'access_level' => 'write'],
-      ['role_id' => $jobSeekerRoleId, 'module' => 'profile_completion', 'access_level' => 'write'],
-      ['role_id' => $jobSeekerRoleId, 'module' => 'notifications', 'access_level' => 'read'],
+      // Job Seeker - NO ACCESS
+      ['role_id' => $jobSeekerRoleId, 'module' => 'dashboard', 'access_level' => 'no_access'],
+      ['role_id' => $jobSeekerRoleId, 'module' => 'public_jobs', 'access_level' => 'no_access'],
+      ['role_id' => $jobSeekerRoleId, 'module' => 'apply', 'access_level' => 'no_access'],
+      ['role_id' => $jobSeekerRoleId, 'module' => 'profiles', 'access_level' => 'no_access'],
+      ['role_id' => $jobSeekerRoleId, 'module' => 'applicant_profiles', 'access_level' => 'no_access'],
+      ['role_id' => $jobSeekerRoleId, 'module' => 'notifications', 'access_level' => 'no_access'],
     ];
 
     foreach ($moduleAccess as $access) {
@@ -1136,14 +675,8 @@ class RBACSeeder extends Seeder
         $roleSlug = 'super-admin';
       } elseif ($user->email === 'admin@jobportal.com') {
         $roleSlug = 'admin';
-      } elseif ($user->email === 'hrmanager@company.com') {
-        $roleSlug = 'hr-manager';
-      } elseif ($user->email === 'cmsadmin@jobportal.com') {
-        $roleSlug = 'cms-admin';
-      } elseif ($user->email === 'cmseditor@jobportal.com') {
-        $roleSlug = 'cms-editor';
       } elseif (str_contains($user->email, '@company.com')) {
-        $roleSlug = 'employer-admin';
+        $roleSlug = 'employer';
       }
 
       $roleId = DB::table('roles')->where('slug', $roleSlug)->value('id');

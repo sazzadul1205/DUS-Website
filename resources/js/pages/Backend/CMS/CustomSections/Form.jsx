@@ -125,8 +125,8 @@ export default function CustomSectionForm({ custom_section = null, pages }) {
     };
 
     const url = isEdit
-      ? route('cms.custom-sections.update', custom_section.id)
-      : route('cms.custom-sections.store');
+      ? route('backend.cms.custom-sections.update', custom_section.id)
+      : route('backend.cms.custom-sections.store');
 
     const method = isEdit ? 'put' : 'post';
 
@@ -140,7 +140,7 @@ export default function CustomSectionForm({ custom_section = null, pages }) {
           timer: 1500,
           showConfirmButton: false,
         });
-        router.visit(route('cms.custom-sections'));
+        router.visit(route('backend.cms.custom-sections'));
       },
       onError: (error) => {
         if (error.response?.data?.errors) {
@@ -175,7 +175,7 @@ export default function CustomSectionForm({ custom_section = null, pages }) {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Link
-                  href={route('cms.custom-sections')}
+                  href={route('backend.cms.custom-sections')}
                   className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group"
                 >
                   <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" size={14} />
@@ -292,7 +292,7 @@ export default function CustomSectionForm({ custom_section = null, pages }) {
               {/* Form Actions */}
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
                 <Link
-                  href={route('cms.custom-sections')}
+                  href={route('backend.cms.custom-sections')}
                   className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 font-medium"
                 >
                   Cancel

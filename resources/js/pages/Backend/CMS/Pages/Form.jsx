@@ -91,8 +91,8 @@ export default function PageForm({ page = null }) {
     setIsSubmitting(true);
 
     const url = isEdit
-      ? route('cms.pages.update', page.id)
-      : route('cms.pages.store');
+      ? route('backend.cms.pages.update', page.id)
+      : route('backend.cms.pages.store');
 
     const method = isEdit ? 'put' : 'post';
 
@@ -106,7 +106,7 @@ export default function PageForm({ page = null }) {
           timer: 1500,
           showConfirmButton: false,
         });
-        router.visit(route('cms.pages'));
+        router.visit(route('backend.cms.pages'));
       },
       onError: (error) => {
         if (error.response?.data?.errors) {
@@ -134,7 +134,7 @@ export default function PageForm({ page = null }) {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Link
-                  href={route('cms.pages')}
+                  href={route('backend.cms.pages')}
                   className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group"
                 >
                   <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" size={14} />
@@ -245,7 +245,7 @@ export default function PageForm({ page = null }) {
               {/* Form Actions */}
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
                 <Link
-                  href={route('cms.pages')}
+                  href={route('backend.cms.pages')}
                   className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 font-medium"
                 >
                   Cancel

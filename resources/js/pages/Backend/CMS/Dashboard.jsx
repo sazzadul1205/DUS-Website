@@ -33,13 +33,13 @@ export default function Dashboard({ stats }) {
 
   // Check if user has permission to view CMS
   const canViewCMS = hasAnyPermission([
-    'cms.dashboard',
-    'cms.pages',
-    'cms.blogs',
-    'cms.programs',
-    'cms.about',
-    'cms.shared-data',
-    'cms.custom-sections'
+    'backend.backend.cms.dashboard',
+    'backend.cms.pages',
+    'backend.cms.blogs',
+    'backend.cms.programs',
+    'backend.cms.about',
+    'backend.cms.shared-data',
+    'backend.cms.custom-sections'
   ]);
 
   // If user doesn't have permission, show access denied
@@ -53,7 +53,7 @@ export default function Dashboard({ stats }) {
               <FaShieldAlt className="w-10 h-10 text-red-500" />
             </div>
             <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
-            <p className="text-gray-500 mt-2">You don't have permission to access the CMS.</p>
+            <p className="text-gray-500 mt-2">You don't have permission to access the backend.cms.</p>
           </div>
         </div>
       </AuthenticatedLayout>
@@ -69,7 +69,7 @@ export default function Dashboard({ stats }) {
       active: stats.active_pages || 0,
       icon: FaFileAlt,
       color: 'blue',
-      route: route('cms.pages'),
+      route: route('backend.cms.pages'),
     },
     {
       key: 'blogs',
@@ -78,7 +78,7 @@ export default function Dashboard({ stats }) {
       active: stats.active_blogs || 0,
       icon: FaNewspaper,
       color: 'green',
-      route: route('cms.blogs'),
+      route: route('backend.cms.blogs'),
     },
     {
       key: 'programs',
@@ -87,7 +87,7 @@ export default function Dashboard({ stats }) {
       active: stats.active_programs || 0,
       icon: FaBriefcase,
       color: 'purple',
-      route: route('cms.programs'),
+      route: route('backend.cms.programs'),
     },
     {
       key: 'about',
@@ -96,7 +96,7 @@ export default function Dashboard({ stats }) {
       active: stats.active_about_contents || 0,
       icon: FaUsers,
       color: 'orange',
-      route: route('cms.about'),
+      route: route('backend.cms.about'),
     },
     {
       key: 'shared',
@@ -104,7 +104,7 @@ export default function Dashboard({ stats }) {
       count: stats.shared_data || 0,
       icon: FaDatabase,
       color: 'teal',
-      route: route('cms.shared-data'),
+      route: route('backend.cms.shared-data'),
     },
     {
       key: 'custom',
@@ -112,7 +112,7 @@ export default function Dashboard({ stats }) {
       count: stats.custom_sections || 0,
       icon: FaCog,
       color: 'indigo',
-      route: route('cms.custom-sections'),
+      route: route('backend.cms.custom-sections'),
     },
   ];
 
@@ -193,25 +193,25 @@ export default function Dashboard({ stats }) {
               </h2>
               <div className="grid grid-cols-2 gap-3">
                 <a
-                  href={route('cms.pages.create')}
+                  href={route('backend.cms.pages.create')}
                   className="px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-all duration-200 text-sm font-medium text-center"
                 >
                   Create Page
                 </a>
                 <a
-                  href={route('cms.blogs.create')}
+                  href={route('backend.cms.blogs.create')}
                   className="px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-all duration-200 text-sm font-medium text-center"
                 >
                   Add Blog
                 </a>
                 <a
-                  href={route('cms.programs.create')}
+                  href={route('backend.cms.programs.create')}
                   className="px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-all duration-200 text-sm font-medium text-center"
                 >
                   Create Program
                 </a>
                 <a
-                  href={route('cms.about.create')}
+                  href={route('backend.cms.about.create')}
                   className="px-4 py-3 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-all duration-200 text-sm font-medium text-center"
                 >
                   Add About Content

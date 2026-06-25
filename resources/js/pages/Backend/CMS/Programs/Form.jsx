@@ -99,8 +99,8 @@ export default function ProgramForm({ program = null }) {
     setIsSubmitting(true);
 
     const url = isEdit
-      ? route('cms.programs.update', program.id)
-      : route('cms.programs.store');
+      ? route('backend.cms.programs.update', program.id)
+      : route('backend.cms.programs.store');
 
     const method = isEdit ? 'put' : 'post';
 
@@ -114,7 +114,7 @@ export default function ProgramForm({ program = null }) {
           timer: 1500,
           showConfirmButton: false,
         });
-        router.visit(route('cms.programs'));
+        router.visit(route('backend.cms.programs'));
       },
       onError: (error) => {
         if (error.response?.data?.errors) {
@@ -142,7 +142,7 @@ export default function ProgramForm({ program = null }) {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Link
-                  href={route('cms.programs')}
+                  href={route('backend.cms.programs')}
                   className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group"
                 >
                   <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" size={14} />
@@ -348,7 +348,7 @@ export default function ProgramForm({ program = null }) {
               {/* Form Actions */}
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
                 <Link
-                  href={route('cms.programs')}
+                  href={route('backend.cms.programs')}
                   className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 font-medium"
                 >
                   Cancel

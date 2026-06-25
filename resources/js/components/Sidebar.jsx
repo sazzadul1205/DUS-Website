@@ -61,14 +61,27 @@ const Sidebar = () => {
     jobs: false, applications: false, employerJobs: false,
     employerApps: false, adminJobs: false, adminApps: false,
     adminRoles: false, adminApplicants: false,
-    cms: false, // CMS dropdown state
+    cms: false,
   });
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // ===== PERMISSION HELPERS =====
   const hasRole = (slug) => userRoles.some(r => r.slug === slug);
-  const hasPermission = (slug) => userPermissions?.includes(slug) || false;
-  const hasAnyPermission = (slugs) => slugs?.some(s => hasPermission(s)) || false;
+
+  // ✅ FIXED: Super Admin and Admin have ALL permissions
+  const hasPermission = (slug) => {
+    // Super Admin and Admin have all permissions
+    if (hasRole('super-admin')) return true;
+    if (hasRole('admin')) return true;
+    return userPermissions?.includes(slug) || false;
+  };
+
+  const hasAnyPermission = (slugs) => {
+    // Super Admin and Admin have all permissions
+    if (hasRole('super-admin')) return true;
+    if (hasRole('admin')) return true;
+    return slugs?.some(s => hasPermission(s)) || false;
+  };
 
   // ===== ROUTE ACTIVE STATE HELPERS =====
 
@@ -83,15 +96,12 @@ const Sidebar = () => {
       const normalizedAliases = (aliasPaths || []).filter(Boolean).map(normalizeUrl);
       const normalizedExcludes = (options?.excludePaths || []).filter(Boolean).map(normalizeUrl);
 
-      // Check excludes
       if (normalizedExcludes.some(ex => normalizedUrl === ex || normalizedUrl.startsWith(ex))) {
         return false;
       }
 
-      // Exact match
       if (options?.exact) return normalizedUrl === normalizedRoute;
 
-      // Match route or aliases
       return normalizedUrl === normalizedRoute ||
         normalizedAliases.some(alias => normalizedUrl === alias || normalizedUrl.startsWith(alias)) ||
         (normalizedRoute !== '/' && normalizedUrl.startsWith(normalizedRoute));
@@ -185,12 +195,10 @@ const Sidebar = () => {
   const employerItems = useMemo(() => {
     const items = [];
 
-    // Dashboard
     if (hasPermission('dashboard.employer')) {
       items.push({ name: 'Dashboard', routeName: 'backend.dashboard', icon: Icons.FiHome });
     }
 
-    // Job Listings Dropdown
     if (hasAnyPermission(['job.create', 'job.view.own', 'job.edit.own'])) {
       const subItems = [];
       if (hasAnyPermission(['job.view.own', 'job.view.any'])) subItems.push({ name: 'All Jobs', routeName: 'backend.listing.index', activeExclude: ['/backend/listing/create'], icon: Icons.FiList });
@@ -202,7 +210,6 @@ const Sidebar = () => {
       if (subItems.length) items.push({ name: 'Job Listings', icon: Icons.FiBriefcase, isDropdown: true, dropdownKey: 'employerJobs', subItems });
     }
 
-    // Applications Dropdown
     if (hasAnyPermission(['application.view.for_own_jobs', 'application.view.any'])) {
       const subItems = [];
       if (hasAnyPermission(['application.view.for_own_jobs', 'application.view.any'])) subItems.push({ name: 'All Applications', href: '/backend/applications', matchQuery: true, icon: Icons.FiUsers });
@@ -215,7 +222,6 @@ const Sidebar = () => {
       if (subItems.length) items.push({ name: 'Applications', icon: Icons.FiFileText, isDropdown: true, dropdownKey: 'employerApps', subItems });
     }
 
-    // Company & Profile
     if (hasPermission('employer_profile.edit')) items.push({ name: 'Company Profile', routeName: 'backend.employer.profile.edit', icon: HiOutlineBuildingOffice2 });
     if (hasApplicantProfile && hasPermission('profiles.view.own')) items.push({ name: 'My Job Seeker Profile', routeName: 'backend.applicant.profile.show', icon: Icons.FiUser });
     if (hasPermission('notification.view')) items.push({ name: 'Notifications', routeName: 'backend.notifications.index', icon: Icons.FiBell, badgeCount: notificationMeta.unread_count });
@@ -227,10 +233,8 @@ const Sidebar = () => {
   const adminItems = useMemo(() => {
     const items = [];
 
-    // Dashboard
     if (hasPermission('dashboard.admin')) items.push({ name: 'Dashboard', routeName: 'backend.dashboard', icon: Icons.FiHome });
 
-    // Jobs Management Dropdown
     if (hasAnyPermission(['job.view.any', 'job.create', 'category.view', 'location.view', 'statistics.view'])) {
       const subItems = [];
       if (hasPermission('job.view.any')) subItems.push({ name: 'All Jobs', routeName: 'backend.listing.index', activeExclude: ['/backend/listing/create'], icon: Icons.FiList });
@@ -241,12 +245,10 @@ const Sidebar = () => {
       if (subItems.length) items.push({ name: 'Jobs Management', icon: Icons.FiBriefcase, isDropdown: true, dropdownKey: 'adminJobs', subItems });
     }
 
-    // Applicant Profiles
     if (hasAnyPermission(['profiles.view.any', 'applicant-profiles.manage'])) {
       items.push({ name: 'Applicant Profiles', routeName: 'backend.applicant-profile.index', icon: Icons.FiUsers });
     }
 
-    // Applications Dropdown
     if (hasAnyPermission(['application.view.any', 'application.shortlist', 'application.reject'])) {
       const subItems = [];
       if (hasPermission('application.view.any')) {
@@ -259,12 +261,10 @@ const Sidebar = () => {
       if (subItems.length) items.push({ name: 'Applications', icon: Icons.FiFileText, isDropdown: true, dropdownKey: 'adminApps', subItems });
     }
 
-    // Users Management
     if (hasAnyPermission(['user.view', 'user.create', 'user.edit'])) {
       items.push({ name: 'Users Management', routeName: 'backend.users.index', icon: Icons.FiUsers });
     }
 
-    // Roles & Permissions Dropdown
     if (hasAnyPermission(['role.view', 'role.create', 'role.edit', 'role.delete'])) {
       const subItems = [];
       if (hasPermission('role.view')) subItems.push({ name: 'All Roles', routeName: 'backend.roles.index', icon: Icons.FiKey, exact: true });
@@ -273,14 +273,13 @@ const Sidebar = () => {
       if (subItems.length) items.push({ name: 'Roles & Permissions', icon: Icons.FiShield, isDropdown: true, dropdownKey: 'adminRoles', subItems });
     }
 
-    // CMS Management Dropdown
+    // ✅ CMS Management Dropdown - Now Super Admin will see this
     if (hasAnyPermission([
       'cms.dashboard', 'cms.pages', 'cms.about', 'cms.blogs',
       'cms.programs', 'cms.custom-sections', 'cms.shared-data'
     ])) {
       const cmsSubItems = [];
 
-      // Dashboard
       if (hasPermission('cms.dashboard')) {
         cmsSubItems.push({
           name: 'Dashboard',
@@ -289,7 +288,6 @@ const Sidebar = () => {
         });
       }
 
-      // Pages
       if (hasAnyPermission(['pages.view', 'pages.manage'])) {
         cmsSubItems.push({
           name: 'Pages',
@@ -298,7 +296,6 @@ const Sidebar = () => {
         });
       }
 
-      // About Content
       if (hasAnyPermission(['about.view', 'about.manage'])) {
         cmsSubItems.push({
           name: 'About Content',
@@ -307,7 +304,6 @@ const Sidebar = () => {
         });
       }
 
-      // Blogs
       if (hasAnyPermission(['blogs.view', 'blogs.manage'])) {
         cmsSubItems.push({
           name: 'Blogs',
@@ -316,7 +312,6 @@ const Sidebar = () => {
         });
       }
 
-      // Programs
       if (hasAnyPermission(['programs.view', 'programs.manage'])) {
         cmsSubItems.push({
           name: 'Programs',
@@ -325,7 +320,6 @@ const Sidebar = () => {
         });
       }
 
-      // Custom Sections
       if (hasAnyPermission(['custom-sections.view', 'custom-sections.manage'])) {
         cmsSubItems.push({
           name: 'Custom Sections',
@@ -334,7 +328,6 @@ const Sidebar = () => {
         });
       }
 
-      // Shared Data
       if (hasAnyPermission(['shared-data.view', 'shared-data.manage'])) {
         cmsSubItems.push({
           name: 'Shared Data',
@@ -354,7 +347,6 @@ const Sidebar = () => {
       }
     }
 
-    // Profile & Settings
     if (hasApplicantProfile && hasPermission('profiles.view.own')) items.push({ name: 'My Job Seeker Profile', routeName: 'backend.applicant.profile.show', icon: Icons.FiUser });
     if (hasAnyPermission(['admin_profile.edit', 'admin_profile.update'])) items.push({ name: 'Admin Settings', routeName: 'backend.admin-profile.edit', icon: Icons.FiSettings });
     if (hasPermission('notification.view')) items.push({ name: 'Notifications', routeName: 'backend.notifications.index', icon: Icons.FiBell, badgeCount: notificationMeta.unread_count });
@@ -373,12 +365,10 @@ const Sidebar = () => {
     return jobSeekerItems;
   }, [userRoles, userPermissions, adminItems, employerItems, jobSeekerItems]);
 
-  // If no menu items, return null
   if (!menuItems.length) return null;
 
   // ===== RENDER HELPERS =====
 
-  /** Render a sub-menu item (inside dropdown) */
   const renderSubMenuItem = (subItem) => {
     const isActive = subItem.routeName
       ? isRouteActive(subItem.routeName, subItem.routeParams || {}, subItem.activeAliases || [], {
@@ -403,9 +393,7 @@ const Sidebar = () => {
     );
   };
 
-  /** Render a main menu item (link or dropdown) */
   const renderMenuItem = (item) => {
-    // Dropdown Menu
     if (item.isDropdown) {
       const isOpen = openMenus[item.dropdownKey];
       const isActive = isDropdownActive(item.subItems);
@@ -432,7 +420,6 @@ const Sidebar = () => {
       );
     }
 
-    // Regular Link
     const isActive = item.routeName
       ? isRouteActive(item.routeName, item.routeParams || {}, item.activeAliases || [], { exact: item.exact, excludePaths: item.activeExclude })
       : isPathActive(item.href);
@@ -456,7 +443,6 @@ const Sidebar = () => {
     );
   };
 
-  /** Get user's primary role display name */
   const getPrimaryRoleName = () => {
     if (hasRole('super-admin')) return 'Super Administrator';
     if (hasRole('admin')) return 'Administrator';
@@ -466,6 +452,23 @@ const Sidebar = () => {
     if (hasRole('job-seeker')) return 'Job Seeker';
     return 'User';
   };
+
+
+  // ===== DEBUG LOGGING =====
+  console.log('=== SIDEBAR DEBUG ===');
+  console.log('User Roles:', userRoles);
+  console.log('User Permissions:', userPermissions);
+  console.log('Has Role super-admin:', hasRole('super-admin'));
+  console.log('Has Role admin:', hasRole('admin'));
+  console.log('Has Permission cms.dashboard:', hasPermission('cms.dashboard'));
+  console.log('Has Any Permission CMS:', hasAnyPermission([
+    'cms.dashboard', 'cms.pages', 'cms.about', 'cms.blogs',
+    'cms.programs', 'cms.custom-sections', 'cms.shared-data'
+  ]));
+  console.log('Primary Role:', primaryRole);
+  console.log('Admin Items:', adminItems);
+  console.log('Menu Items:', menuItems);
+  console.log('=====================');
 
   // ===== MAIN RENDER =====
   return (

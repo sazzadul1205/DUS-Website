@@ -108,8 +108,8 @@ export default function BlogForm({ blog = null }) {
     setIsSubmitting(true);
 
     const url = isEdit
-      ? route('cms.blogs.update', blog.id)
-      : route('cms.blogs.store');
+      ? route('backend.cms.blogs.update', blog.id)
+      : route('backend.cms.blogs.store');
 
     const method = isEdit ? 'put' : 'post';
 
@@ -123,7 +123,7 @@ export default function BlogForm({ blog = null }) {
           timer: 1500,
           showConfirmButton: false,
         });
-        router.visit(route('cms.blogs'));
+        router.visit(route('backend.cms.blogs'));
       },
       onError: (error) => {
         if (error.response?.data?.errors) {
@@ -151,7 +151,7 @@ export default function BlogForm({ blog = null }) {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Link
-                  href={route('cms.blogs')}
+                  href={route('backend.cms.blogs')}
                   className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors group"
                 >
                   <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" size={14} />
@@ -372,7 +372,7 @@ export default function BlogForm({ blog = null }) {
               {/* Form Actions */}
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
                 <Link
-                  href={route('cms.blogs')}
+                  href={route('backend.cms.blogs')}
                   className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 font-medium"
                 >
                   Cancel

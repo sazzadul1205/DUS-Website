@@ -36,6 +36,8 @@ import {
 } from "react-icons/md";
 import { FaSearchLocation } from "react-icons/fa";
 import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
+// ✅ CMS ICONS
+import { FaFileAlt, FaNewspaper, FaBriefcase as FaBriefcaseSolid, FaUsers, FaDatabase, FaCog, FaLayerGroup } from 'react-icons/fa';
 
 const AdminLayout = ({ children }) => {
   const { url, props } = usePage();
@@ -51,24 +53,27 @@ const AdminLayout = ({ children }) => {
     adminApps: false,
     adminRoles: false,
     adminApplicants: false,
+    cms: false, // ✅ CMS DROPDOWN STATE
   });
 
   // Get user's roles and permissions
   const userRoles = user?.roles || [];
   const userPermissions = user?.permissions || [];
 
-  // Check if user has specific role
+  // ✅ FIX: Super Admin and Admin have ALL permissions
   const hasRole = (roleSlug) => {
     return userRoles.some(role => role.slug === roleSlug);
   };
 
-  // Check if user has specific permission
   const hasPermission = (permissionSlug) => {
+    // Super Admin and Admin have all permissions
+    if (hasRole('super-admin') || hasRole('admin')) return true;
     return userPermissions?.includes(permissionSlug) || false;
   };
 
-  // Check if user has ANY of the given permissions
   const hasAnyPermission = (permissionSlugs) => {
+    // Super Admin and Admin have all permissions
+    if (hasRole('super-admin') || hasRole('admin')) return true;
     if (!permissionSlugs || permissionSlugs.length === 0) return false;
     return permissionSlugs.some(slug => hasPermission(slug));
   };
@@ -115,6 +120,16 @@ const AdminLayout = ({ children }) => {
     if (!path || path === '#') return false;
     const normalizedUrl = normalizeUrl(url);
     const normalizedPath = normalizeUrl(path);
+
+    // Special handling for CMS routes
+    if (normalizedPath.includes('/backend/admin')) {
+      // For CMS routes, check if the current URL starts with the path
+      if (path === '/backend/admin' && normalizedUrl === '/backend/admin') {
+        return true;
+      }
+      return normalizedUrl.startsWith(normalizedPath);
+    }
+
     if (normalizedUrl === normalizedPath) return true;
     if (normalizedPath !== '/' && normalizedUrl.startsWith(normalizedPath)) return true;
     return false;
@@ -180,12 +195,15 @@ const AdminLayout = ({ children }) => {
     const shouldOpenJobs = url.includes('/listing') || url.includes('/locations') || url.includes('/categories') || url.includes('/statistics');
     const shouldOpenApps = url.includes('/applications') || url.includes('/apply');
     const shouldOpenRoles = url.includes('/roles');
+    // Updated to match /backend/admin path
+    const shouldOpenCMS = url.includes('/backend/admin');
 
     setOpenMenus((prev) => ({
       ...prev,
       adminJobs: prev.adminJobs || shouldOpenJobs,
       adminApps: prev.adminApps || shouldOpenApps,
       adminRoles: prev.adminRoles || shouldOpenRoles,
+      cms: prev.cms || shouldOpenCMS,
     }));
   }, [url]);
 
@@ -221,7 +239,7 @@ const AdminLayout = ({ children }) => {
   };
 
   // ==========================================
-  // ADMIN/STAFF MENU ITEMS (NO JOB SEEKER LINKS)
+  // ADMIN/STAFF MENU ITEMS (WITH CMS)
   // ==========================================
   const menuItems = useMemo(() => {
     const items = [];
@@ -409,6 +427,140 @@ const AdminLayout = ({ children }) => {
       }
     }
 
+    // ✅ ==========================================
+    // ✅ CMS MANAGEMENT DROPDOWN - USING DIRECT URLs (FIXED)
+    // ✅ ==========================================
+    if (hasAnyPermission([
+      'cms.dashboard', 'pages.view', 'pages.manage',
+      'about.view', 'about.manage', 'blogs.view', 'blogs.manage',
+      'programs.view', 'programs.manage', 'custom-sections.view', 'custom-sections.manage',
+      'shared-data.view', 'shared-data.manage'
+    ])) {
+      const cmsSubItems = [];
+
+      // CMS Dashboard
+      if (hasPermission('cms.dashboard')) {
+        cmsSubItems.push({
+          name: 'CMS Dashboard',
+          href: '/backend/admin', // Direct URL
+          icon: FiHome,
+        });
+      }
+
+      // Pages
+      if (hasAnyPermission(['pages.view', 'pages.manage'])) {
+        cmsSubItems.push({
+          name: 'Pages',
+          href: '/backend/admin/pages',
+          icon: FaFileAlt,
+        });
+        if (hasPermission('pages.create')) {
+          cmsSubItems.push({
+            name: 'Create Page',
+            href: '/backend/admin/pages/create',
+            icon: FiPlusCircle,
+            highlight: true,
+          });
+        }
+      }
+
+      // About Content
+      if (hasAnyPermission(['about.view', 'about.manage'])) {
+        cmsSubItems.push({
+          name: 'About Content',
+          href: '/backend/admin/about',
+          icon: FaUsers,
+        });
+        if (hasPermission('about.create')) {
+          cmsSubItems.push({
+            name: 'Create About Content',
+            href: '/backend/admin/about/create',
+            icon: FiPlusCircle,
+            highlight: true,
+          });
+        }
+      }
+
+      // Blogs
+      if (hasAnyPermission(['blogs.view', 'blogs.manage'])) {
+        cmsSubItems.push({
+          name: 'Blogs',
+          href: '/backend/admin/blogs',
+          icon: FaNewspaper,
+        });
+        if (hasPermission('blogs.create')) {
+          cmsSubItems.push({
+            name: 'Create Blog',
+            href: '/backend/admin/blogs/create',
+            icon: FiPlusCircle,
+            highlight: true,
+          });
+        }
+      }
+
+      // Programs
+      if (hasAnyPermission(['programs.view', 'programs.manage'])) {
+        cmsSubItems.push({
+          name: 'Programs',
+          href: '/backend/admin/programs',
+          icon: FaBriefcaseSolid,
+        });
+        if (hasPermission('programs.create')) {
+          cmsSubItems.push({
+            name: 'Create Program',
+            href: '/backend/admin/programs/create',
+            icon: FiPlusCircle,
+            highlight: true,
+          });
+        }
+      }
+
+      // Custom Sections
+      if (hasAnyPermission(['custom-sections.view', 'custom-sections.manage'])) {
+        cmsSubItems.push({
+          name: 'Custom Sections',
+          href: '/backend/admin/custom-sections',
+          icon: FaCog,
+        });
+        if (hasPermission('custom-sections.create')) {
+          cmsSubItems.push({
+            name: 'Create Custom Section',
+            href: '/backend/admin/custom-sections/create',
+            icon: FiPlusCircle,
+            highlight: true,
+          });
+        }
+      }
+
+      // Shared Data
+      if (hasAnyPermission(['shared-data.view', 'shared-data.manage'])) {
+        cmsSubItems.push({
+          name: 'Shared Data',
+          href: '/backend/admin/shared-data',
+          icon: FaDatabase,
+        });
+        if (hasPermission('shared-data.create')) {
+          cmsSubItems.push({
+            name: 'Create Shared Data',
+            href: '/backend/admin/shared-data/create',
+            icon: FiPlusCircle,
+            highlight: true,
+          });
+        }
+      }
+
+      if (cmsSubItems.length > 0) {
+        items.push({
+          name: 'CMS Management',
+          icon: FaLayerGroup,
+          isDropdown: true,
+          dropdownKey: 'cms',
+          description: 'Manage website content',
+          subItems: cmsSubItems,
+        });
+      }
+    }
+
     // Admin Settings
     if (hasPermission('admin_profile.edit') || hasPermission('admin_profile.update')) {
       items.push({
@@ -556,6 +708,8 @@ const AdminLayout = ({ children }) => {
       </div>
     );
   }
+
+  // ✅ REMOVED: console.log statements that were causing the error
 
   return (
     <div className="min-h-screen bg-gray-50">

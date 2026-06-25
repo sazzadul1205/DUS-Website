@@ -64,7 +64,7 @@ export default function AboutIndex({ about_contents }) {
 
     setTogglingId(content.id);
 
-    router.put(route('cms.about.update', content.id), {
+    router.put(route('backend.cms.about.update', content.id), {
       ...content,
       is_active: !content.is_active,
     }, {
@@ -110,7 +110,7 @@ export default function AboutIndex({ about_contents }) {
       if (result.isConfirmed) {
         setDeletingId(id);
 
-        router.delete(route('cms.about.destroy', id), {
+        router.delete(route('backend.cms.about.destroy', id), {
           preserveScroll: true,
           onSuccess: () => {
             Swal.fire({
@@ -162,7 +162,7 @@ export default function AboutIndex({ about_contents }) {
             </div>
             {canCreate && (
               <Link
-                href={route('cms.about.create')}
+                href={route('backend.cms.about.create')}
                 className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
               >
                 <FaPlus size={16} />
@@ -208,7 +208,7 @@ export default function AboutIndex({ about_contents }) {
                         <p className="mt-1 text-sm text-gray-500">Get started by creating about content.</p>
                         {canCreate && (
                           <Link
-                            href={route('cms.about.create')}
+                            href={route('backend.cms.about.create')}
                             className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                           >
                             <FaPlus size={14} />
@@ -273,7 +273,7 @@ export default function AboutIndex({ about_contents }) {
                         <div className="flex justify-end gap-2">
                           {canEdit && (
                             <Link
-                              href={route('cms.about.edit', content.id)}
+                              href={route('backend.cms.about.edit', content.id)}
                               className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
                               title="Edit"
                             >

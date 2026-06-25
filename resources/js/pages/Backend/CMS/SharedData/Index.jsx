@@ -91,7 +91,7 @@ export default function SharedDataIndex({ shared_data }) {
 
     setTogglingId(item.id);
 
-    router.put(route('cms.shared-data.update', item.id), {
+    router.put(route('backend.cms.shared-data.update', item.id), {
       ...item,
       is_active: !item.is_active,
     }, {
@@ -137,7 +137,7 @@ export default function SharedDataIndex({ shared_data }) {
       if (result.isConfirmed) {
         setDeletingId(id);
 
-        router.delete(route('cms.shared-data.destroy', id), {
+        router.delete(route('backend.cms.shared-data.destroy', id), {
           preserveScroll: true,
           onSuccess: () => {
             Swal.fire({
@@ -210,7 +210,7 @@ export default function SharedDataIndex({ shared_data }) {
             </div>
             {canCreate && (
               <Link
-                href={route('cms.shared-data.create')}
+                href={route('backend.cms.shared-data.create')}
                 className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
               >
                 <FaPlus size={16} />
@@ -264,7 +264,7 @@ export default function SharedDataIndex({ shared_data }) {
                         <p className="mt-1 text-sm text-gray-500">Get started by creating shared data.</p>
                         {canCreate && (
                           <Link
-                            href={route('cms.shared-data.create')}
+                            href={route('backend.cms.shared-data.create')}
                             className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                           >
                             <FaPlus size={14} />
@@ -321,7 +321,7 @@ export default function SharedDataIndex({ shared_data }) {
                           <div className="flex justify-end gap-2">
                             {canEdit && (
                               <Link
-                                href={route('cms.shared-data.edit', item.id)}
+                                href={route('backend.cms.shared-data.edit', item.id)}
                                 className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
                                 title="Edit"
                               >
