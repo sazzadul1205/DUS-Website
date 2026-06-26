@@ -59,6 +59,7 @@ use App\Http\Controllers\Auth\Shared\VerifyEmailController;
 // Controllers - CMS
 use App\Http\Controllers\Cms\CmsController;
 use App\Http\Controllers\Cms\PageController;
+use App\Http\Controllers\Cms\SharedDataController;
 // Laravel
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -487,6 +488,12 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
                 Route::delete('/destroy/{id}', [PageController::class, 'destroy'])->name('destroy');
                 Route::post('/restore/{id}', [PageController::class, 'restore'])->name('restore');
                 Route::delete('/force-delete/{id}', [PageController::class, 'forceDelete'])->name('force-delete');
+            });
+
+            // Shared Data Management (Edit only)
+            Route::prefix('shared')->name('shared.')->group(function () {
+                Route::get('/', [SharedDataController::class, 'index'])->name('index');
+                Route::put('/update/{id}', [SharedDataController::class, 'update'])->name('update');
             });
         });
     });

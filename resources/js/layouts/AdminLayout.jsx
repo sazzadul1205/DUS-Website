@@ -498,6 +498,14 @@ const AdminLayout = ({ children }) => {
       });
     }
 
+    if (hasPermission('0')) {
+      items.push({
+        name: 'Shared Data',
+        routeName: 'backend.cms.shared.index',
+        icon: FiSettings,
+      });
+    }
+
     return items;
   }, [notificationMeta.unread_count]);
 
