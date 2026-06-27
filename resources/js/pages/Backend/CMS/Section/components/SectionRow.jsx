@@ -16,7 +16,8 @@ import {
   FaShareAlt,
   FaBriefcase,
   FaExternalLinkAlt,
-  FaList, // Add this for programs
+  FaList,
+  FaEdit, // Add this
 } from 'react-icons/fa';
 import { BsStack } from 'react-icons/bs';
 
@@ -45,6 +46,7 @@ const SectionRow = ({
   onDragEnd,
   onDragOver,
   onDrop,
+  onEditClick, // Add this prop
 }) => {
   const typeInfo = getSectionTypeInfo(section);
   const isBanner = section.component === 'HomeBanner' || section.component === 'PageBannerSection';
@@ -166,7 +168,7 @@ const SectionRow = ({
           </span>
         </td>
 
-        {/* Order with Move Buttons & Preview */}
+        {/* Actions */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-1">
             <button
@@ -185,6 +187,7 @@ const SectionRow = ({
             </button>
 
             <span className="text-sm text-gray-500">#{section.display_order}</span>
+
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -198,6 +201,18 @@ const SectionRow = ({
               title={!isMovable ? 'Fixed section cannot be moved' : 'Move Down'}
             >
               ↓
+            </button>
+
+            {/* EDIT BUTTON */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditClick(section);
+              }}
+              className="p-1.5 rounded transition-all text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+              title="Edit Section"
+            >
+              <FaEdit size={14} />
             </button>
 
             {/* Preview Button - Disabled for Jobs, Shared, and Programs */}
@@ -277,10 +292,8 @@ const SectionRow = ({
                 </button>
               </div>
               <div className="bg-white rounded-lg shadow-inner overflow-hidden border border-blue-100 w-full max-w-full">
-                {/* Add overflow-x-auto and max-width constraints */}
                 <div className="overflow-x-auto w-full max-w-full">
                   <div className="min-w-full" style={{ minWidth: '100%', maxWidth: '100%' }}>
-                    {/* Wrap SectionIndex in a container with overflow control */}
                     <div className="relative" style={{ maxWidth: '100%', overflow: 'hidden' }}>
                       <div
                         className="preview-scroll-container"

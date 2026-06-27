@@ -23,6 +23,7 @@ const SectionTable = ({
   handleDragEnd,
   handleDragOver,
   handleDrop,
+  onEditClick, // Add this prop
 }) => {
   if (sections.length === 0) {
     return (
@@ -78,6 +79,7 @@ const SectionTable = ({
                 onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
+                onEditClick={onEditClick} // Pass down
               />
             );
           })}

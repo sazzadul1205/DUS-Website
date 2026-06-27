@@ -1,4 +1,3 @@
-
 // resources/js/pages/Backend/CMS/Section/Index.jsx
 
 import React from 'react';
@@ -12,6 +11,7 @@ import { useSectionHelpers } from './hooks/useSectionHelpers';
 import SectionHeader from './components/SectionHeader';
 import SectionTable from './components/SectionTable';
 import SectionFooter from './components/SectionFooter';
+import SectionEditModal from './components/SectionEditModal'; // Add this
 
 // Utils
 import { getSectionStats } from './utils/sectionHelpers';
@@ -35,6 +35,11 @@ const Index = ({ page, sections: initialSections }) => {
     handleDrop,
     handleMoveUp,
     handleMoveDown,
+    editingSection,
+    isEditModalOpen,
+    handleEditClick,
+    handleEditClose,
+    handleEditSuccess,
   } = useSectionHelpers(initialSections, page.id);
 
   const stats = getSectionStats(sections);
@@ -70,10 +75,20 @@ const Index = ({ page, sections: initialSections }) => {
             handleDragEnd={handleDragEnd}
             handleDragOver={handleDragOver}
             handleDrop={handleDrop}
+            onEditClick={handleEditClick} // Add this
           />
         </div>
 
         <SectionFooter sections={sections} hasData={hasData} />
+
+        {/* Edit Modal - Add this */}
+        <SectionEditModal
+          isOpen={isEditModalOpen}
+          onClose={handleEditClose}
+          section={editingSection}
+          pageId={page.id}
+          onSuccess={handleEditSuccess}
+        />
       </div>
     </AuthenticatedLayout>
   );

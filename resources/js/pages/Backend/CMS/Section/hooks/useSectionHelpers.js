@@ -11,6 +11,8 @@ export const useSectionHelpers = (initialSections, pageId) => {
   const [isReordering, setIsReordering] = useState(false);
   const [dragError, setDragError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingSection, setEditingSection] = useState(null); // Add this
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // Add this
 
   // Update sections when prop changes
   useEffect(() => {
@@ -60,6 +62,25 @@ export const useSectionHelpers = (initialSections, pageId) => {
       return `${keys.length} fields`;
     }
     return 'Has data';
+  };
+
+  // ============================================================
+  // EDIT MODAL HANDLERS
+  // ============================================================
+
+  const handleEditClick = (section) => {
+    setEditingSection(section);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditClose = () => {
+    setIsEditModalOpen(false);
+    setEditingSection(null);
+  };
+
+  const handleEditSuccess = () => {
+    // Refresh the sections data
+    router.reload({ only: ['sections'] });
   };
 
   // ============================================================
@@ -201,6 +222,8 @@ export const useSectionHelpers = (initialSections, pageId) => {
     isReordering,
     dragError,
     isSaving,
+    editingSection,
+    isEditModalOpen,
     toggleExpand,
     togglePreview,
     hasData,
@@ -212,5 +235,8 @@ export const useSectionHelpers = (initialSections, pageId) => {
     handleDrop,
     handleMoveUp,
     handleMoveDown,
+    handleEditClick,
+    handleEditClose,
+    handleEditSuccess,
   };
 };
