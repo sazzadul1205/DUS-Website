@@ -60,10 +60,9 @@ use App\Http\Controllers\Auth\Shared\VerifyEmailController;
 use App\Http\Controllers\Cms\PageController;
 use App\Http\Controllers\Cms\SharedDataController;
 use App\Http\Controllers\Cms\BlogController as CmsBlogController;
-use App\Http\Controllers\Cms\SectionController as CmsSectionController;
 use App\Http\Controllers\Cms\ProgramController as CmsProgramController;
 use App\Http\Controllers\Cms\AboutContentController as CmsAboutContentController;
-
+use App\Http\Controllers\Cms\SectionController as CmsSectionController;
 // Models
 use App\Models\pages\Page;
 use App\Models\pages\Program;
@@ -499,15 +498,8 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
             });
 
             Route::prefix('sections')->name('sections.')->group(function () {
-                Route::get('/page/{pageId}', [CMSSectionController::class, 'index'])->name('page.sections');
-                Route::post('/store/{pageId}', [CMSSectionController::class, 'store'])->name('store');
-                Route::put('/update/{pageId}/{sectionId}', [CMSSectionController::class, 'update'])->name('update');
-                Route::post('/toggle-status/{pageId}/{sectionId}', [CMSSectionController::class, 'toggleStatus'])->name('toggle-status');
-                Route::post('/update-order/{pageId}', [CMSSectionController::class, 'updateOrder'])->name('update-order');
-                Route::post('pages/{pageId}/sections/update-order', [CMSSectionController::class, 'updateOrder'])->name('update-order');
-                Route::delete('/destroy/{pageId}/{sectionId}', [CMSSectionController::class, 'destroy'])->name('destroy');
-                Route::get('/available-components', [CMSSectionController::class, 'getAvailableComponents'])->name('available-components');
-                Route::get('/data-tables', [CMSSectionController::class, 'getDataTables'])->name('data-tables');
+                Route::get('/page/{pageId}', [CmsSectionController::class, 'index'])->name('page.sections');
+                Route::post('/{pageId}/update-order', [CmsSectionController::class, 'updateOrder'])->name('update-order');
             });
 
             // Shared Data Management (Edit only)

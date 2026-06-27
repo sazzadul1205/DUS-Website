@@ -81,14 +81,6 @@ export default [
             import: importPlugin,
         },
         rules: {
-            'import/order': [
-                'warn',
-                {
-                    groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'object', 'type'],
-                    'newlines-between': 'always',
-                    alphabetize: { order: 'asc', caseInsensitive: true },
-                },
-            ],
             'import/no-duplicates': 'error',
             'import/no-unresolved': 'error',
             'import/no-cycle': 'warn',

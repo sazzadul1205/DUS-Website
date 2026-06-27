@@ -1,0 +1,85 @@
+// resources/js/pages/Backend/CMS/Section/components/SectionTable.jsx
+
+// React
+import React from 'react';
+
+// Components
+import SectionRow from './SectionRow';
+
+const SectionTable = ({
+  sections,
+  expandedSections,
+  isReordering,
+  isSaving,
+  hasData,
+  getDataSummary,
+  canMove,
+  toggleExpand,
+  handleMoveUp,
+  handleMoveDown,
+  handleDragStart,
+  handleDragEnd,
+  handleDragOver,
+  handleDrop,
+}) => {
+  if (sections.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        No sections found for this page
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        {/* Table Header */}
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">#</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Component</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Source</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+          </tr>
+        </thead>
+
+        {/* Table Body */}
+        <tbody className="bg-white divide-y divide-gray-200">
+          {sections.map((section, index) => {
+            const isExpanded = expandedSections[section.id] || false;
+            const hasSectionData = hasData(section);
+            const dataSummary = getDataSummary(section);
+            const isMovable = canMove(section);
+
+            return (
+              <SectionRow
+                key={section.id}
+                section={section}
+                index={index}
+                totalSections={sections.length}
+                isExpanded={isExpanded}
+                isReordering={isReordering}
+                isSaving={isSaving}
+                isMovable={isMovable}
+                hasSectionData={hasSectionData}
+                dataSummary={dataSummary}
+                onToggleExpand={toggleExpand}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              />
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export default SectionTable;
