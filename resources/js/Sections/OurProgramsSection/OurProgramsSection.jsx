@@ -107,7 +107,6 @@ const OurProgramsSection = ({
     <section
       id="our-programs"
       className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
-      
     >
       {/* Header - Only show if there's header content */}
       {showHeader && (
@@ -163,8 +162,9 @@ const OurProgramsSection = ({
                 return null;
               }
 
-              // Truncate description to 9 lines
-              const truncatedDescription = truncateHtml(program.description, 9);
+              // Use full_content_html as the description (or fallback to description if available)
+              const descriptionHtml = program.full_content_html || program.description || '';
+              const truncatedDescription = truncateHtml(descriptionHtml, 9);
 
               return (
                 <div
@@ -175,8 +175,8 @@ const OurProgramsSection = ({
                     sticky top-25 w-full
                     transition-all duration-700 ease-out
                     ${visibleCards.includes(program.id || index)
-                      ? "opacity-100 translate-y-0"
-                      : "opacity-0 translate-y-16"
+                      ? "translate-y-0"
+                      : "translate-y-16"
                     }
                   `}
                   style={{
@@ -185,7 +185,7 @@ const OurProgramsSection = ({
                 >
                   <div
                     className="flex flex-col lg:flex-row justify-between items-center gap-8 lg:gap-25 p-5 sm:p-6 md:p-8 lg:p-25 rounded-3xl min-h-162.5 lg:h-187.5 shadow-lg"
-                    style={{ backgroundColor: program.bgColor || '#ffffff' }}
+                    style={{ backgroundColor: program.bg_color || '#ffffff' }}
                   >
                     {/* Left Content */}
                     <div className="w-full lg:w-1/2 flex flex-col justify-center">
@@ -201,10 +201,10 @@ const OurProgramsSection = ({
                         </h3>
                       )}
 
-                      {/* Program Description */}
-                      {hasValue(program.description) && (
+                      {/* Program Description - using full_content_html */}
+                      {hasValue(descriptionHtml) && (
                         <div
-                          className=" bricolage-grotesque font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed line-clamp-9"
+                          className="bricolage-grotesque font-400 text-[16px] sm:text-[18px] lg:text-[20px] text-[#524B48] leading-relaxed line-clamp-9"
                           dangerouslySetInnerHTML={{ __html: truncatedDescription }}
                         />
                       )}
@@ -227,7 +227,7 @@ const OurProgramsSection = ({
                         <img
                           src={program.image}
                           alt={program.title || "Program image"}
-                          className=" w-full h-75 sm:h-100 lg:h-150 object-cover rounded-3xl hover:scale-105 transition-transform duration-300"
+                          className="w-full h-75 sm:h-100 lg:h-150 object-cover rounded-3xl hover:scale-105 transition-transform duration-300"
                         />
                       </div>
                     )}

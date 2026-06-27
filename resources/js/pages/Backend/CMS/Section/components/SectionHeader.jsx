@@ -36,6 +36,9 @@ const SectionHeader = ({ page, stats, isSaving, dragError }) => {
           {stats.jobs > 0 && (
             <span className="ml-2 text-purple-600">💼 {stats.jobs} jobs</span>
           )}
+          {stats.programs > 0 && (
+            <span className="ml-2 text-orange-600">📋 {stats.programs} programs</span>
+          )}
           {stats.hasData > 0 && (
             <span className="ml-2 text-blue-600">📦 {stats.hasData} with data</span>
           )}

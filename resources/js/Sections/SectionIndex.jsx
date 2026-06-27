@@ -69,6 +69,32 @@ const sectionComponents = {
 };
 
 /**
+ * Recursively extract the actual data from nested structures
+ * Handles cases where data is nested multiple levels deep
+ */
+const extractNestedData = (data) => {
+  if (!data) return null;
+
+  // If the data has a 'data' property and it's an object, recursively extract it
+  if (data.data && typeof data.data === 'object') {
+    return extractNestedData(data.data);
+  }
+
+  // If the data has the expected structure (section, mission, impact, image)
+  if (data.section || data.mission || data.impact || data.image) {
+    return data;
+  }
+
+  // If data is an array
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  // Return the data as is
+  return data;
+};
+
+/**
  * Extract section data from different data structures
  * Supports both old and new data formats
  */
@@ -77,34 +103,117 @@ const extractSectionData = (section) => {
 
   // If section already has data directly
   if (section.data) {
-    // For custom_section_data and shared_data, the actual data is nested
+    // For custom_section_data and shared_data, the actual data might be nested
     if (section.data_table === 'custom_section_data' || section.data_table === 'shared_data') {
-      return section.data.data || section.data;
+      // Recursively extract the actual data from nested structure
+      const extractedData = extractNestedData(section.data);
+
+      // Special handling for AboutUs
+      if (section.component === 'AboutUsSection' || section.component === 'AboutUs') {
+        // If extracted data has the expected structure
+        if (extractedData && (extractedData.section || extractedData.mission || extractedData.impact || extractedData.image)) {
+          return extractedData;
+        }
+        // If extracted data is an object but doesn't have the expected structure
+        if (extractedData && typeof extractedData === 'object' && !Array.isArray(extractedData)) {
+          // Try to map the data to the expected structure
+          return {
+            section: {
+              title: extractedData.title || extractedData.section_title || 'About Us',
+              description: extractedData.description || extractedData.section_description || '',
+              button: {
+                text: extractedData.button_text || extractedData.cta_text || 'Learn More',
+                link: extractedData.button_link || extractedData.cta_link || '#'
+              }
+            },
+            mission: {
+              title: extractedData.mission_title || 'Our Mission',
+              items: extractedData.mission_items || extractedData.missions || []
+            },
+            impact: {
+              title: extractedData.impact_title || 'Our Impact',
+              stats: extractedData.impact_stats || extractedData.stats || []
+            },
+            image: {
+              src: extractedData.image || extractedData.image_url || '',
+              alt: extractedData.image_alt || 'About us image'
+            }
+          };
+        }
+        return extractedData;
+      }
+
+      // Special handling for Stories
+      if (section.component === 'StoriesSection' || section.component === 'Stories') {
+        // If extracted data has the expected structure with section and stories
+        if (extractedData && (extractedData.section || extractedData.stories)) {
+          return extractedData;
+        }
+        // If extracted data is an array, wrap it in the expected structure
+        if (Array.isArray(extractedData)) {
+          return {
+            section: {
+              title: 'Stories',
+              description: ''
+            },
+            stories: extractedData
+          };
+        }
+        return extractedData;
+      }
+
+      return extractedData;
     }
-    // For blogs and programs, the data is the array itself
+
+    // For about_content, return the data as is
+    if (section.data_table === 'about_content') {
+      const extractedData = extractNestedData(section.data);
+      if (extractedData && (extractedData.section || extractedData.mission || extractedData.impact)) {
+        return extractedData;
+      }
+      return section.data;
+    }
+
+    // For blogs, programs, and stories data, the data is the array itself or has section + items
     if (section.data_table === 'blogs' || section.data_table === 'programs') {
       return section.data;
     }
-    // For about_content
-    if (section.data_table === 'about_content') {
+
+    // For stories (without data_table), return the data as is
+    if (section.component === 'StoriesSection' || section.component === 'Stories') {
+      // Check if section.data has the expected structure
+      if (section.data && (section.data.section || section.data.stories)) {
+        return section.data;
+      }
+      // If section.data is an array, wrap it
+      if (Array.isArray(section.data)) {
+        return {
+          section: {
+            title: 'Stories',
+            description: ''
+          },
+          stories: section.data
+        };
+      }
       return section.data;
     }
+
     return section.data;
   }
 
   // Check for old format - data might be in section.section_data
   if (section.section_data) {
-    return section.section_data;
+    return extractNestedData(section.section_data);
   }
 
   // Check for custom section data
   if (section.custom_section_data) {
-    return section.custom_section_data;
+    return extractNestedData(section.custom_section_data);
   }
 
   // Check for shared section data
   if (section.shared_section_data) {
-    return section.shared_section_data;
+    return extractNestedData(section.shared_section_data);
   }
 
   return null;
@@ -115,8 +224,8 @@ const extractSectionData = (section) => {
  * Supports both old and new prop names
  */
 const buildComponentProps = (component, sectionData, section) => {
+  // Don't include 'key' in the props object - it will be added separately
   const props = {
-    key: section.id || section.section_key || section.component,
     ...(section.custom_props || {}),
   };
 
@@ -281,6 +390,7 @@ const SectionIndex = ({ sections }) => {
         // Build props (supports both old and new prop names)
         const props = buildComponentProps(section.component, sectionData, section);
 
+        // Pass key directly to component, not as part of props spread
         return <Component key={section.id} {...props} />;
       })}
     </>

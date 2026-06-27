@@ -1,5 +1,4 @@
 /* eslint-disable no-undef */
-/* eslint-disable import/order */
 // resources/js/pages/Backend/CMS/Index.jsx
 
 // React

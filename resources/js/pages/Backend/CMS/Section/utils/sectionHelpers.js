@@ -37,7 +37,8 @@ export const getDataTableLabel = (table) => {
     'blogs': 'Blogs',
     'programs': 'Programs',
     'about_content': 'About Content',
-    'jobs': 'Jobs',  // ✅ This is correct - it's 'jobs' (lowercase)
+    'jobs': 'Jobs',
+    'our_programs': 'Our Programs',  // Add this
   };
   return labels[table] || table || 'None';
 };
@@ -56,6 +57,9 @@ export const getSectionTypeInfo = (section) => {
   if (section.data_table === 'jobs') {
     return { label: 'Jobs', color: 'bg-purple-100 text-purple-700', icon: '💼' };
   }
+  if (section.data_table === 'programs' || section.component === 'OurProgramsSection') {
+    return { label: 'Programs', color: 'bg-orange-100 text-orange-700', icon: '📋' };
+  }
   return { label: 'Normal', color: 'bg-gray-100 text-gray-600', icon: '📄' };
 };
 
@@ -67,6 +71,7 @@ export const getSectionStats = (sections) => {
     banner: sections.filter(s => s.component === 'HomeBanner' || s.component === 'PageBannerSection').length,
     shared: sections.filter(s => s.data_table === 'shared_data').length,
     jobs: sections.filter(s => s.data_table === 'jobs').length,
+    programs: sections.filter(s => s.data_table === 'programs' || s.component === 'OurProgramsSection').length,
     hasData: sections.filter(s => s.data !== null && s.data !== undefined).length,
   };
 };

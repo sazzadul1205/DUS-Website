@@ -16,6 +16,7 @@ import {
   FaShareAlt,
   FaBriefcase,
   FaExternalLinkAlt,
+  FaList, // Add this for programs
 } from 'react-icons/fa';
 import { BsStack } from 'react-icons/bs';
 
@@ -49,6 +50,8 @@ const SectionRow = ({
   const isBanner = section.component === 'HomeBanner' || section.component === 'PageBannerSection';
   const isShared = section.data_table === 'shared_data';
   const isJobs = section.data_table === 'jobs';
+  const isPrograms = section.data_table === 'programs' || section.component === 'OurProgramsSection';
+
   const rowBgClass = isBanner
     ? 'bg-yellow-50/50'
     : section.is_fixed_section
@@ -57,10 +60,12 @@ const SectionRow = ({
         ? 'bg-green-50/30'
         : isJobs
           ? 'bg-purple-50/30'
-          : '';
+          : isPrograms
+            ? 'bg-orange-50/30'
+            : '';
 
-  // Check if preview should be shown (not for jobs or shared)
-  const canPreview = !isJobs && !isShared;
+  // Check if preview should be shown (not for jobs, shared, or programs)
+  const canPreview = !isJobs && !isShared && !isPrograms;
 
   return (
     <React.Fragment>
@@ -99,6 +104,8 @@ const SectionRow = ({
                 <FaShareAlt className={section.is_enabled ? 'text-green-600' : 'text-gray-400'} size={14} />
               ) : isJobs ? (
                 <FaBriefcase className={section.is_enabled ? 'text-purple-600' : 'text-gray-400'} size={14} />
+              ) : isPrograms ? (
+                <FaList className={section.is_enabled ? 'text-orange-600' : 'text-gray-400'} size={14} />
               ) : (
                 <BsStack className={section.is_enabled ? 'text-blue-600' : 'text-gray-400'} size={14} />
               )}
@@ -115,6 +122,9 @@ const SectionRow = ({
             )}
             {isJobs && (
               <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">💼 Jobs</span>
+            )}
+            {isPrograms && (
+              <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">📋 Programs</span>
             )}
           </div>
         </td>
@@ -173,7 +183,7 @@ const SectionRow = ({
             >
               ↑
             </button>
-            
+
             <span className="text-sm text-gray-500">#{section.display_order}</span>
             <button
               onClick={(e) => {
@@ -190,7 +200,7 @@ const SectionRow = ({
               ↓
             </button>
 
-            {/* Preview Button - Disabled for Jobs and Shared */}
+            {/* Preview Button - Disabled for Jobs, Shared, and Programs */}
             {canPreview ? (
               <button
                 onClick={(e) => {
@@ -198,8 +208,8 @@ const SectionRow = ({
                   onTogglePreview(section.id);
                 }}
                 className={`ml-1 p-1 rounded transition-all ${isPreviewOpen
-                    ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-                    : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                  ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                  : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
                   }`}
                 title={isPreviewOpen ? 'Close Preview' : 'Preview Section'}
               >
@@ -208,7 +218,15 @@ const SectionRow = ({
             ) : (
               <button
                 className="ml-1 p-1 rounded text-gray-300 cursor-not-allowed"
-                title={isShared ? 'Shared data - Edit in Shared Data Manager' : 'Jobs data - Edit in Job Manager'}
+                title={
+                  isShared
+                    ? 'Shared data - Edit in Shared Data Manager'
+                    : isJobs
+                      ? 'Jobs data - Edit in Job Manager'
+                      : isPrograms
+                        ? 'Programs data - Edit in Program Manager'
+                        : 'Cannot preview'
+                }
                 disabled={true}
               >
                 <FaEye size={14} className="opacity-40" />
@@ -241,10 +259,10 @@ const SectionRow = ({
         </tr>
       )}
 
-      {/* Preview Expanded Row - Only for non-Jobs and non-Shared */}
+      {/* Preview Expanded Row - Only for non-Jobs, non-Shared, non-Programs */}
       {isPreviewOpen && canPreview && (
         <tr>
-          <td colSpan="7" className="px-4 py-4 bg-blue-50/30 border-t border-blue-200">
+          <td colSpan="7" className="px-4 py-4 bg-blue-50/30 border-t border-blue-200 max-w-7xl">
             <div className="space-y-3 w-full max-w-full">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
@@ -259,9 +277,22 @@ const SectionRow = ({
                 </button>
               </div>
               <div className="bg-white rounded-lg shadow-inner overflow-hidden border border-blue-100 w-full max-w-full">
+                {/* Add overflow-x-auto and max-width constraints */}
                 <div className="overflow-x-auto w-full max-w-full">
-                  <div className="min-w-full" style={{ minWidth: '100%' }}>
-                    <SectionIndex sections={[section]} />
+                  <div className="min-w-full" style={{ minWidth: '100%', maxWidth: '100%' }}>
+                    {/* Wrap SectionIndex in a container with overflow control */}
+                    <div className="relative" style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                      <div
+                        className="preview-scroll-container"
+                        style={{
+                          maxWidth: '100%',
+                          overflow: 'hidden',
+                          position: 'relative'
+                        }}
+                      >
+                        <SectionIndex sections={[section]} />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -321,6 +352,32 @@ const SectionRow = ({
           </td>
         </tr>
       )}
+
+      {/* Programs Data Preview - Special Message */}
+      {isPreviewOpen && isPrograms && (
+        <tr>
+          <td colSpan="7" className="px-4 py-6 bg-orange-50/30 border-t border-orange-200">
+            <div className="flex flex-col items-center justify-center gap-3 text-center py-8">
+              <FaList className="text-orange-500 text-5xl" />
+              <h3 className="text-lg font-semibold text-orange-700">Programs Section</h3>
+              <p className="text-gray-600 max-w-md">
+                This section displays programs and projects. The data comes from the <strong>Programs</strong> system.
+                To edit programs, please go to the Program Manager.
+              </p>
+              <button
+                onClick={() => {
+                  // eslint-disable-next-line no-undef
+                  window.location.href = route('backend.cms.programs.index');
+                }}
+                className="mt-2 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition flex items-center gap-2"
+              >
+                <FaExternalLinkAlt size={14} />
+                Go to Program Manager
+              </button>
+            </div>
+          </td>
+        </tr>
+      )}
     </React.Fragment>
   );
 };
@@ -328,7 +385,7 @@ const SectionRow = ({
 // Sub-component for Section Details
 const SectionDetails = ({ section, hasSectionData }) => (
   <div className="space-y-3 w-full max-w-full overflow-x-auto">
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm min-w-125">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm min-w-125">
       <div>
         <span className="font-semibold text-gray-600">ID:</span>
         <span className="ml-2 text-gray-700 break-all">{section.id}</span>
@@ -380,7 +437,7 @@ const SectionDetails = ({ section, hasSectionData }) => (
     )}
 
     {/* Section Data */}
-    <div>
+    <div className='max-w-7xl' >
       <span className="font-semibold text-gray-600 text-sm flex items-center gap-2">
         <FaDatabase size={12} />
         Section Data:
