@@ -973,7 +973,7 @@ class SectionController extends Controller
     // Prepare data for update
     $updateData = [];
 
-    // Only allow updating section_key, is_enabled, custom_props (component, data_table, data_key are locked)
+    // Only allow updating section_key, is_enabled, custom_props
     if ($request->has('section_key')) {
       $updateData['section_key'] = $request->input('section_key');
     }
@@ -981,7 +981,10 @@ class SectionController extends Controller
       $updateData['is_enabled'] = $request->boolean('is_enabled');
     }
     if ($request->has('custom_props')) {
-      $updateData['custom_props'] = $request->input('custom_props');
+      // MERGE custom_props instead of replacing them
+      $existingProps = $sectionConfig->custom_props ?? [];
+      $newProps = $request->input('custom_props');
+      $updateData['custom_props'] = array_merge($existingProps, $newProps);
     }
 
     // Update the section config
@@ -991,14 +994,17 @@ class SectionController extends Controller
     if ($request->has('data') && is_array($request->input('data'))) {
       $data = $request->input('data');
 
+      // Remove custom_props from data if it's there (it's already handled above)
+      if (isset($data['custom_props'])) {
+        unset($data['custom_props']);
+      }
+
       // Determine which data table to update
       switch ($sectionConfig->data_table) {
         case 'custom_section_data':
           $this->updateCustomSectionData($sectionConfig, $data);
           break;
-
         // For other data tables, we may not allow editing here
-        // Optionally, you could add handling for other tables, but typically they are managed separately
         default:
           // Log or ignore
           break;

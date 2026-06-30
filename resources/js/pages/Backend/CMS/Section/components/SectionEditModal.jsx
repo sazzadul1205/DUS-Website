@@ -168,12 +168,27 @@ const SectionEditModal = ({
       custom_props: formData.custom_props || {},
     };
 
-    // Include section data if it exists and has been modified
+    // CRITICAL FIX: Merge section data changes properly
     if (sectionData !== null && Object.keys(sectionData).length > 0) {
-      submitData.data = sectionData;
+      // If sectionData contains custom_props, merge them properly
+      if (sectionData.custom_props) {
+        submitData.custom_props = {
+          ...submitData.custom_props,
+          ...sectionData.custom_props
+        };
+      }
+
+      // If sectionData contains other data (like the programs data), include it
+      // But don't include custom_props as a nested property in data
+      const dataToSend = { ...sectionData };
+      delete dataToSend.custom_props; // Remove custom_props from data if present
+
+      if (Object.keys(dataToSend).length > 0) {
+        submitData.data = dataToSend;
+      }
     }
 
-    // Send update request
+
     router.put(
       route('backend.cms.sections.update', { section: section.id }),
       submitData,
@@ -183,7 +198,6 @@ const SectionEditModal = ({
         onSuccess: () => {
           setIsSubmitting(false);
           showToast('success', '✅ Updated!', 'Section updated successfully.', 2000);
-          // Call the onSuccess callback if provided
           if (onSuccess) {
             onSuccess();
           }
