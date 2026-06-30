@@ -109,22 +109,55 @@ export const SECTION_CONFIGS = {
   },
   'OurProgramsSection': {
     fields: [
-      { key: 'bgColor', label: 'Background Color', type: 'color', default: 'bg-white' },
+      { 
+        key: 'limit', 
+        label: 'Display Limit', 
+        type: 'number', 
+        default: 3,
+        min: 1,
+        max: 20,
+        description: 'Number of programs to display (1-20)'
+      },
+      { 
+        key: 'showFeatured', 
+        label: 'Show Featured Programs First', 
+        type: 'checkbox', 
+        default: true 
+      },
+      { 
+        key: 'bgColor', 
+        label: 'Background Color', 
+        type: 'color', 
+        default: 'bg-white' 
+      },
       {
-        key: 'paddingY', label: 'Vertical Padding', type: 'select', default: 'py-12 sm:py-16 lg:py-20', options: [
+        key: 'paddingY',
+        label: 'Vertical Padding',
+        type: 'select',
+        default: 'py-12 sm:py-16 lg:py-20',
+        options: [
           { value: 'py-8 sm:py-12 lg:py-16', label: 'Small' },
           { value: 'py-12 sm:py-16 lg:py-20', label: 'Medium' },
           { value: 'py-16 sm:py-20 lg:py-30', label: 'Large' },
         ]
       },
       {
-        key: 'paddingX', label: 'Horizontal Padding', type: 'select', default: 'px-5 sm:px-10 md:px-20 lg:px-50', options: [
+        key: 'paddingX',
+        label: 'Horizontal Padding',
+        type: 'select',
+        default: 'px-5 sm:px-10 md:px-20 lg:px-50',
+        options: [
           { value: 'px-4 sm:px-8 md:px-16 lg:px-30', label: 'Small' },
           { value: 'px-5 sm:px-10 md:px-20 lg:px-50', label: 'Medium' },
           { value: 'px-8 sm:px-16 md:px-30 lg:px-60', label: 'Large' },
         ]
       },
-      { key: 'sectionClassName', label: 'Additional CSS Classes', type: 'text', default: '' },
+      { 
+        key: 'sectionClassName', 
+        label: 'Additional CSS Classes', 
+        type: 'text', 
+        default: '' 
+      },
     ]
   },
   'StoriesSection': {

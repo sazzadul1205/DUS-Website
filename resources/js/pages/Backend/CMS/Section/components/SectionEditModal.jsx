@@ -10,6 +10,7 @@
  * - Integrated SectionDataViewer for data preview
  * - Form validation and error handling
  * - Save button visible on both tabs
+ * - Support for checkbox, number, text, select, color, and textarea fields
  */
 
 // React
@@ -302,6 +303,7 @@ const SectionEditModal = ({
                 <div key={field.key}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {field.label}
+                    {field.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
 
                   {/* Color Picker Field */}
@@ -355,14 +357,52 @@ const SectionEditModal = ({
 
                   {/* Number Input Field */}
                   {field.type === 'number' && (
-                    <input
-                      type="number"
-                      value={currentValue}
-                      onChange={(e) => handleCustomPropChange(field.key, parseInt(e.target.value) || 0)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                      placeholder={field.default?.toString() || '0'}
-                      aria-label={`Enter ${field.label}`}
-                    />
+                    <div>
+                      <input
+                        type="number"
+                        min={field.min || 0}
+                        max={field.max || 100}
+                        value={currentValue}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          if (!isNaN(value)) {
+                            handleCustomPropChange(field.key, value);
+                          } else if (e.target.value === '') {
+                            handleCustomPropChange(field.key, field.default || 0);
+                          }
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                        placeholder={field.default?.toString() || '0'}
+                        aria-label={`Enter ${field.label}`}
+                      />
+                      {field.description && (
+                        <p className="text-xs text-gray-400 mt-1">{field.description}</p>
+                      )}
+                      {field.min !== undefined && field.max !== undefined && (
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Range: {field.min} - {field.max}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Checkbox Field */}
+                  {field.type === 'checkbox' && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="checkbox"
+                        id={`prop-${field.key}`}
+                        checked={currentValue === true || currentValue === 'true' || currentValue === 1 || currentValue === '1'}
+                        onChange={(e) => handleCustomPropChange(field.key, e.target.checked)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <label htmlFor={`prop-${field.key}`} className="text-sm text-gray-700">
+                        {field.label}
+                      </label>
+                      {field.description && (
+                        <span className="text-xs text-gray-400 ml-2">{field.description}</span>
+                      )}
+                    </div>
                   )}
 
                   {/* Textarea Field */}
@@ -370,11 +410,16 @@ const SectionEditModal = ({
                     <textarea
                       value={currentValue}
                       onChange={(e) => handleCustomPropChange(field.key, e.target.value)}
-                      rows={4}
+                      rows={field.rows || 4}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition font-mono text-sm"
                       placeholder={field.default || `Enter ${field.label.toLowerCase()}`}
                       aria-label={`Enter ${field.label}`}
                     />
+                  )}
+
+                  {/* Field Description */}
+                  {field.type !== 'checkbox' && field.type !== 'number' && field.description && (
+                    <p className="text-xs text-gray-400 mt-1">{field.description}</p>
                   )}
                 </div>
               );

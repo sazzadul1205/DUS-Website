@@ -25,6 +25,14 @@ const WhereWeWorkSection = ({
   // Early return if no content
   if (!section.title && !stats.length && !image.src) return null;
 
+  // Determine grid columns based on number of stats
+  const getGridCols = () => {
+    if (stats.length <= 3) {
+      return 'grid-cols-1'; // Single column for 3 or fewer stats
+    }
+    return 'grid-cols-1 sm:grid-cols-2'; // 2 columns for 4+ stats on tablet and up
+  };
+
   return (
     <section
       id='where-we-work'
@@ -41,9 +49,9 @@ const WhereWeWorkSection = ({
             </h1>
           )}
 
-          {/* Stats Grid */}
+          {/* Stats Grid - Dynamic columns based on stats count */}
           {stats.length > 0 && (
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 lg:gap-6'>
+            <div className={`grid ${getGridCols()} gap-4 sm:gap-5 lg:gap-6`}>
               {stats.map((stat) => (
                 <div
                   key={stat.id}

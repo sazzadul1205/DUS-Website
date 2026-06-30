@@ -1,7 +1,7 @@
 // resources/js/pages/Backend/CMS/Section/components/modals/Editors/WhereWeWorkEditor.jsx
 
 // React
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 // Icons
 import { FaTrash, FaPlus, FaUpload, FaTimes } from 'react-icons/fa';
@@ -16,8 +16,11 @@ import { useImageUpload } from './shared/useImageUpload';
 
 const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
   // ===== STATE MANAGEMENT =====
-  // Get initial data from section prop
-  const initialData = section?.data?.data || section?.data || {};
+  // Get initial data from section prop using useMemo to prevent unnecessary re-renders
+  const initialData = useMemo(() => {
+    return section?.data?.data || section?.data || {};
+  }, [section?.data]);
+
   const [formData, setFormData] = useState(initialData);
 
   // Custom hook to handle image upload functionality
@@ -34,6 +37,11 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
       onDataChange(formData);
     }
   }, [formData, onDataChange]);
+
+  // Sync form data when initialData changes (e.g., when section prop updates)
+  useEffect(() => {
+    setFormData(initialData);
+  }, [initialData]);
 
   // ===== HELPER FUNCTIONS =====
 
@@ -429,15 +437,15 @@ const WhereWeWorkEditor = ({ section, hasData, onDataChange }) => {
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <span className="text-gray-500">Section ID:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.id}</span>
+            <span className="ml-2 text-gray-700 font-mono">{section?.id || 'N/A'}</span>
           </div>
           <div>
             <span className="text-gray-500">Data Table:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.data_table || 'None'}</span>
+            <span className="ml-2 text-gray-700 font-mono">{section?.data_table || 'None'}</span>
           </div>
           <div>
             <span className="text-gray-500">Data Key:</span>
-            <span className="ml-2 text-gray-700 font-mono">{section.data_key || 'None'}</span>
+            <span className="ml-2 text-gray-700 font-mono">{section?.data_key || 'None'}</span>
           </div>
           <div>
             <span className="text-gray-500">Has Data:</span>

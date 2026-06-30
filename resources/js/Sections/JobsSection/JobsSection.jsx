@@ -25,7 +25,16 @@ const JobsSection = ({
   paddingY = 'py-12 sm:py-16 md:py-25 lg:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-75',
   sectionClassName = '',
+  maxJobs = 5, // Maximum number of jobs to display
 }) => {
+  // ============================================
+  // HOOKS - Must be called before any conditional returns
+  // ============================================
+  const [selectedFilter, setSelectedFilter] = useState("");
+
+  // ============================================
+  // DATA VALIDATION
+  // ============================================
   // Early return if no data
   if (!hasValue(jobsData)) return null;
 
@@ -42,19 +51,25 @@ const JobsSection = ({
 
   if (!hasAnyContent) return null;
 
-  // Filters
-  const [selectedFilter, setSelectedFilter] = useState("");
-
-  // Handle Filter
+  // ============================================
+  // FILTER HANDLING
+  // ============================================
   const handleFilterChange = (e) => {
     setSelectedFilter(e.target.value);
   };
 
   // Filtered Jobs
-  const filteredJobs = selectedFilter === "" || selectedFilter === "all"
+  let filteredJobs = selectedFilter === "" || selectedFilter === "all"
     ? jobs
     : jobs.filter(job => job.type?.toLowerCase().replace(" ", "-") === selectedFilter);
 
+  // Limit to maxJobs (5 by default)
+  const displayedJobs = filteredJobs.slice(0, maxJobs);
+  const hasMoreJobs = filteredJobs.length > maxJobs;
+
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id='jobs'
@@ -104,8 +119,6 @@ const JobsSection = ({
                 <svg
                   width="16"
                   height="16"
-                  sm-width="18"
-                  sm-height="18"
                   viewBox="0 0 24 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -128,7 +141,7 @@ const JobsSection = ({
       {/* Jobs List */}
       {hasJobs && (
         <div className='space-y-4 sm:space-y-5 lg:space-y-6'>
-          {filteredJobs.map((job) => (
+          {displayedJobs.map((job) => (
             <div key={job.id} className='bg-white p-5 sm:p-6 md:p-8 lg:p-10 rounded-2xl hover:shadow-lg transition-all duration-300'>
               <div className='flex flex-col md:flex-row items-start justify-between gap-5'>
                 <div className='flex-1 w-full'>
@@ -205,6 +218,23 @@ const JobsSection = ({
               </div>
             </div>
           ))}
+
+          {/* Show "View All" button if there are more jobs */}
+          {hasMoreJobs && (
+            <div className='text-center pt-4'>
+              <button
+                onClick={() => {
+                  // Handle view all functionality
+                  // Could navigate to a careers page or expand the list
+                  console.log('View all jobs clicked');
+                }}
+                className="bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-6 sm:px-8 py-3 sm:py-4 font-600 text-[14px] sm:text-[15px] lg:text-[16px] inline-flex items-center justify-center gap-2 group hover:bg-[#009BE2] hover:text-white transition-all duration-300"
+              >
+                View All Jobs ({filteredJobs.length})
+                <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
+              </button>
+            </div>
+          )}
 
           {/* No Jobs Message */}
           {filteredJobs.length === 0 && (
