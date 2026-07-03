@@ -57,13 +57,14 @@ use App\Http\Controllers\Auth\Shared\PasswordResetLinkController;
 use App\Http\Controllers\Auth\Shared\VerifyEmailController;
 
 // Controllers - CMS
-use App\Http\Controllers\Cms\PageController;
+use App\Http\Controllers\Cms\PageController as CmsPageController;
 use App\Http\Controllers\Cms\SharedDataController;
 use App\Http\Controllers\Cms\BlogController as CmsBlogController;
 use App\Http\Controllers\Cms\ProgramController as CmsProgramController;
 use App\Http\Controllers\Cms\AboutContentController as CmsAboutContentController;
 use App\Http\Controllers\Cms\EditorImageUploadController;
 use App\Http\Controllers\Cms\SectionController as CmsSectionController;
+use App\Http\Controllers\Frontend\PageController;
 // Models
 use App\Models\pages\Page;
 use App\Models\pages\Program;
@@ -71,16 +72,6 @@ use App\Models\pages\Program;
 // Laravel
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-
-/*
-|--------------------------------------------------------------------------
-| DEFAULT ROUTE - Redirect to Job Seeker Login
-|--------------------------------------------------------------------------
-*/
-
-Route::get('/', function () {
-    return redirect()->route('job-seeker.login');
-});
 
 /*
 |--------------------------------------------------------------------------
@@ -109,27 +100,16 @@ Route::get('/unauthorized', function () {
     ]);
 })->name('unauthorized.access');
 
-// Home page
-Route::get('/home', [HomeController::class, 'home'])->name('home');
+// Public pages – all dynamic
+Route::get('/', [PageController::class, 'show'])->name('home');
 
-// About pages
-Route::get('/about', [AboutController::class, 'about'])->name('frontend.about');
-Route::get('/about/{slug}', [AboutController::class, 'aboutDetails'])->name('frontend.about.details');
+// Pages without detail
+Route::get('/{pageSlug}', [PageController::class, 'show'])
+    ->where('pageSlug', 'about|blogs|contact|projects-programs');
 
-// Projects & Programs
-Route::get('/projects-programs', [ProjectsProgramsController::class, 'projectsPrograms'])->name('frontend.projects-programs');
-Route::get('/projects-programs/{slug}', [ProjectsProgramsController::class, 'projectsProgramsDetails'])->name('frontend.projects-programs.details');
-
-// Blogs
-Route::get('/blogs', [BlogController::class, 'blogs'])->name('frontend.blogs');
-Route::get('/blogs/{slug}', [BlogController::class, 'blogDetails'])->name('frontend.blogs.details');
-
-// Contact
-Route::get('/contact', [ContactController::class, 'contactUs'])->name('frontend.contact');
-
-// Public job listings (no auth)
-Route::get('/jobs', [PublicJobListingController::class, 'index'])->name('public.jobs.index');
-Route::get('/jobs/{slug}', [PublicJobListingController::class, 'show'])->name('public.jobs.show');
+// Pages with detail (about, blogs, projects-programs)
+Route::get('/{pageSlug}/{detailSlug}', [PageController::class, 'show'])
+    ->where('pageSlug', 'about|blogs|projects-programs');
 
 /*
 |--------------------------------------------------------------------------
@@ -489,13 +469,13 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         Route::prefix('cms')->name('cms.')->group(function () {
             // Page Management
             Route::prefix('pages')->name('pages.')->group(function () {
-                Route::get('/', [PageController::class, 'index'])->name('index');
-                Route::post('/store', [PageController::class, 'store'])->name('store');
-                Route::put('/update/{id}', [PageController::class, 'update'])->name('update');
-                Route::post('/toggle-status/{id}', [PageController::class, 'toggleStatus'])->name('toggle-status');
-                Route::delete('/destroy/{id}', [PageController::class, 'destroy'])->name('destroy');
-                Route::post('/restore/{id}', [PageController::class, 'restore'])->name('restore');
-                Route::delete('/force-delete/{id}', [PageController::class, 'forceDelete'])->name('force-delete');
+                Route::get('/', [CmsPageController::class, 'index'])->name('index');
+                Route::post('/store', [CmsPageController::class, 'store'])->name('store');
+                Route::put('/update/{id}', [CmsPageController::class, 'update'])->name('update');
+                Route::post('/toggle-status/{id}', [CmsPageController::class, 'toggleStatus'])->name('toggle-status');
+                Route::delete('/destroy/{id}', [CmsPageController::class, 'destroy'])->name('destroy');
+                Route::post('/restore/{id}', [CmsPageController::class, 'restore'])->name('restore');
+                Route::delete('/force-delete/{id}', [CmsPageController::class, 'forceDelete'])->name('force-delete');
             });
 
             // Section Management

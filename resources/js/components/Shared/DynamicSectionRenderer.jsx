@@ -56,6 +56,10 @@ const DynamicSectionRenderer = ({
   pageData,
   globalProps = {}
 }) => {
+  console.log("section", section);
+  console.log("pageData", pageData);
+  console.log("globalProps", globalProps);
+
   // ============================================
   // EXTRACT SECTION CONFIG
   // ============================================
@@ -116,63 +120,87 @@ const DynamicSectionRenderer = ({
   // Build component props based on configuration
   const componentProps = { ...baseProps };
 
+  // ============================================
+  // RESOLVE DATA SOURCE
+  // ============================================
+  // The data might be nested in pageData.pageData or at the root level
+  // Check if pageData has a 'pageData' property that contains the actual data
+  const dataSource = pageData.pageData || pageData;
+
+  console.log('DynamicSectionRenderer - dataSource keys:', Object.keys(dataSource));
+
+  // ============================================
+  // RESOLVE PROPS BASED ON CONFIGURATION
+  // ============================================
+
   if (config?.isMultiProp) {
     // Multi-prop components: pass multiple props
+    console.log('  - Using multi-prop mode');
     config.props.forEach(prop => {
-      if (pageData[prop] !== undefined) {
-        componentProps[prop] = pageData[prop];
+      if (dataSource[prop] !== undefined) {
+        componentProps[prop] = dataSource[prop];
       }
     });
-  } else if (propName && dataKey) {
-    // Single prop with explicit dataKey
-    let dataValue = pageData[dataKey];
+  } else {
+    // Single prop components
+    const propNameToUse = propName || config?.propName || 'data';
+    console.log('  - Using single prop mode, propNameToUse:', propNameToUse);
 
-    // Try kebab-case version of dataKey (for camelCase to kebab conversion)
+    // Try to find the data
+    let dataValue = undefined;
+
+    // 1. Try using dataKey first
+    if (dataKey && dataSource[dataKey] !== undefined) {
+      dataValue = dataSource[dataKey];
+      console.log('  - Found data via dataKey:', dataKey);
+    }
+
+    // 2. If not found, try using propName
+    if (dataValue === undefined && propName && dataSource[propName] !== undefined) {
+      dataValue = dataSource[propName];
+      console.log('  - Found data via propName:', propName);
+    }
+
+    // 3. If still not found, try kebab-case versions
     if (dataValue === undefined && dataKey) {
       const kebabKey = dataKey.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-      dataValue = pageData[kebabKey];
-    }
-
-    // Try using propName as fallback
-    if (dataValue === undefined && propName) {
-      dataValue = pageData[propName];
-      const kebabPropName = propName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-      if (dataValue === undefined) {
-        dataValue = pageData[kebabPropName];
+      if (dataSource[kebabKey] !== undefined) {
+        dataValue = dataSource[kebabKey];
+        console.log('  - Found data via kebabKey:', kebabKey);
       }
     }
 
-    componentProps[propName] = dataValue;
-  } else if (propName) {
-    // Single prop: try to find data by propName
-    let dataValue = pageData[propName];
+    // 4. If still not found, try to guess based on component name
     if (dataValue === undefined) {
-      const kebabPropName = propName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-      dataValue = pageData[kebabPropName];
-    }
-    componentProps[propName] = dataValue;
-  }
-
-  // ============================================
-  // FALLBACK: Try to find data by various keys
-  // ============================================
-  // If still no data found, try a series of possible keys
-  if (componentProps[propName] === undefined) {
-    const possibleKeys = [
-      section.data_key,
-      propName,
-      section.data_key?.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-      propName?.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-      componentName.replace('Section', '').replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-    ];
-
-    for (const key of possibleKeys) {
-      if (key && pageData[key] !== undefined) {
-        componentProps[propName || 'data'] = pageData[key];
-        break;
+      const guessedKey = componentName.replace('Section', '').replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+      if (dataSource[guessedKey] !== undefined) {
+        dataValue = dataSource[guessedKey];
+        console.log('  - Found data via guessedKey:', guessedKey);
       }
     }
+
+    // 5. Final fallback: try any key that might contain the data
+    if (dataValue === undefined) {
+      // Try to find any key in dataSource that contains the component name
+      const componentLower = componentName.toLowerCase();
+      for (const key in dataSource) {
+        if (key.toLowerCase().includes(componentLower.replace('section', ''))) {
+          dataValue = dataSource[key];
+          console.log('  - Found data via partial match:', key);
+          break;
+        }
+      }
+    }
+
+    // Set the prop
+    componentProps[propNameToUse] = dataValue;
+    console.log('  - Final prop value:', dataValue);
   }
+
+  // ============================================
+  // DEBUG: Log final component props
+  // ============================================
+  console.log('DynamicSectionRenderer - Final componentProps:', componentProps);
 
   // ============================================
   // RENDER WITH SUSPENSE (for lazy loading)

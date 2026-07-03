@@ -15,27 +15,59 @@ const hasValue = (value) => {
   return true;
 };
 
+/**
+ * AboutUsSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - About Us data from API (from DynamicSectionRenderer)
+ * @param {Object} props.aboutUsData - About Us data from API (direct prop)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * 
+ * @returns {JSX.Element} Rendered about us section
+ */
 const AboutUsSection = ({
-  aboutUsData,
+  data,           // From DynamicSectionRenderer
+  aboutUsData,    // Direct prop (legacy support)
   bgColor = 'bg-white',
   paddingY = 'py-10 sm:py-15 md:py-25 lg:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
   sectionClassName = '',
 }) => {
-  // Don't render if no data
-  if (!hasValue(aboutUsData)) {
+  // Use data prop if available, fallback to aboutUsData
+  let resolvedData = data || aboutUsData;
+
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(resolvedData)) {
     return null;
   }
 
-  // Safe destructuring with defaults
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  // Check if the data is wrapped in a 'data' property
+  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  if (resolvedData.data && typeof resolvedData.data === 'object') {
+    resolvedData = resolvedData.data;
+  }
+
+  // ============================================
+  // SAFE DESTRUCTURING WITH DEFAULTS
+  // ============================================
   const {
     section = {},
     mission = {},
     impact = {},
     image = {}
-  } = aboutUsData;
+  } = resolvedData;
 
-  // Check if there's any content to display
+  // ============================================
+  // CHECK FOR CONTENT
+  // ============================================
   const hasAnyContent = hasValue(section.title) ||
     hasValue(section.description) ||
     hasValue(section.button?.text) ||
@@ -49,6 +81,9 @@ const AboutUsSection = ({
     return null;
   }
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id='about-us'
@@ -146,12 +181,12 @@ const AboutUsSection = ({
             {hasValue(impact.stats) && (
               <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-5 rounded-md'>
                 {impact.stats.map((stat) => (
-                  <div key={stat.id} className='bg-[#F5F5F5] py-5 sm:py-6 lg:py-7.5 rounded-xl group hover:bg-[#009BE2] transition-all duration-300 hover:-translate-y-1'>
+                  <div key={stat.id} className='bg-[#F5F5F5] py-5 sm:py-6 lg:py-7.5 rounded-xl group hover:bg-[#009BE2] transition-all duration-300 hover:-translate-y-1 cursor-default '>
                     {(hasValue(stat.value) || hasValue(stat.suffix)) && (
                       <h3 className='flex items-end font-600 text-[36px] sm:text-[44px] lg:text-[50px] text-[#080C14] text-center justify-center group-hover:text-white transition-colors duration-300'>
                         {stat.value}
                         {stat.suffix && (
-                          <span className='text-[14px] sm:text-[15px] lg:text-[16px] pb-2 lg:pb-3 group-hover:text-white transition-colors duration-300'>
+                          <span className='text-[14px] sm:text-[15px] lg:text-[16px] pb-2 lg:pb-3 group-hover:text-white transition-colors duration-300 cursor-default'>
                             {stat.suffix}
                           </span>
                         )}

@@ -15,37 +15,73 @@ const hasValue = (value) => {
   return true;
 };
 
+/**
+ * HomeBanner Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Banner data from API (from DynamicSectionRenderer)
+ * @param {Object} props.bannerData - Banner data from API (direct prop)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.height - Height classes (default: 'h-125 md:h-280')
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * 
+ * @returns {JSX.Element} Rendered home banner
+ */
 const HomeBanner = ({
-  bannerData,
+  data,           // From DynamicSectionRenderer
+  bannerData,     // Direct prop (legacy support)
   bgColor = '',
   height = 'h-125 md:h-280',
   sectionClassName = '',
 }) => {
-  // If bannerData doesn't exist, don't render anything
-  if (!hasValue(bannerData)) {
+  // Use data prop if available, fallback to bannerData
+  let resolvedData = data || bannerData;
+
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(resolvedData)) {
     return null;
   }
 
-  // Destructure with fallbacks to prevent errors
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  // Check if the data is wrapped in a 'data' property
+  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  if (resolvedData.data && typeof resolvedData.data === 'object') {
+    resolvedData = resolvedData.data;
+  }
+
+  // ============================================
+  // DESTRUCTURE DATA WITH FALLBACKS
+  // ============================================
   const {
     background = {},
     overlay = {},
     content = {},
     buttons = []
-  } = bannerData;
+  } = resolvedData;
 
-  // Check if there's any content to display
+  // ============================================
+  // CHECK FOR CONTENT
+  // ============================================
   const hasAnyContent = hasValue(content.tagline?.text) ||
     hasValue(content.title?.text) ||
     hasValue(content.description?.text) ||
     hasValue(buttons);
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id="banner"
       className={`relative w-full ${height} overflow-hidden ${bgColor} ${sectionClassName}`}
     >
-      {/* Background Image - Only render if src exists */}
+      {/* ============================================
+          BACKGROUND IMAGE
+          ============================================ */}
       {hasValue(background.src) && (
         <img
           src={background.src}
@@ -54,46 +90,51 @@ const HomeBanner = ({
         />
       )}
 
-      {/* Dark Overlay - Only render if darkOverlay class exists */}
+      {/* ============================================
+          OVERLAYS
+          ============================================ */}
+      {/* Dark overlay (e.g., 'bg-black/50') */}
       {hasValue(overlay.darkOverlay) && (
-        <div className={`absolute inset-0 ${overlay.darkOverlay}`}></div>
+        <div className={`absolute inset-0 ${overlay.darkOverlay}`} />
       )}
 
-      {/* Left Dark Gradient - Only render if gradient class exists */}
+      {/* Gradient overlay (e.g., 'bg-gradient-to-r from-black/80 to-transparent') */}
       {hasValue(overlay.gradient) && (
-        <div className={`absolute inset-0 ${overlay.gradient}`}></div>
+        <div className={`absolute inset-0 ${overlay.gradient}`} />
       )}
 
-      {/* Additional overlay for mobile - Always show */}
-      <div className="absolute inset-0 bg-black/40 md:hidden"></div>
+      {/* Mobile-only overlay - ensures text readability on small screens */}
+      <div className="absolute inset-0 bg-black/40 md:hidden" />
 
-      {/* Content - Only render if there's any content */}
+      {/* ============================================
+          CONTENT
+          ============================================ */}
       {hasAnyContent && (
         <div className="absolute left-0 md:left-5 inset-0 flex items-center p-5 md:p-12.5">
           <div className="w-full px-4 md:px-20 text-white space-y-3 md:space-y-5">
 
-            {/* Tagline - Only render if text exists */}
+            {/* Tagline - small text above title */}
             {hasValue(content.tagline?.text) && (
               <p className={`bricolage-grotesque ${content.tagline.className || ''} text-white text-center md:text-left text-sm md:text-[30px] tracking-[2px] md:tracking-[4px]`}>
                 {content.tagline.text}
               </p>
             )}
 
-            {/* Title - Only render if text exists */}
+            {/* Title - main heading */}
             {hasValue(content.title?.text) && (
-              <h1 className={`bricolage-grotesque font-bold leading-tight text-[32px] md:text-[100px] text-center md:text-left w-full md:w-215.75`}>
+              <h1 className="bricolage-grotesque font-bold leading-tight text-[32px] md:text-[100px] text-center md:text-left w-full md:w-215.75">
                 {content.title.text}
               </h1>
             )}
 
-            {/* Description - Only render if text exists */}
+            {/* Description - supporting text */}
             {hasValue(content.description?.text) && (
-              <p className={`bricolage-grotesque font-normal text-[14px] md:text-[30px] leading-tight text-center md:text-left text-white w-full md:w-215.75 line-clamp-3 md:line-clamp-none`}>
+              <p className="bricolage-grotesque font-normal text-[14px] md:text-[30px] leading-tight text-center md:text-left text-white w-full md:w-215.75 line-clamp-3 md:line-clamp-none">
                 {content.description.text}
               </p>
             )}
 
-            {/* Buttons - Only render if buttons array has items */}
+            {/* CTA Buttons */}
             {hasValue(buttons) && (
               <div className='flex flex-col sm:flex-row items-center gap-3 md:gap-6 pt-5 md:pt-7.5'>
                 {buttons.map((button) => (
@@ -107,6 +148,7 @@ const HomeBanner = ({
                     className={`capitalize font-600 text-[14px] md:text-[18px] px-5 md:px-7.5 py-3 md:py-5 bricolage-grotesque rounded-md inline-flex items-center justify-center gap-2 md:gap-3 group transition-all duration-300 w-full sm:w-auto ${button.className || ''}`}
                   >
                     <span>{button.text}</span>
+                    {/* Arrow icon - only shown if icon: true */}
                     {button.icon && (
                       <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300 w-4 h-4 md:w-5 md:h-5" />
                     )}

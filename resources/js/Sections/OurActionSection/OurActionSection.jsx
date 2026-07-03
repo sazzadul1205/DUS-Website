@@ -8,26 +8,63 @@ const hasValue = (value) => {
   if (value === undefined || value === null) return false;
   if (typeof value === 'string') return value.trim().length > 0;
   if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value).length > 0;
   return true;
 };
 
+/**
+ * OurActionSection Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Our Action data from API (from DynamicSectionRenderer)
+ * @param {Object} props.actionData - Our Action data from API (direct prop)
+ * @param {string} props.bgColor - Background color (optional)
+ * @param {string} props.paddingY - Vertical padding classes
+ * @param {string} props.paddingX - Horizontal padding classes
+ * @param {string} props.sectionClassName - Additional CSS classes
+ * 
+ * @returns {JSX.Element} Rendered our action section
+ */
 const OurActionSection = ({
-  actionData,
+  data,           // From DynamicSectionRenderer
+  actionData,     // Direct prop (legacy support)
   bgColor = 'bg-[#F5F5F5]',
   paddingY = 'py-10 sm:py-15 md:py-25 lg:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-50',
   sectionClassName = '',
 }) => {
-  // Early return if no data
-  if (!hasValue(actionData)) return null;
+  // Use data prop if available, fallback to actionData
+  let resolvedData = data || actionData;
 
-  const { section = {}, actions = [] } = actionData;
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(resolvedData)) return null;
 
-  // Early return if no content
+  // ============================================
+  // NORMALIZE DATA STRUCTURE
+  // ============================================
+  // Check if the data is wrapped in a 'data' property
+  // This happens when the API returns { id, page_slug, section_key, data: { ... } }
+  if (resolvedData.data && typeof resolvedData.data === 'object') {
+    resolvedData = resolvedData.data;
+  }
+
+  // ============================================
+  // SAFE DESTRUCTURING WITH DEFAULTS
+  // ============================================
+  const { section = {}, actions = [] } = resolvedData;
+
+  // ============================================
+  // EARLY RETURN - No content
+  // ============================================
   if (!hasValue(section.title) && !hasValue(section.description) && !hasValue(actions)) {
     return null;
   }
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <section
       id='our-action'
