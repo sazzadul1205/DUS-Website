@@ -1,5 +1,35 @@
 // resources/js/components/Navbar.jsx
 
+/**
+ * ============================================
+ * NAVBAR - Main Navigation Component
+ * ============================================
+ * 
+ * PURPOSE:
+ * - Renders the main navigation bar with logo, links, and CTA
+ * - Supports dropdown menus for nested navigation
+ * - Responsive: Desktop horizontal, Mobile hamburger menu
+ * - Active link highlighting based on current route
+ * - Logo: 73×106px (width × height) - fixed, no floating
+ * 
+ * DATA STRUCTURE:
+ * {
+ *   logo: { src, alt, className, href, width, height },
+ *   navLinks: [{ name, href, dropdown: [{ name, href }] }],
+ *   button: { text, href, className },
+ *   mobileMenu: { className },
+ *   dropdowns: [[{ name, href }]] // Optional: dropdowns separate from navLinks
+ * }
+ * 
+ * FEATURES:
+ * - Active route detection with underline indicator
+ * - Dropdown menus with chevron animation
+ * - Mobile hamburger menu with slide animation
+ * - Fixed logo dimensions: 73×106px
+ * 
+ * ============================================
+ */
+
 // React
 import React, { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
@@ -7,7 +37,9 @@ import { Link, usePage } from '@inertiajs/react';
 // Icons
 import { Menu, X, ChevronDown } from 'lucide-react';
 
-// Utility function to check if value exists
+// ============================================
+// UTILITY: Check if value exists
+// ============================================
 const hasValue = (value) => {
   if (value === undefined || value === null) return false;
   if (typeof value === 'string') return value.trim().length > 0;
@@ -16,24 +48,40 @@ const hasValue = (value) => {
   return true;
 };
 
-const Navbar = ({ navbarData }) => {
-  // State
+/**
+ * Navbar Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.navbarData - Navigation configuration data
+ * @param {string} props.storageUrl - Base URL for image storage
+ * 
+ * @returns {JSX.Element} Rendered navigation bar
+ */
+const Navbar = ({ navbarData, storageUrl = '' }) => {
+  // ============================================
+  // STATE
+  // ============================================
   const [isOpen, setIsOpen] = useState(false);
   const [openDropdowns, setOpenDropdowns] = useState({});
+  const [mobileDropdownOpen, setMobileDropdownOpen] = useState({});
 
-  // Get current URL path
+  // ============================================
+  // ROUTE DETECTION
+  // ============================================
   const { url } = usePage();
+  const currentPath = url;
 
-  // Check if a link is active
   const isActive = (href) => {
     if (!hasValue(href)) return false;
     if (href === '/') {
-      return url === href;
+      return currentPath === href;
     }
-    return url.startsWith(href);
+    return currentPath.startsWith(href);
   };
 
-  // Toggle dropdown
+  // ============================================
+  // DROPDOWN TOGGLES
+  // ============================================
   const toggleDropdown = (index) => {
     setOpenDropdowns(prev => ({
       ...prev,
@@ -41,12 +89,21 @@ const Navbar = ({ navbarData }) => {
     }));
   };
 
-  // Don't render if no data
-  if (!hasValue(navbarData)) {
-    return null;
-  }
+  const toggleMobileDropdown = (index) => {
+    setMobileDropdownOpen(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
 
-  // Safe destructuring with defaults
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(navbarData)) return null;
+
+  // ============================================
+  // DESTRUCTURE DATA
+  // ============================================
   const {
     logo = {},
     navLinks = [],
@@ -58,56 +115,79 @@ const Navbar = ({ navbarData }) => {
   const hasLogo = hasValue(logo.src);
   const hasNavLinks = hasValue(navLinks);
   const hasButton = hasValue(button.text) && hasValue(button.href);
-  const hasDropdowns = hasValue(dropdowns);
 
-  // If no content, don't render
-  if (!hasLogo && !hasNavLinks && !hasButton) {
-    return null;
-  }
+  if (!hasLogo && !hasNavLinks && !hasButton) return null;
 
+  // ============================================
+  // HELPERS
+  // ============================================
+  const getImageSrc = (imagePath) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('/asset/')) return imagePath;
+    if (storageUrl) {
+      const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+      return `${storageUrl}${cleanPath}`;
+    }
+    return imagePath;
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-20">
-      <div className="mx-auto px-5 md:px-20 py-3">
-        <div className="flex justify-between items-center h-20">
+      <div className="mx-auto px-5 md:px-25 py-5">
+        <div className="flex justify-between items-center">
 
-          {/* Logo */}
-          {hasLogo && (
-            <Link href={logo.href || '/'} className="flex items-center space-x-2 group">
-              <img
-                src={logo.src}
-                alt={logo.alt || 'Logo'}
-                className={logo.className || 'h-10 w-auto'}
-              />
-            </Link>
-          )}
+          {/* ============================================
+              LOGO - Fixed dimensions 73×106px (no floating)
+              ============================================ */}
+          <div className="shrink-0">
+            {hasLogo && (
+              <Link href={logo.href || '/'} className="block">
+                <img
+                  src={getImageSrc(logo.src)}
+                  alt={logo.alt || 'Logo'}
+                  className={logo.className || 'block'}
+                  width={logo.width || 73}
+                  height={logo.height || 106}
+                  style={{
+                    width: '73px',
+                    height: '106.63px',
+                    objectFit: 'contain',
+                    display: 'block',
+                    ...(logo.style || {})
+                  }}
+                />
+              </Link>
+            )}
+          </div>
 
-          {/* Desktop Navigation */}
-          <div className='flex items-center space-x-8'>
+          {/* ============================================
+              RIGHT SIDE - Nav Links + CTA + Hamburger
+              ============================================ */}
+          <div className="flex items-center gap-9">
 
-            {/* Navigation Links */}
+            {/* DESKTOP NAVIGATION */}
             {hasNavLinks && (
-              <ul className="hidden lg:flex items-center space-x-8">
+              <ul className="hidden lg:flex items-center gap-9">
                 {navLinks.map((link, index) => {
                   const active = isActive(link.href);
                   const hasDropdown = hasValue(link.dropdown) || hasValue(dropdowns[index]);
 
                   return (
-                    <li key={link.name || index} className="relative group">
+                    <li key={link.name || index} className="relative">
                       {hasDropdown ? (
-                        // Dropdown Link
                         <div>
                           <button
                             onClick={() => toggleDropdown(index)}
-                            className={`relative font-medium transition-all duration-300 flex items-center gap-1 ${active
-                              ? 'text-[#009BE2]'
-                              : 'text-black hover:text-[#009BE2]'
-                              }`}
+                            className={`relative font-semibold transition-all duration-300 flex items-center gap-1 whitespace-nowrap ${active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'}`}
                           >
                             {link.name}
-                            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${openDropdowns[index] ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdowns[index] ? 'rotate-180' : ''}`} />
                           </button>
 
-                          {/* Dropdown Menu */}
                           {openDropdowns[index] && (
                             <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
                               {(link.dropdown || dropdowns[index] || []).map((dropdownItem, idx) => (
@@ -124,22 +204,12 @@ const Navbar = ({ navbarData }) => {
                           )}
                         </div>
                       ) : (
-                        // Regular Link
                         <Link
                           href={link.href}
-                          className={`relative font-medium transition-all duration-300 group ${active
-                            ? 'text-[#009BE2]'
-                            : 'text-black hover:text-[#009BE2]'
-                            }`}
+                          className={`relative font-semibold transition-all duration-300 text-[20px] group whitespace-nowrap ${active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'}`}
                         >
                           {link.name}
-                          {/* Bottom blue line - active state */}
-                          <span
-                            className={`absolute bottom-0 left-0 h-0.5 bg-[#009BE2] transition-all duration-300 ${active
-                              ? 'w-full'
-                              : 'w-0 group-hover:w-full group-hover:right-0 group-hover:left-auto'
-                              }`}
-                          ></span>
+                          <span className={`absolute bottom-0 left-0 h-0.5 bg-[#009BE2] transition-all duration-300 ${active ? 'w-full' : 'w-0 group-hover:w-full'}`} />
                         </Link>
                       )}
                     </li>
@@ -148,20 +218,20 @@ const Navbar = ({ navbarData }) => {
               </ul>
             )}
 
-            {/* Desktop Contact Button */}
+            {/* CTA BUTTON */}
             {hasButton && (
               <Link
                 href={button.href}
-                className={`hidden lg:inline-block ${button.className || 'capitalize text-white bg-[#009BE2] hover:bg-[#009BE2]/80 px-6 py-2 rounded-lg transition-colors duration-200'}`}
+                className="uppercase text-white text-[18px] font-semibold bg-[#009BE2] hover:bg-[#009BE2]/80 px-6 py-4 rounded-xl"
               >
                 {button.text}
               </Link>
             )}
 
-            {/* Mobile Menu Button */}
+            {/* HAMBURGER MENU BUTTON - Mobile */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={mobileMenu.className || "md:hidden text-gray-700 hover:text-blue-600 focus:outline-none"}
+              className={mobileMenu.className || "lg:hidden text-gray-700 hover:text-blue-600 focus:outline-none p-2"}
               aria-label="Toggle menu"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -169,30 +239,32 @@ const Navbar = ({ navbarData }) => {
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
+        {/* ============================================
+            MOBILE MENU - Slide Down
+            ============================================ */}
         <div
           className={`lg:hidden transition-all duration-300 ease-in-out overflow-hidden
-            ${isOpen ? 'max-h-125 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}
+            ${isOpen ? 'max-h-screen opacity-100 mt-4' : 'max-h-0 opacity-0'}`}
         >
-          <ul className="flex flex-col space-y-4 pb-4">
+          <ul className="flex flex-col space-y-3 pb-4">
             {hasNavLinks && navLinks.map((link, index) => {
               const active = isActive(link.href);
               const hasDropdown = hasValue(link.dropdown) || hasValue(dropdowns[index]);
-              const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
 
               return (
                 <li key={link.name || index}>
                   {hasDropdown ? (
                     <div>
                       <button
-                        onClick={() => setMobileDropdownOpen(!mobileDropdownOpen)}
+                        onClick={() => toggleMobileDropdown(index)}
                         className={`flex items-center justify-between w-full font-medium transition-colors duration-200 py-2 ${active ? 'text-[#009BE2]' : 'text-black hover:text-[#009BE2]'
                           }`}
                       >
                         <span>{link.name}</span>
-                        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${mobileDropdownOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${mobileDropdownOpen[index] ? 'rotate-180' : ''
+                          }`} />
                       </button>
-                      {mobileDropdownOpen && (
+                      {mobileDropdownOpen[index] && (
                         <div className="pl-4 mt-2 space-y-2 border-l-2 border-gray-200">
                           {(link.dropdown || dropdowns[index] || []).map((dropdownItem, idx) => (
                             <Link
@@ -201,7 +273,7 @@ const Navbar = ({ navbarData }) => {
                               className="block py-2 text-sm text-gray-600 hover:text-[#009BE2] transition-colors duration-200"
                               onClick={() => {
                                 setIsOpen(false);
-                                setMobileDropdownOpen(false);
+                                setMobileDropdownOpen({});
                               }}
                             >
                               {dropdownItem.name}
@@ -219,13 +291,15 @@ const Navbar = ({ navbarData }) => {
                     >
                       {link.name}
                       {active && (
-                        <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-[#009BE2]"></span>
+                        <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-[#009BE2]" />
                       )}
                     </Link>
                   )}
                 </li>
               );
             })}
+
+            {/* Mobile CTA Button */}
             {hasButton && (
               <li>
                 <Link

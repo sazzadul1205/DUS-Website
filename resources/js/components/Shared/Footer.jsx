@@ -1,4 +1,42 @@
+/* eslint-disable no-undef */
 // resources/js/components/Footer.jsx
+
+/**
+ * ============================================
+ * FOOTER - Site Footer Component
+ * ============================================
+ * 
+ * PURPOSE:
+ * - Renders the website footer with all sections
+ * - Provides navigation links, social media, and newsletter
+ * - Responsive: Desktop grid layout, mobile accordion
+ * 
+ * SECTIONS:
+ * 1. Left Column: Logo, description, social links, address/contact
+ * 2. Right Column: Quick Links, Our Programs, Newsletter
+ * 
+ * DATA STRUCTURE:
+ * {
+ *   logo: { src, alt, className },
+ *   description: string,
+ *   socialLinks: [{ iconName, url, hoverColor }],
+ *   address: { title, details },
+ *   contact: { title, numbers: [] },
+ *   email: { title, addresses: [] },
+ *   quickLinks: [{ name, url }],
+ *   programs: [{ name, url }],
+ *   newsletter: { title, placeholder, buttonText },
+ *   bottomFooter: { copyright, links: [{ text, url }] },
+ *   quickLinkLinkIcon: string,
+ *   OurProgramLinkIcon: string
+ * }
+ * 
+ * RESPONSIVE BEHAVIOR:
+ * - Desktop: Full layout with side-by-side columns
+ * - Mobile: Accordion for Quick Links and Programs
+ * 
+ * ============================================
+ */
 
 // React
 import { Link } from '@inertiajs/react';
@@ -7,7 +45,9 @@ import React, { useState } from 'react';
 // Icons
 import { FaFacebook, FaInstagram, FaLinkedin, FaXTwitter } from 'react-icons/fa6';
 
-// Utility function to check if value exists
+// ============================================
+// UTILITY: Check if value exists
+// ============================================
 const hasValue = (value) => {
   if (value === undefined || value === null) return false;
   if (typeof value === 'string') return value.trim().length > 0;
@@ -16,15 +56,30 @@ const hasValue = (value) => {
   return true;
 };
 
-// Map icon names to components
+// ============================================
+// ICON MAPPING
+// ============================================
+// Maps icon names from API to React components
 const iconMap = {
-  FaFacebook: FaFacebook,
-  FaInstagram: FaInstagram,
-  FaLinkedin: FaLinkedin,
-  FaXTwitter: FaXTwitter
+  FaFacebook,
+  FaInstagram,
+  FaLinkedin,
+  FaXTwitter
 };
 
-const Footer = ({ footerData, storageUrl }) => {
+/**
+ * Footer Component
+ * 
+ * @param {Object} props
+ * @param {Object} props.footerData - Footer configuration data
+ * @param {string} props.storageUrl - Base URL for image storage
+ * 
+ * @returns {JSX.Element} Rendered footer
+ */
+const Footer = ({ footerData, storageUrl = '' }) => {
+  // ============================================
+  // STATE
+  // ============================================
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
@@ -33,12 +88,14 @@ const Footer = ({ footerData, storageUrl }) => {
     programs: false
   });
 
-  // Don't render if no data
-  if (!hasValue(footerData)) {
-    return null;
-  }
+  // ============================================
+  // EARLY RETURN - No data
+  // ============================================
+  if (!hasValue(footerData)) return null;
 
-  // Safe destructuring with defaults
+  // ============================================
+  // DESTRUCTURE DATA
+  // ============================================
   const {
     logo = {},
     description = '',
@@ -54,6 +111,9 @@ const Footer = ({ footerData, storageUrl }) => {
     OurProgramLinkIcon = ''
   } = footerData;
 
+  // ============================================
+  // CHECK FOR CONTENT
+  // ============================================
   const hasLogo = hasValue(logo.src);
   const hasDescription = hasValue(description);
   const hasSocialLinks = hasValue(socialLinks);
@@ -65,16 +125,36 @@ const Footer = ({ footerData, storageUrl }) => {
   const hasNewsletter = hasValue(newsletter.title);
   const hasBottomFooter = hasValue(bottomFooter.copyright) || hasValue(bottomFooter.links);
 
-  // If no content at all, don't render
-  if (!hasLogo && !hasDescription && !hasSocialLinks && !hasAddress && !hasContact && !hasEmailInfo && !hasQuickLinks && !hasPrograms && !hasNewsletter) {
+  // If no content, don't render anything
+  if (!hasLogo && !hasDescription && !hasSocialLinks && !hasAddress &&
+    !hasContact && !hasEmailInfo && !hasQuickLinks && !hasPrograms && !hasNewsletter) {
     return null;
   }
 
-  // Split programs into two columns (only if programs exist)
+  // ============================================
+  // HELPERS
+  // ============================================
+
+  /**
+   * Build image URL with storage path
+   */
+  const getImageSrc = (imagePath) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http')) return imagePath;
+    if (storageUrl) return `${storageUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    return imagePath;
+  };
+
+  /**
+   * Split programs into two columns for desktop
+   */
   const itemsPerColumn = hasPrograms ? Math.ceil(programs.length / 2) : 0;
   const firstProgramColumn = hasPrograms ? programs.slice(0, itemsPerColumn) : [];
   const secondProgramColumn = hasPrograms ? programs.slice(itemsPerColumn) : [];
 
+  /**
+   * Toggle mobile accordion sections
+   */
   const toggleMobileSection = (section) => {
     setIsMobileMenuOpen(prev => ({
       ...prev,
@@ -82,9 +162,15 @@ const Footer = ({ footerData, storageUrl }) => {
     }));
   };
 
-  // Handle form submission
-  const handleSubscribe = async (e) => {
+  /**
+   * Handle newsletter subscription
+   * Currently simulates API call with timeout
+   * TODO: Connect to actual newsletter API endpoint
+   */
+  const handleSubscribe = (e) => {
     e.preventDefault();
+
+    // Validate email
     if (!email || !email.includes('@')) {
       setSubmitMessage('Please enter a valid email address');
       setTimeout(() => setSubmitMessage(''), 3000);
@@ -93,10 +179,8 @@ const Footer = ({ footerData, storageUrl }) => {
 
     setIsSubmitting(true);
 
-    const apiEndpoint = newsletter.apiEndpoint || '/api/subscribe-newsletter';
-
     try {
-      // Simulate API call - replace with actual fetch
+      // Simulate API call
       setTimeout(() => {
         setSubmitMessage('Successfully subscribed!');
         setEmail('');
@@ -104,24 +188,31 @@ const Footer = ({ footerData, storageUrl }) => {
         setTimeout(() => setSubmitMessage(''), 3000);
       }, 1000);
     } catch (error) {
+      console.error(error);
       setSubmitMessage('Subscription failed. Please try again.');
       setIsSubmitting(false);
       setTimeout(() => setSubmitMessage(''), 3000);
     }
   };
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <div>
-      <footer className='bg-[#080C14] rounded-t-2xl lg:rounded-t-4xl pb-25' role="contentinfo">
+      {/* Main Footer */}
+      <footer className='bg-[#080C14] rounded-t-2xl lg:rounded-t-4xl' role="contentinfo">
         <div className='mx-auto flex flex-col lg:flex-row px-5 lg:px-50 pt-10 lg:pt-37.5 gap-8 lg:gap-50'>
 
-          {/* Left Section */}
+          {/* ============================================
+              LEFT COLUMN - Logo, Description, Social, Contact
+              ============================================ */}
           <div className='w-full lg:w-1/3'>
-            {/* Footer Logo */}
+            {/* Logo */}
             {hasLogo && (
               <div className="flex justify-center lg:justify-start">
                 <img
-                  src={logo.src}
+                  src={getImageSrc(logo.src)}
                   alt={logo.alt || 'Footer Logo'}
                   className={logo.className || 'h-auto w-auto'}
                   loading="lazy"
@@ -129,14 +220,14 @@ const Footer = ({ footerData, storageUrl }) => {
               </div>
             )}
 
-            {/* Footer Description */}
+            {/* Description */}
             {hasDescription && (
               <p className='pt-5 text-center lg:text-left text-xs lg:text-sm leading-relaxed text-gray-300 px-4 lg:px-0'>
                 {description}
               </p>
             )}
 
-            {/* Social Media Icons */}
+            {/* Social Links */}
             {hasSocialLinks && (
               <div className='pt-5 flex justify-center lg:justify-start gap-3 lg:gap-5' aria-label="Social media links">
                 {socialLinks.map((social, index) => {
@@ -162,7 +253,7 @@ const Footer = ({ footerData, storageUrl }) => {
               </div>
             )}
 
-            {/* Address & Contact Info */}
+            {/* Address, Contact, Email */}
             {(hasAddress || hasContact || hasEmailInfo) && (
               <div className='max-w-full lg:max-w-125 pt-5 space-y-4 text-center lg:text-left'>
                 {/* Address */}
@@ -216,12 +307,16 @@ const Footer = ({ footerData, storageUrl }) => {
             )}
           </div>
 
-          {/* Right Section */}
+          {/* ============================================
+              RIGHT COLUMN - Quick Links, Programs, Newsletter
+              ============================================ */}
           {(hasQuickLinks || hasPrograms || hasNewsletter) && (
             <div className='w-full lg:w-2/3'>
-              {/* Desktop Grid - Hidden on mobile */}
+
+              {/* DESKTOP: Grid layout for links */}
               {(hasQuickLinks || hasPrograms) && (
                 <div className='hidden md:grid md:grid-cols-3 gap-8'>
+
                   {/* Quick Links */}
                   {hasQuickLinks && (
                     <div>
@@ -231,7 +326,7 @@ const Footer = ({ footerData, storageUrl }) => {
                           <li key={index} className='flex items-center group'>
                             {hasValue(quickLinkLinkIcon) && (
                               <img
-                                src={quickLinkLinkIcon}
+                                src={getImageSrc(quickLinkLinkIcon)}
                                 alt=""
                                 className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
                                 aria-hidden="true"
@@ -249,7 +344,7 @@ const Footer = ({ footerData, storageUrl }) => {
                     </div>
                   )}
 
-                  {/* Our Programs - Column 1 */}
+                  {/* Programs - Column 1 */}
                   {hasPrograms && (
                     <div>
                       <h2 className='text-white text-xl lg:text-[22px] font-bold mb-5'>Our Programs</h2>
@@ -258,7 +353,7 @@ const Footer = ({ footerData, storageUrl }) => {
                           <li key={index} className='flex items-center group'>
                             {hasValue(OurProgramLinkIcon) && (
                               <img
-                                src={OurProgramLinkIcon}
+                                src={getImageSrc(OurProgramLinkIcon)}
                                 alt=""
                                 className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
                                 aria-hidden="true"
@@ -276,7 +371,7 @@ const Footer = ({ footerData, storageUrl }) => {
                     </div>
                   )}
 
-                  {/* Our Programs - Column 2 */}
+                  {/* Programs - Column 2 (hidden title for alignment) */}
                   {hasPrograms && secondProgramColumn.length > 0 && (
                     <div>
                       <h2 className='text-xl lg:text-[22px] font-bold mb-5 opacity-0 pointer-events-none invisible'>
@@ -287,7 +382,7 @@ const Footer = ({ footerData, storageUrl }) => {
                           <li key={index} className='flex items-center group'>
                             {hasValue(OurProgramLinkIcon) && (
                               <img
-                                src={OurProgramLinkIcon}
+                                src={getImageSrc(OurProgramLinkIcon)}
                                 alt=""
                                 className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
                                 aria-hidden="true"
@@ -307,7 +402,9 @@ const Footer = ({ footerData, storageUrl }) => {
                 </div>
               )}
 
-              {/* Mobile Accordion Menu - Visible only on mobile */}
+              {/* ============================================
+                  MOBILE: Accordion for links
+                  ============================================ */}
               <div className='md:hidden space-y-4'>
                 {/* Quick Links Accordion */}
                 {hasQuickLinks && (
@@ -332,7 +429,7 @@ const Footer = ({ footerData, storageUrl }) => {
                           <li key={index} className='flex items-center group'>
                             {hasValue(quickLinkLinkIcon) && (
                               <img
-                                src={quickLinkLinkIcon}
+                                src={getImageSrc(quickLinkLinkIcon)}
                                 alt=""
                                 className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
                                 aria-hidden="true"
@@ -374,7 +471,7 @@ const Footer = ({ footerData, storageUrl }) => {
                           <li key={index} className='flex items-center group'>
                             {hasValue(OurProgramLinkIcon) && (
                               <img
-                                src={OurProgramLinkIcon}
+                                src={getImageSrc(OurProgramLinkIcon)}
                                 alt=""
                                 className='mr-3 w-2.5 h-auto opacity-70 group-hover:opacity-100 transition-opacity'
                                 aria-hidden="true"
@@ -394,7 +491,9 @@ const Footer = ({ footerData, storageUrl }) => {
                 )}
               </div>
 
-              {/* Newsletter Section */}
+              {/* ============================================
+                  NEWSLETTER SECTION
+                  ============================================ */}
               {hasNewsletter && (
                 <div className='pt-10 mt-5 border-t border-gray-700'>
                   <h2 className='text-xl lg:text-[28px] font-bold text-white text-center lg:text-left'>
@@ -438,14 +537,19 @@ const Footer = ({ footerData, storageUrl }) => {
         </div>
       </footer>
 
-      {/* Bottom Footer */}
+      {/* ============================================
+          BOTTOM FOOTER - Copyright & Legal Links
+          ============================================ */}
       {hasBottomFooter && (
         <footer className='flex flex-col sm:flex-row justify-between items-center gap-4 bg-[#080C14] border-t border-[#090C40] px-5 lg:px-50 py-6'>
+          {/* Copyright */}
           {hasValue(bottomFooter.copyright) && (
             <p className='text-white text-[12px] lg:text-[14px] font-400 text-center sm:text-left'>
               {bottomFooter.copyright}
             </p>
           )}
+
+          {/* Legal Links */}
           {hasValue(bottomFooter.links) && (
             <ul className='flex flex-wrap justify-center gap-4 lg:gap-8 text-white text-[12px] lg:text-[14px] font-400'>
               {bottomFooter.links.map((link, index) => (
