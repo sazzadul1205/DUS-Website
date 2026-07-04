@@ -61,6 +61,9 @@ class RBACSeeder extends Seeder
       ['name' => 'CMS Custom Sections Manage', 'slug' => 'cms.custom-sections.manage', 'module' => 'cms', 'action' => 'custom_sections_manage'],
       ['name' => 'CMS Shared Data View', 'slug' => 'cms.shared-data.view', 'module' => 'cms', 'action' => 'shared_data_view'],
       ['name' => 'CMS Shared Data Manage', 'slug' => 'cms.shared-data.manage', 'module' => 'cms', 'action' => 'shared_data_manage'],
+      ['name' => 'CMS Publications', 'slug' => 'cms.publications', 'module' => 'cms', 'action' => 'publications'],
+      ['name' => 'CMS Publications View', 'slug' => 'cms.publications.view', 'module' => 'cms', 'action' => 'publications_view'],
+      ['name' => 'CMS Publications Manage', 'slug' => 'cms.publications.manage', 'module' => 'cms', 'action' => 'publications_manage'],
 
       // CMS Page CRUD Permissions
       ['name' => 'View Pages', 'slug' => 'pages.view', 'module' => 'pages', 'action' => 'view'],
@@ -89,6 +92,13 @@ class RBACSeeder extends Seeder
       ['name' => 'Update Program', 'slug' => 'programs.update', 'module' => 'programs', 'action' => 'update'],
       ['name' => 'Delete Program', 'slug' => 'programs.destroy', 'module' => 'programs', 'action' => 'destroy'],
       ['name' => 'Manage Programs', 'slug' => 'programs.manage', 'module' => 'programs', 'action' => 'manage'],
+
+      // CMS Publication CRUD Permissions (add this block)
+      ['name' => 'View Publications', 'slug' => 'publications.view', 'module' => 'publications', 'action' => 'view'],
+      ['name' => 'Create Publication', 'slug' => 'publications.create', 'module' => 'publications', 'action' => 'create'],
+      ['name' => 'Update Publication', 'slug' => 'publications.update', 'module' => 'publications', 'action' => 'update'],
+      ['name' => 'Delete Publication', 'slug' => 'publications.destroy', 'module' => 'publications', 'action' => 'destroy'],
+      ['name' => 'Manage Publications', 'slug' => 'publications.manage', 'module' => 'publications', 'action' => 'manage'],
 
       // CMS Custom Sections CRUD Permissions
       ['name' => 'View Custom Sections', 'slug' => 'custom-sections.view', 'module' => 'custom_sections', 'action' => 'view'],
@@ -611,6 +621,7 @@ class RBACSeeder extends Seeder
       ['role_id' => $superAdminRoleId, 'module' => 'roles', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'users', 'access_level' => 'manage'],
       ['role_id' => $superAdminRoleId, 'module' => 'statistics', 'access_level' => 'manage'],
+      ['role_id' => $superAdminRoleId, 'module' => 'publications', 'access_level' => 'manage'],
 
       // Admin - Full Access
       ['role_id' => $adminRoleId, 'module' => 'dashboard', 'access_level' => 'manage'],
@@ -635,6 +646,7 @@ class RBACSeeder extends Seeder
       ['role_id' => $adminRoleId, 'module' => 'roles', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'users', 'access_level' => 'manage'],
       ['role_id' => $adminRoleId, 'module' => 'statistics', 'access_level' => 'manage'],
+      ['role_id' => $adminRoleId, 'module' => 'publications', 'access_level' => 'manage'],
 
       // Employer - Employment Related (NO CMS)
       ['role_id' => $employerRoleId, 'module' => 'dashboard', 'access_level' => 'write'],

@@ -11,6 +11,8 @@ use App\Models\pages\SharedData;
 use App\Models\pages\Blog;
 use App\Models\pages\Program;
 use App\Models\pages\AboutContent;
+use App\Models\pages\Publication;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -118,6 +120,11 @@ class SectionController extends Controller
           $section['data'] = $aboutContent ? $aboutContent->data : null;
           break;
 
+        // UNCOMMENT AND FIX THIS CASE
+        case 'publications':
+          $section['data'] = Publication::active()->latest()->get();
+          break;
+
         default:
           $section['data'] = null;
           break;
@@ -126,7 +133,6 @@ class SectionController extends Controller
       $sections[] = $section;
     }
 
-    // Remove the dd() and return the data
     return Inertia::render('Backend/CMS/Section/Index', [
       'page' => $page,
       'sections' => $sections,
@@ -262,6 +268,7 @@ class SectionController extends Controller
       'ContentSection' => 'contentSectionData',
       'ProgramContentSection' => 'programContentData',
       'BlogContentSection' => 'blogData',
+      'PublicationsSection' => 'publicationsData',
     ];
 
     return $keyMap[$component] ?? $sectionKey . 'Data';
@@ -300,6 +307,7 @@ class SectionController extends Controller
       'ContentSection',
       'ProgramContentSection',
       'BlogContentSection',
+      'PublicationsSection',
     ];
 
     return in_array($component, $specialComponents);
@@ -323,6 +331,7 @@ class SectionController extends Controller
       case 'programs':
       case 'jobs':
       case 'about_content':
+      case 'publications': // ADD THIS
         // These are managed by their respective systems
         break;
 

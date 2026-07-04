@@ -67,6 +67,7 @@ class DatabaseSeeder extends Seeder
             \Database\Seeders\pages\AboutContentTableSeeder::class,
             \Database\Seeders\pages\BlogsTableSeeder::class,
             \Database\Seeders\pages\ProgramsTableSeeder::class,
+            \Database\Seeders\pages\PublicationSeeder::class,
 
             // Custom section data
             \Database\Seeders\pages\CustomSectionDataTableSeeder::class,

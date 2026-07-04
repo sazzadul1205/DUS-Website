@@ -24,9 +24,6 @@ import {
   FiShield,
 } from 'react-icons/fi';
 
-// Layout
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-
 const Dashboard = () => {
   const { auth, notifications } = usePage().props;
   const user = auth?.user;

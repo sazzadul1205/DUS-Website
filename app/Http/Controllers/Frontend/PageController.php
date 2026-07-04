@@ -197,15 +197,16 @@ class PageController extends Controller
         case 'jobs':
           $needs['jobs'] = true;
           break;
+        case 'publications':
+          $needs['publications'] = true;
+          break;
         case 'custom_section_data':
           $needs['custom'][] = $config->section_key;
           break;
-        // Add support for additional tables
         case 'pages':
           $needs['pages'] = true;
           break;
         default:
-          // Unknown data_table - log warning
           Log::warning("Unknown data_table: {$config->data_table} for section {$config->id}");
           break;
       }
@@ -225,6 +226,7 @@ class PageController extends Controller
       'topbarData' => 'topbar',
       'navbarData' => 'navbar',
       'footerData' => 'footer',
+      'publicationsData' => 'publications',
     ];
 
     return $map[$dataKey] ?? null;
@@ -257,7 +259,7 @@ class PageController extends Controller
       $data['blogs'] = $this->contentService->getBlogs();
     }
 
-    // About content (main and detail pages)
+    // About content
     if (!empty($needs['about_content'])) {
       $data['about_content'] = $this->contentService->getAboutDetails();
     }
@@ -270,7 +272,12 @@ class PageController extends Controller
         ->get();
     }
 
-    // Pages (if needed for navigation or other purposes)
+    // Publications - ADD THIS BLOCK
+    if (!empty($needs['publications'])) {
+      $data['publications'] = $this->contentService->getPublications();
+    }
+
+    // Pages
     if (!empty($needs['pages'])) {
       $data['pages'] = \App\Models\pages\Page::where('is_active', true)
         ->orderBy('name')
@@ -282,7 +289,6 @@ class PageController extends Controller
       foreach ($needs['custom'] as $sectionKey) {
         $customData = $this->contentService->getSectionData($pageSlug, $sectionKey);
         if ($customData) {
-          // If it's a model with a 'data' attribute, get it; otherwise assume it's already the data.
           if (method_exists($customData, 'getDataAttribute')) {
             $data['custom'][$sectionKey] = $customData->data;
           } else {
@@ -292,10 +298,9 @@ class PageController extends Controller
       }
     }
 
-    // Detail item (if detailSlug is provided)
+    // Detail item
     if ($detailSlug) {
       $detail = null;
-      // Determine the base page slug for detail lookup
       $baseSlug = $pageSlug;
       if ($pageSlug === 'blogs') {
         $baseSlug = 'blog';
@@ -312,7 +317,6 @@ class PageController extends Controller
           $detail = $this->contentService->getProgram($detailSlug);
           break;
         default:
-          // For custom detail pages, try to find data in custom_section_data
           $detail = $this->contentService->getSectionData($pageSlug, $detailSlug);
           break;
       }
@@ -365,6 +369,11 @@ class PageController extends Controller
             $pageData[$dataKey] = $fetchedData['jobs'];
           }
           break;
+        case 'publications':
+          if (isset($fetchedData['publications'])) {
+            $pageData[$dataKey] = $fetchedData['publications'];
+          }
+          break;
         case 'pages':
           if (isset($fetchedData['pages'])) {
             $pageData[$dataKey] = $fetchedData['pages'];
@@ -377,7 +386,6 @@ class PageController extends Controller
           }
           break;
         default:
-          // For unknown data tables, try to find data in fetchedData
           if (isset($fetchedData[$dataTable])) {
             $pageData[$dataKey] = $fetchedData[$dataTable];
           }
@@ -385,11 +393,9 @@ class PageController extends Controller
       }
     }
 
-    // If it's a detail page, add the detail item with the correct key
+    // Detail page handling...
     if ($detailSlug && isset($fetchedData['detail'])) {
       $detail = $fetchedData['detail'];
-
-      // Determine the base page slug for detail lookup
       $baseSlug = $pageSlug;
       if ($pageSlug === 'blogs') {
         $baseSlug = 'blog';
@@ -406,7 +412,6 @@ class PageController extends Controller
           $pageData['programContentData'] = $detail;
           break;
         default:
-          // For custom detail pages, use a generic key
           $pageData['detailData'] = $detail;
           break;
       }

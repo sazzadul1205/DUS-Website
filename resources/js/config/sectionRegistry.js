@@ -64,6 +64,9 @@ export const SECTION_COMPONENTS = {
   ContactOfficeSection: lazy(() => import('../Sections/ContactOfficeSection/ContactOfficeSection')),
   ProgramImpactSection: lazy(() => import('../Sections/ProgramImpactSection/ProgramImpactSection')),
   UpcomingEventsSection: lazy(() => import('../Sections/UpcomingEventsSection/UpcomingEventsSection')),
+  
+  // --- Publications Section ---
+  PublicationsSection: lazy(() => import('../Sections/PublicationsSection/PublicationsSection')),
 };
 
 // ============================================
@@ -98,4 +101,7 @@ export const SECTION_CONFIGS = {
   
   // BlogSection consumes a single data prop
   BlogSection: { propName: 'data', isMultiProp: false },
+  
+  // PublicationsSection consumes a single data prop
+  PublicationsSection: { propName: 'data', isMultiProp: false },
 };

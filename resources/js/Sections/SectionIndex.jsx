@@ -22,6 +22,7 @@ import AddressSection from './AddressSection/AddressSection';
 import ContactReachSection from './ContactReachSection/ContactReachSection';
 import FollowUSSection from './FollowUSSection/FollowUSSection';
 import LegalSection from './LegalSection/LegalSection';
+import PublicationsSection from './PublicationsSection/PublicationsSection';
 
 // Component mapping with both old and new component names
 const sectionComponents = {
@@ -45,6 +46,7 @@ const sectionComponents = {
   ContactReachSection,
   FollowUSSection,
   LegalSection,
+  PublicationsSection,
 
   // Old names for backward compatibility
   'BannerSection': HomeBanner,
@@ -66,6 +68,7 @@ const sectionComponents = {
   'ContactReach': ContactReachSection,
   'FollowUS': FollowUSSection,
   'Legal': LegalSection,
+  'Publications': PublicationsSection,
 };
 
 /**
@@ -277,6 +280,38 @@ const buildComponentProps = (component, sectionData, section) => {
       } else {
         props.mainBlog = null;
         props.blogPosts = [];
+      }
+      // Check if section has a title in custom_props
+      if (section.custom_props?.sectionTitle) {
+        props.sectionTitle = section.custom_props.sectionTitle;
+      }
+      break;
+
+    case 'PublicationsSection':
+    case 'Publications':
+      // PublicationsSection expects mainPublication and publicationItems
+      if (Array.isArray(sectionData) && sectionData.length > 0) {
+        // Find featured publication
+        const featuredPub = sectionData.find(pub => pub.is_featured === true || pub.is_featured === 1);
+        if (featuredPub) {
+          props.mainPublication = featuredPub;
+          props.publicationItems = sectionData.filter(pub => pub.id !== featuredPub.id);
+        } else {
+          props.mainPublication = sectionData[0] || null;
+          props.publicationItems = sectionData.slice(1) || [];
+        }
+      } else if (typeof sectionData === 'object' && sectionData !== null) {
+        // If sectionData has mainPublication and publicationItems
+        if (sectionData.mainPublication) {
+          props.mainPublication = sectionData.mainPublication;
+        }
+        if (Array.isArray(sectionData.publicationItems)) {
+          props.publicationItems = sectionData.publicationItems;
+        } else if (Array.isArray(sectionData.items)) {
+          props.publicationItems = sectionData.items;
+        } else if (Array.isArray(sectionData.publications)) {
+          props.publicationItems = sectionData.publications;
+        }
       }
       // Check if section has a title in custom_props
       if (section.custom_props?.sectionTitle) {

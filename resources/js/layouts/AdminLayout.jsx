@@ -235,6 +235,7 @@ const AdminLayout = ({ children }) => {
       'blogs.view',
       'programs.view',
       'about.view',
+      'publications.view',
     ])) {
       const subs = [];
 
@@ -275,6 +276,15 @@ const AdminLayout = ({ children }) => {
           name: 'About',
           routeName: 'backend.cms.about.index',
           icon: FiUsers,
+        });
+      }
+
+      // ADD THIS BLOCK FOR PUBLICATIONS
+      if (hasPermission('publications.view')) {
+        subs.push({
+          name: 'Publications',
+          routeName: 'backend.cms.publications.index',
+          icon: FiFileText,
         });
       }
 

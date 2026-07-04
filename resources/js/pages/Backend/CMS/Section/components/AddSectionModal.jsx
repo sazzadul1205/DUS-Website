@@ -130,6 +130,13 @@ const SECTION_OPTIONS = {
     description: 'Program impact with SDG images',
     isSpecial: false
   },
+
+  'PublicationsSection': {
+    label: 'Publications Section',
+    data_table: 'publications',
+    description: 'Displays publications from Publications Manager',
+    isSpecial: true
+  },
 };
 
 const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {

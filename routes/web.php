@@ -26,12 +26,7 @@ use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\UserController;
 
 // Controllers - Frontend
-use App\Http\Controllers\Frontend\AboutController;
-use App\Http\Controllers\Frontend\BlogController;
-use App\Http\Controllers\Frontend\ContactController;
 use App\Http\Controllers\Frontend\FrontendController;
-use App\Http\Controllers\Frontend\HomeController;
-use App\Http\Controllers\Frontend\ProjectsProgramsController;
 
 // Controllers - Profile (Admin/Employer)
 use App\Http\Controllers\Profile\AdminProfileController;
@@ -57,13 +52,14 @@ use App\Http\Controllers\Auth\Shared\PasswordResetLinkController;
 use App\Http\Controllers\Auth\Shared\VerifyEmailController;
 
 // Controllers - CMS
-use App\Http\Controllers\Cms\PageController as CmsPageController;
 use App\Http\Controllers\Cms\SharedDataController;
+use App\Http\Controllers\Cms\PageController as CmsPageController;
 use App\Http\Controllers\Cms\BlogController as CmsBlogController;
 use App\Http\Controllers\Cms\ProgramController as CmsProgramController;
-use App\Http\Controllers\Cms\AboutContentController as CmsAboutContentController;
-use App\Http\Controllers\Cms\EditorImageUploadController;
 use App\Http\Controllers\Cms\SectionController as CmsSectionController;
+use App\Http\Controllers\Cms\AboutContentController as CmsAboutContentController;
+use App\Http\Controllers\Cms\PublicationController as CmsPublicationController;
+use App\Http\Controllers\Cms\EditorImageUploadController;
 use App\Http\Controllers\Frontend\PageController;
 // Models
 use App\Models\pages\Page;
@@ -103,13 +99,18 @@ Route::get('/unauthorized', function () {
 // Public pages – all dynamic
 Route::get('/', [PageController::class, 'show'])->name('home');
 
+Route::get('/Playground', function () {
+    return Inertia::render('Playground');
+})->name('playground');
+
 // ALL pages - dynamic routing
 Route::get('/{pageSlug}', [PageController::class, 'show'])
-    ->where('pageSlug', '^(?!admin|backend|login|register|dashboard|api|storage).*$');
+    ->where('pageSlug', '^(?!admin|backend|login|register|dashboard|api|storage|Playground).*$');
 
 // Detail pages
 Route::get('/{pageSlug}/{detailSlug}', [PageController::class, 'show'])
-    ->where('pageSlug', '^(?!admin|backend|login|register|dashboard|api|storage).*$');
+    ->where('pageSlug', '^(?!admin|backend|login|register|dashboard|api|storage|Playground).*$');
+
 /*
 |--------------------------------------------------------------------------
 | AUTHENTICATION ROUTES
@@ -546,6 +547,18 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
                 Route::delete('/destroy/{id}', [CMSAboutContentController::class, 'destroy'])->name('destroy');
                 Route::post('/restore/{id}', [CMSAboutContentController::class, 'restore'])->name('restore');
                 Route::delete('/force-delete/{id}', [CMSAboutContentController::class, 'forceDelete'])->name('force-delete');
+            });
+
+            // Publications
+            Route::prefix('publications')->name('publications.')->group(function () {
+                Route::get('/', [CmsPublicationController::class, 'index'])->name('index');
+                Route::post('/store', [CmsPublicationController::class, 'store'])->name('store');
+                Route::put('/update/{id}', [CmsPublicationController::class, 'update'])->name('update');
+                Route::post('/toggle-status/{id}', [CmsPublicationController::class, 'toggleStatus'])->name('toggle-status');
+                Route::post('/toggle-featured/{id}', [CmsPublicationController::class, 'toggleFeatured'])->name('toggle-featured');
+                Route::delete('/destroy/{id}', [CmsPublicationController::class, 'destroy'])->name('destroy');
+                Route::post('/restore/{id}', [CmsPublicationController::class, 'restore'])->name('restore');
+                Route::delete('/force-delete/{id}', [CmsPublicationController::class, 'forceDelete'])->name('force-delete');
             });
         });
     });

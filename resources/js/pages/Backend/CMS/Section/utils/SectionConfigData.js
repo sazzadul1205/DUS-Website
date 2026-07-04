@@ -439,7 +439,30 @@ export const SECTION_CONFIGS = {
       },
       { key: 'sectionClassName', label: 'Additional CSS Classes', type: 'text', default: '' },
     ]
-  }
+  },
+
+  'PublicationsSection': {
+  fields: [
+    { key: 'bgColor', label: 'Background Color', type: 'color', default: 'bg-white' },
+    { key: 'sectionTitle', label: 'Section Title', type: 'text', default: 'Our Publications' },
+    {
+      key: 'paddingY', label: 'Vertical Padding', type: 'select', default: 'py-10 sm:py-15 md:py-20 lg:py-37.5', options: [
+        { value: 'py-8 sm:py-12 md:py-16 lg:py-25', label: 'Small' },
+        { value: 'py-10 sm:py-15 md:py-20 lg:py-37.5', label: 'Medium' },
+        { value: 'py-15 sm:py-20 md:py-30 lg:py-50', label: 'Large' },
+      ]
+    },
+    {
+      key: 'paddingX', label: 'Horizontal Padding', type: 'select', default: 'px-5 sm:px-8 md:px-12 lg:px-50', options: [
+        { value: 'px-4 sm:px-6 md:px-10 lg:px-30', label: 'Small' },
+        { value: 'px-5 sm:px-8 md:px-12 lg:px-50', label: 'Medium' },
+        { value: 'px-8 sm:px-12 md:px-20 lg:px-60', label: 'Large' },
+      ]
+    },
+    { key: 'sectionClassName', label: 'Additional CSS Classes', type: 'text', default: '' },
+    { key: 'isRelated', label: 'Is Related Section', type: 'checkbox', default: false },
+  ]
+},
 };
 
 // Default config for sections without specific config

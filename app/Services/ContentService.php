@@ -8,6 +8,7 @@ use App\Models\pages\CustomSectionData;
 use App\Models\JobListing;
 use App\Models\pages\Page;
 use App\Models\pages\Program;
+use App\Models\pages\Publication;
 use App\Models\pages\SectionConfig;
 use App\Models\pages\SharedData;
 use Illuminate\Support\Collection;
@@ -92,27 +93,27 @@ class ContentService
   /**
    * Get shared data by type (topbar, navbar, footer, faq, upcoming-events).
    */
-   public function getSharedData(string $type): ?SharedData
+  public function getSharedData(string $type): ?SharedData
   {
     // DEBUG: Check what's in the database
     $dbResult = SharedData::ofType($type)->active()->first();
-    
+
     Log::info("getSharedData({$type}) - Direct DB query", [
       'found' => $dbResult ? 'yes' : 'no',
       'id' => $dbResult ? $dbResult->id : null,
       'has_data' => $dbResult && $dbResult->data ? 'yes' : 'no',
       'data_preview' => $dbResult ? substr(json_encode($dbResult->data), 0, 200) : null,
     ]);
-    
+
     $result = Cache::remember("shared.{$type}", $this->cacheMinutes, function () use ($type) {
       return SharedData::ofType($type)->active()->first();
     });
-    
+
     Log::info("getSharedData({$type}) - From Cache", [
       'found' => $result ? 'yes' : 'no',
       'has_data' => $result && $result->data ? 'yes' : 'no',
     ]);
-    
+
     return $result;
   }
 
@@ -292,6 +293,60 @@ class ContentService
     return Cache::remember('about.details', $this->cacheMinutes, function () {
       return AboutContent::detail()->active()->ordered()->get();
     });
+  }
+
+  
+ /* ==========================================
+     | PUBLICATION METHODS
+     |========================================== */
+
+  /**
+   * Get all publications with optional limit
+   */
+  public function getPublications(?int $limit = null): Collection
+  {
+    return Publication::active()
+      ->latest()
+      ->when($limit, fn($q) => $q->limit($limit))
+      ->get();
+  }
+
+  /**
+   * Get featured publications with optional limit
+   */
+  public function getFeaturedPublications(?int $limit = null): Collection
+  {
+    return Publication::active()
+      ->featured()
+      ->latest()
+      ->when($limit, fn($q) => $q->limit($limit))
+      ->get();
+  }
+
+  /**
+   * Get publication by slug
+   */
+  public function getPublication(string $slug): Publication
+  {
+    return Publication::where('slug', $slug)->active()->firstOrFail();
+  }
+
+  /**
+   * Get related publications with tag matching
+   */
+  public function getRelatedPublications(int $publicationId, array $tags = [], int $limit = 3): Collection
+  {
+    $query = Publication::active()->where('id', '!=', $publicationId);
+
+    if (!empty($tags)) {
+      $query->where(function ($q) use ($tags) {
+        foreach ($tags as $tag) {
+          $q->orWhereJsonContains('tags', $tag);
+        }
+      });
+    }
+
+    return $query->latest()->limit($limit)->get();
   }
 
     /* ==========================================
