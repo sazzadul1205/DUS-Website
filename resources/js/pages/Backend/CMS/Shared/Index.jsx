@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // resources/js/pages/Backend/CMS/Shared/Index.jsx
 
 import { useState, useEffect } from 'react';
@@ -15,7 +16,6 @@ import Navbar from '../../../../components/Shared/Navbar';
 import Footer from '../../../../components/Shared/Footer';
 import FAQSection from '../../../../Sections/FAQSection/FAQSection';
 import UpcomingEventsSection from '../../../../Sections/UpcomingEventsSection/UpcomingEventsSection';
-// Import StoriesSection (now from shared data)
 import StoriesSection from '../../../../Sections/StoriesSection/StoriesSection';
 
 // Import Modal Editors
@@ -34,7 +34,6 @@ export default function SharedData({ sharedData }) {
   const [expandedSection, setExpandedSection] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Type configuration with Stories added
   const typeConfig = {
     topbar: {
       label: 'Top Bar',
@@ -76,7 +75,6 @@ export default function SharedData({ sharedData }) {
       editor: EventsEditor,
       preview: true
     },
-    // 👇 NEW: Stories added to shared data
     stories: {
       label: 'Stories Section',
       icon: <FaGlobe />,
@@ -118,7 +116,6 @@ export default function SharedData({ sharedData }) {
 
     setLoading(true);
 
-    // eslint-disable-next-line no-undef
     router.put(route('backend.cms.shared.update', editingItem.id), {
       data: formData,
       is_active: editingItem.is_active,
@@ -268,9 +265,7 @@ export default function SharedData({ sharedData }) {
         </div>
       </div>
 
-      {/* ============================================================
-          EDIT MODAL - Dynamic
-          ============================================================ */}
+      {/* EDIT MODAL - Dynamic */}
       {editingItem && EditorComponent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">

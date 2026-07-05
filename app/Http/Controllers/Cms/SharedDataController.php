@@ -6,11 +6,13 @@ namespace App\Http\Controllers\Cms;
 use App\Http\Controllers\Controller;
 use App\Models\pages\SharedData;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Cache;
 
 class SharedDataController extends Controller
 {
@@ -25,7 +27,7 @@ class SharedDataController extends Controller
       'footer',
       'faq',
       'upcoming-events',
-      'stories', 
+      'stories',
     ])->get();
 
     return Inertia::render('Backend/CMS/Shared/Index', [
@@ -52,12 +54,34 @@ class SharedDataController extends Controller
     // Process data - handle image uploads
     $processedData = $this->processImages($request->data, $shared->data, $shared->type);
 
+    // 🔥 UPDATE: Convert processed data to JSON for storage (if needed)
+    // Some models store data as JSON string, others as array
+    $dataToSave = $processedData;
+    if (is_array($processedData) && property_exists($shared, 'casts') && isset($shared->getCasts()['data']) && $shared->getCasts()['data'] === 'array') {
+      $dataToSave = $processedData;
+    } else {
+      $dataToSave = json_encode($processedData);
+    }
+
     $shared->update([
-      'data' => $processedData,
+      'data' => $dataToSave,
       'is_active' => $request->is_active ?? true,
     ]);
 
+    // 🔥 FIX: Don't cache the entire model with massive data
+    // Instead, cache only the processed data structure
+    $this->cacheSharedData('upcoming-events', $processedData);
+
     return redirect()->back()->with('success', 'Shared data updated successfully.');
+  }
+
+  /**
+   * Cache only the processed data (not the entire model with base64)
+   */
+  protected function cacheSharedData(string $type, array $data): void
+  {
+    Cache::forget('shared.' . $type);
+    Cache::put('shared.' . $type, $data, 60 * 24 * 7); // 7 days
   }
 
   /**
@@ -74,8 +98,95 @@ class SharedDataController extends Controller
       return $this->processFooterData($newData, $oldData);
     }
 
+    // For upcoming-events, process with specific directory
+    if ($type === 'upcoming-events') {
+      return $this->processUpcomingEventsData($newData, $oldData);
+    }
+
     // For other types, process normally
     return $this->processArrayRecursive($newData, $oldData);
+  }
+
+  /**
+   * Process upcoming events data with specific directory for images
+   * 🔥 FIXED: Process base64 images and replace with URLs
+   */
+  protected function processUpcomingEventsData(array $newData, array $oldData): array
+  {
+    // Process section data
+    if (isset($newData['section']) && is_array($newData['section'])) {
+      $newData['section'] = $this->processArrayRecursive($newData['section'], $oldData['section'] ?? []);
+    }
+
+    // 🔥 Process the main image at root level
+    if (isset($newData['image']) && is_array($newData['image'])) {
+      // If image.src is base64, upload it
+      if (isset($newData['image']['src']) && $this->isBase64Image($newData['image']['src'])) {
+        $newData['image']['src'] = $this->uploadEventImage($newData['image']['src'], 'event-cover');
+      }
+    }
+
+    // Process events array
+    if (isset($newData['events']) && is_array($newData['events'])) {
+      foreach ($newData['events'] as $index => $event) {
+        // 🔥 CRITICAL FIX: Process the event image immediately
+        if (isset($event['image']) && $this->isBase64Image($event['image'])) {
+          // Upload to UpcomingEvent directory and replace with URL
+          $newData['events'][$index]['image'] = $this->uploadEventImage($event['image'], 'event-' . ($index + 1));
+        }
+
+        // Process other nested arrays in event
+        if (is_array($event)) {
+          foreach ($event as $key => $value) {
+            if ($key !== 'image' && is_array($value)) {
+              $oldEvent = $oldData['events'][$index] ?? [];
+              $newData['events'][$index][$key] = $this->processArrayRecursive($value, $oldEvent[$key] ?? []);
+            }
+          }
+        }
+      }
+    }
+
+    return $newData;
+  }
+
+  /**
+   * Upload event image to storage
+   * 🔥 NEW: Centralized image upload with cleanup
+   */
+  protected function uploadEventImage(string $base64String, string $prefix = 'event'): string
+  {
+    try {
+      // Decode base64 image
+      $imageData = explode(',', $base64String);
+      if (count($imageData) < 2) {
+        return '';
+      }
+
+      $imageContent = base64_decode($imageData[1]);
+      if ($imageContent === false) {
+        return '';
+      }
+
+      // Get image extension
+      $extension = $this->getImageExtension($base64String);
+      if (!$extension) {
+        $extension = 'jpg';
+      }
+
+      // Generate unique filename
+      $filename = $prefix . '_' . time() . '_' . Str::random(16) . '.' . $extension;
+      $path = 'UpcomingEvent/' . $filename;
+
+      // Store the image
+      Storage::disk('public')->put($path, $imageContent);
+
+      // Return the public URL
+      return '/storage/' . $path;
+    } catch (\Exception $e) {
+      Log::error('Failed to upload event image: ' . $e->getMessage());
+      return $base64String;
+    }
   }
 
   /**
@@ -83,12 +194,10 @@ class SharedDataController extends Controller
    */
   protected function processNavbarData(array $newData, array $oldData): array
   {
-    // Check if logo.src is a base64 image
     if (isset($newData['logo']['src']) && $this->isBase64Image($newData['logo']['src'])) {
       $newData['logo']['src'] = $this->uploadNavbarLogo($newData['logo']['src']);
     }
 
-    // Process any other arrays in the data
     foreach ($newData as $key => $value) {
       if (is_array($value) && $key !== 'logo') {
         $oldValue = $oldData[$key] ?? [];
@@ -104,12 +213,10 @@ class SharedDataController extends Controller
    */
   protected function processFooterData(array $newData, array $oldData): array
   {
-    // Check if logo.src is a base64 image
     if (isset($newData['logo']['src']) && $this->isBase64Image($newData['logo']['src'])) {
       $newData['logo']['src'] = $this->uploadFooterLogo($newData['logo']['src']);
     }
 
-    // Process any other arrays in the data
     foreach ($newData as $key => $value) {
       if (is_array($value) && $key !== 'logo') {
         $oldValue = $oldData[$key] ?? [];
@@ -121,7 +228,7 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Upload navbar logo with specific naming convention
+   * Upload navbar logo
    */
   protected function uploadNavbarLogo(string $base64String): string
   {
@@ -143,7 +250,7 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Upload footer logo with specific naming convention
+   * Upload footer logo
    */
   protected function uploadFooterLogo(string $base64String): string
   {
@@ -165,7 +272,7 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Recursively process array for image uploads (for other types)
+   * Recursively process array for image uploads
    */
   protected function processArrayRecursive(array $data, array $oldData): array
   {
@@ -182,7 +289,7 @@ class SharedDataController extends Controller
   }
 
   /**
-   * Upload generic image with UUID filename
+   * Upload generic image
    */
   protected function uploadGenericImage(string $base64String): string
   {
@@ -191,6 +298,7 @@ class SharedDataController extends Controller
       $imageData = $imageData[1] ?? $base64String;
       $imageContent = base64_decode($imageData);
       $extension = $this->getImageExtension($base64String);
+
       $filename = Str::uuid() . '.' . $extension;
       $path = 'uploads/shared/' . date('Y/m/d') . '/' . $filename;
 
@@ -235,5 +343,22 @@ class SharedDataController extends Controller
     }
 
     return 'png';
+  }
+
+  /**
+   * Delete old image when updating
+   */
+  protected function deleteOldImage(string $oldImagePath): void
+  {
+    if (empty($oldImagePath)) {
+      return;
+    }
+
+    // Remove /storage/ prefix to get the storage path
+    $path = str_replace('/storage/', '', $oldImagePath);
+
+    if (Storage::disk('public')->exists($path)) {
+      Storage::disk('public')->delete($path);
+    }
   }
 }

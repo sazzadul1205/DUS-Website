@@ -21,10 +21,9 @@ export default function TopBarEditor({
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState({});
 
-  // Check if any upload is in progress
   const isUploading = Object.values(uploading).some(status => status === true);
 
-  // Handle drag and drop for images
+  // --- DRAG & DROP HANDLERS ---
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -35,80 +34,8 @@ export default function TopBarEditor({
     }
   };
 
-  const handleDrop = async (e, langIndex) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      const file = files[0];
-
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Invalid File',
-          text: 'Please drop an image file (JPEG, PNG, GIF, WebP, SVG)',
-          confirmButtonColor: '#3b82f6',
-        });
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        Swal.fire({
-          icon: 'error',
-          title: 'File Too Large',
-          text: 'Image size should be less than 5MB',
-          confirmButtonColor: '#3b82f6',
-        });
-        return;
-      }
-
-      setUploading(prev => ({ ...prev, [langIndex]: true }));
-
-      // Notify parent about loading state
-      if (setIsLoading) setIsLoading(true);
-
-      try {
-        // Convert to base64 for preview and upload
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const imageUrl = event.target.result;
-          // Update with base64 - backend will handle upload
-          updateFormData(`languages.${langIndex}.flag`, imageUrl);
-          setUploading(prev => ({ ...prev, [langIndex]: false }));
-          if (setIsLoading) setIsLoading(false);
-        };
-        reader.onerror = () => {
-          setUploading(prev => ({ ...prev, [langIndex]: false }));
-          if (setIsLoading) setIsLoading(false);
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to read the image file',
-            confirmButtonColor: '#3b82f6',
-          });
-        };
-        reader.readAsDataURL(file);
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        setUploading(prev => ({ ...prev, [langIndex]: false }));
-        if (setIsLoading) setIsLoading(false);
-        Swal.fire({
-          icon: 'error',
-          title: 'Upload Failed',
-          text: 'Failed to upload the image. Please try again.',
-          confirmButtonColor: '#3b82f6',
-        });
-      }
-    }
-  };
-
-  // Handle file input change
-  const handleFileSelect = (e, langIndex) => {
-    const file = e.target.files[0];
+  // 📌 NEW: Generic image upload handler for contact icons
+  const handleContactImageUpload = (field, file) => {
     if (!file) return;
 
     // Validate file type
@@ -119,7 +46,6 @@ export default function TopBarEditor({
         text: 'Please select an image file (JPEG, PNG, GIF, WebP, SVG)',
         confirmButtonColor: '#3b82f6',
       });
-      e.target.value = '';
       return;
     }
 
@@ -131,22 +57,148 @@ export default function TopBarEditor({
         text: 'Image size should be less than 5MB',
         confirmButtonColor: '#3b82f6',
       });
-      e.target.value = '';
       return;
     }
 
-    setUploading(prev => ({ ...prev, [langIndex]: true }));
+    setUploading(prev => ({ ...prev, [field]: true }));
     if (setIsLoading) setIsLoading(true);
 
     const reader = new FileReader();
     reader.onload = (event) => {
       const imageUrl = event.target.result;
-      updateFormData(`languages.${langIndex}.flag`, imageUrl);
-      setUploading(prev => ({ ...prev, [langIndex]: false }));
+      // Update the specific field with base64
+      updateFormData(`contactInfo.${field}.icon`, imageUrl);
+      setUploading(prev => ({ ...prev, [field]: false }));
       if (setIsLoading) setIsLoading(false);
     };
     reader.onerror = () => {
-      setUploading(prev => ({ ...prev, [langIndex]: false }));
+      setUploading(prev => ({ ...prev, [field]: false }));
+      if (setIsLoading) setIsLoading(false);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to read the image file',
+        confirmButtonColor: '#3b82f6',
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 📌 NEW: Handle drag and drop for contact icons
+  const handleContactDrop = (e, field) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      handleContactImageUpload(field, files[0]);
+    }
+  };
+
+  // 📌 NEW: Handle file input for contact icons
+  const handleContactFileSelect = (e, field) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    handleContactImageUpload(field, file);
+    e.target.value = ''; // Reset input
+  };
+
+  // 📌 NEW: Remove contact icon
+  const removeContactIcon = (field) => {
+    updateFormData(`contactInfo.${field}.icon`, '');
+  };
+
+  // --- Language flag handlers (keep existing) ---
+  const handleLangDrop = (e, langIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      const file = files[0];
+
+      if (!file.type.startsWith('image/')) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Invalid File',
+          text: 'Please drop an image file (JPEG, PNG, GIF, WebP, SVG)',
+          confirmButtonColor: '#3b82f6',
+        });
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        Swal.fire({
+          icon: 'error',
+          title: 'File Too Large',
+          text: 'Image size should be less than 5MB',
+          confirmButtonColor: '#3b82f6',
+        });
+        return;
+      }
+
+      setUploading(prev => ({ ...prev, [`lang_${langIndex}`]: true }));
+      if (setIsLoading) setIsLoading(true);
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        updateFormData(`languages.${langIndex}.flag`, event.target.result);
+        setUploading(prev => ({ ...prev, [`lang_${langIndex}`]: false }));
+        if (setIsLoading) setIsLoading(false);
+      };
+      reader.onerror = () => {
+        setUploading(prev => ({ ...prev, [`lang_${langIndex}`]: false }));
+        if (setIsLoading) setIsLoading(false);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to read the image file',
+          confirmButtonColor: '#3b82f6',
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLangFileSelect = (e, langIndex) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid File',
+        text: 'Please select an image file (JPEG, PNG, GIF, WebP, SVG)',
+        confirmButtonColor: '#3b82f6',
+      });
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire({
+        icon: 'error',
+        title: 'File Too Large',
+        text: 'Image size should be less than 5MB',
+        confirmButtonColor: '#3b82f6',
+      });
+      e.target.value = '';
+      return;
+    }
+
+    setUploading(prev => ({ ...prev, [`lang_${langIndex}`]: true }));
+    if (setIsLoading) setIsLoading(true);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      updateFormData(`languages.${langIndex}.flag`, event.target.result);
+      setUploading(prev => ({ ...prev, [`lang_${langIndex}`]: false }));
+      if (setIsLoading) setIsLoading(false);
+    };
+    reader.onerror = () => {
+      setUploading(prev => ({ ...prev, [`lang_${langIndex}`]: false }));
       if (setIsLoading) setIsLoading(false);
       Swal.fire({
         icon: 'error',
@@ -159,48 +211,159 @@ export default function TopBarEditor({
     e.target.value = '';
   };
 
-  // Remove flag image
   const removeFlag = (index) => {
     updateFormData(`languages.${index}.flag`, '');
   };
 
+  // 📌 NEW: ImageUploadField component for cleaner code
+  const ImageUploadField = ({
+    field,
+    label,
+    currentValue,
+    uploadKey,
+    iconPreview = false
+  }) => {
+    const isUploading = uploading[uploadKey] || false;
+    const hasImage = currentValue && currentValue.trim().length > 0;
+
+    return (
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+        <div
+          className={`relative border-2 border-dashed rounded-lg p-2 transition-all ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+            }`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={(e) => handleContactDrop(e, field)}
+        >
+          <div className="flex items-center gap-2 min-h-10">
+            {hasImage ? (
+              <div className="flex items-center gap-2 w-full">
+                {iconPreview ? (
+                  <img
+                    src={currentValue}
+                    alt={label}
+                    className="w-8 h-8 object-contain"
+                  />
+                ) : (
+                  <img
+                    src={currentValue}
+                    alt={label}
+                    className="w-8 h-6 object-cover rounded"
+                  />
+                )}
+                <span className="text-xs text-gray-500 truncate flex-1">
+                  {currentValue.startsWith('data:image')
+                    ? 'New image (will be uploaded)'
+                    : currentValue.substring(0, 30) + (currentValue.length > 30 ? '...' : '')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeContactIcon(field)}
+                  className="p-1 text-red-500 hover:bg-red-50 rounded transition shrink-0"
+                  title="Remove image"
+                >
+                  <FaTimes size={12} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 w-full text-gray-400">
+                <FaUpload size={16} />
+                <span className="text-sm">Drop image or click to browse</span>
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleContactFileSelect(e, field)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              disabled={isLoading || isUploading}
+            />
+          </div>
+          {isUploading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <div className="space-y-4 w-full">
       <h3 className="font-semibold text-lg">Contact Info</h3>
+
+      {/* 📌 UPDATED: Contact Info with Image Uploads */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+        {/* Email */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Email</label>
           <input
             type="text"
             value={formData.contactInfo?.email?.text || ''}
             onChange={(e) => updateFormData('contactInfo.email.text', e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 mb-2"
+            placeholder="admin@example.com"
+          />
+          <ImageUploadField
+            field="email"
+            label="Email Icon"
+            currentValue={formData.contactInfo?.email?.icon || ''}
+            uploadKey="email_icon"
+            iconPreview={true}
           />
         </div>
+
+        {/* Phone */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Phone</label>
           <input
             type="text"
             value={formData.contactInfo?.phone?.text || ''}
             onChange={(e) => updateFormData('contactInfo.phone.text', e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 mb-2"
+            placeholder="+880 1234 567890"
+          />
+          <ImageUploadField
+            field="phone"
+            label="Phone Icon"
+            currentValue={formData.contactInfo?.phone?.icon || ''}
+            uploadKey="phone_icon"
+            iconPreview={true}
           />
         </div>
+
+        {/* Hours */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Hours</label>
           <input
             type="text"
             value={formData.contactInfo?.hours?.text || ''}
             onChange={(e) => updateFormData('contactInfo.hours.text', e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 mb-2"
+            placeholder="Mon - Fri: 9:00 AM - 5:00 PM"
+          />
+          <ImageUploadField
+            field="hours"
+            label="Hours Icon"
+            currentValue={formData.contactInfo?.hours?.icon || ''}
+            uploadKey="hours_icon"
+            iconPreview={true}
           />
         </div>
       </div>
 
-      {/* Languages Section - Can add/remove */}
+      {/* ============================================
+          LANGUAGES SECTION (keep existing)
+          ============================================ */}
       <h3 className="font-semibold text-lg pt-4">Languages</h3>
       {(formData.languages || []).map((lang, index) => (
-        <div key={index} className="flex gap-3 items-center bg-gray-50 p-3 rounded-lg w-full">
+        <div key={index} className="flex gap-3 items-center bg-gray-50 p-3 rounded-lg w-full flex-wrap">
           <input
             type="text"
             value={lang.code || ''}
@@ -213,20 +376,20 @@ export default function TopBarEditor({
             value={lang.name || ''}
             onChange={(e) => updateFormData(`languages.${index}.name`, e.target.value)}
             placeholder="Language Name"
-            className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-25 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
           />
 
-          {/* Flag URL field with drag and drop support */}
-          <div className="flex-1 relative">
+          {/* Flag upload field */}
+          <div className="flex-1 min-w-37.5 relative">
             <div
               className={`relative border-2 border-dashed rounded-lg p-2 transition-all ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
                 }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
-              onDrop={(e) => handleDrop(e, index)}
+              onDrop={(e) => handleLangDrop(e, index)}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-h-10">
                 {lang.flag ? (
                   <div className="flex items-center gap-2 w-full">
                     <img
@@ -237,12 +400,12 @@ export default function TopBarEditor({
                     <span className="text-xs text-gray-500 truncate flex-1">
                       {typeof lang.flag === 'string' && lang.flag.startsWith('data:image')
                         ? 'New image (will be uploaded)'
-                        : lang.flag.substring(0, 30) + '...'}
+                        : lang.flag.substring(0, 30) + (lang.flag.length > 30 ? '...' : '')}
                     </span>
                     <button
                       type="button"
                       onClick={() => removeFlag(index)}
-                      className="p-1 text-red-500 hover:bg-red-50 rounded transition"
+                      className="p-1 text-red-500 hover:bg-red-50 rounded transition shrink-0"
                       title="Remove flag"
                     >
                       <FaTimes size={12} />
@@ -257,14 +420,14 @@ export default function TopBarEditor({
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleFileSelect(e, index)}
+                  onChange={(e) => handleLangFileSelect(e, index)}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   disabled={isLoading || isUploading}
                 />
               </div>
-              {uploading[index] && (
+              {uploading[`lang_${index}`] && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
                 </div>
               )}
             </div>
@@ -281,7 +444,6 @@ export default function TopBarEditor({
         </div>
       ))}
 
-      {/* Add Language */}
       <button
         type="button"
         onClick={() => addArrayItem('languages', { code: '', name: '', flag: '' })}
@@ -291,18 +453,17 @@ export default function TopBarEditor({
         <FaPlus size={14} /> Add Language
       </button>
 
-      {/* Social Links Section - Can ONLY edit, NO add/remove */}
+      {/* ============================================
+          SOCIAL LINKS SECTION (keep existing)
+          ============================================ */}
       <h3 className="font-semibold text-lg pt-4">Social Links</h3>
-
-      {/* Social Links */}
       <p className="text-xs text-gray-500 mb-2">Edit social links (leave URL empty to hide)</p>
       {(formData.socialLinks || []).map((link, index) => (
-        <div key={index} className="flex gap-3 items-center bg-gray-50 p-3 rounded-lg w-full">
-          {/* Icon Name - Unchangeable / Read-only */}
+        <div key={index} className="flex gap-3 items-center bg-gray-50 p-3 rounded-lg w-full flex-wrap">
           <input
             type="text"
             value={link.iconName || ''}
-            className="w-40 px-3 py-2 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+            className="w-32 px-3 py-2 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
             disabled={true}
             readOnly
           />
@@ -311,7 +472,7 @@ export default function TopBarEditor({
             value={link.url || ''}
             onChange={(e) => updateFormData(`socialLinks.${index}.url`, e.target.value)}
             placeholder="URL (leave empty to hide)"
-            className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-37.5 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
             disabled={isLoading || isUploading}
           />
           <input
@@ -322,7 +483,7 @@ export default function TopBarEditor({
             className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
             disabled={isLoading || isUploading}
           />
-          <div className="w-10"></div>
+          <div className="w-10" />
         </div>
       ))}
     </div>

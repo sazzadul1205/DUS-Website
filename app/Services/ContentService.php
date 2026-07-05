@@ -98,9 +98,21 @@ class ContentService
    */
   public function getSharedData(string $type): ?SharedData
   {
-    $result = Cache::remember("shared.{$type}", $this->cacheMinutes, function () use ($type) {
-      return SharedData::ofType($type)->active()->first();
-    });
+    $key = "shared.{$type}";
+
+    // Check if cache exists and is a model instance
+    $cached = Cache::get($key);
+
+    if ($cached instanceof SharedData) {
+      return $cached;
+    }
+
+    // If cache is invalid or missing, fetch from database
+    $result = SharedData::ofType($type)->active()->first();
+
+    if ($result) {
+      Cache::put($key, $result, $this->cacheMinutes * 60);
+    }
 
     return $result;
   }
