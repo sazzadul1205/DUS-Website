@@ -1,4 +1,5 @@
 <?php
+// app/Services/ContentService.php
 
 namespace App\Services;
 
@@ -79,6 +80,8 @@ class ContentService
 
         'programs' => Program::active()->ordered()->get(),
 
+        'publications' => Publication::active()->latest()->get(), // 👈 FIXED: Added publications
+
         'shared_data' => SharedData::ofType($sectionKey)->active()->first(),
 
         default => null,
@@ -91,28 +94,13 @@ class ContentService
      |========================================== */
 
   /**
-   * Get shared data by type (topbar, navbar, footer, faq, upcoming-events).
+   * Get shared data by type (topbar, navbar, footer, faq, upcoming-events, stories).
    */
   public function getSharedData(string $type): ?SharedData
   {
-    // DEBUG: Check what's in the database
-    $dbResult = SharedData::ofType($type)->active()->first();
-
-    Log::info("getSharedData({$type}) - Direct DB query", [
-      'found' => $dbResult ? 'yes' : 'no',
-      'id' => $dbResult ? $dbResult->id : null,
-      'has_data' => $dbResult && $dbResult->data ? 'yes' : 'no',
-      'data_preview' => $dbResult ? substr(json_encode($dbResult->data), 0, 200) : null,
-    ]);
-
     $result = Cache::remember("shared.{$type}", $this->cacheMinutes, function () use ($type) {
       return SharedData::ofType($type)->active()->first();
     });
-
-    Log::info("getSharedData({$type}) - From Cache", [
-      'found' => $result ? 'yes' : 'no',
-      'has_data' => $result && $result->data ? 'yes' : 'no',
-    ]);
 
     return $result;
   }
@@ -155,6 +143,14 @@ class ContentService
   public function getUpcomingEvents(): ?SharedData
   {
     return $this->getSharedData('upcoming-events');
+  }
+
+  /**
+   * Get stories data. 👈 NEW
+   */
+  public function getStories(): ?SharedData
+  {
+    return $this->getSharedData('stories');
   }
 
     /* ==========================================
@@ -295,8 +291,7 @@ class ContentService
     });
   }
 
-  
- /* ==========================================
+    /* ==========================================
      | PUBLICATION METHODS
      |========================================== */
 
@@ -305,10 +300,12 @@ class ContentService
    */
   public function getPublications(?int $limit = null): Collection
   {
-    return Publication::active()
-      ->latest()
-      ->when($limit, fn($q) => $q->limit($limit))
-      ->get();
+    return Cache::remember("publications.all." . ($limit ?? 'all'), $this->cacheMinutes, function () use ($limit) {
+      return Publication::active()
+        ->latest()
+        ->when($limit, fn($q) => $q->limit($limit))
+        ->get();
+    });
   }
 
   /**
@@ -316,11 +313,13 @@ class ContentService
    */
   public function getFeaturedPublications(?int $limit = null): Collection
   {
-    return Publication::active()
-      ->featured()
-      ->latest()
-      ->when($limit, fn($q) => $q->limit($limit))
-      ->get();
+    return Cache::remember("publications.featured." . ($limit ?? 'all'), $this->cacheMinutes, function () use ($limit) {
+      return Publication::active()
+        ->featured()
+        ->latest()
+        ->when($limit, fn($q) => $q->limit($limit))
+        ->get();
+    });
   }
 
   /**
@@ -328,7 +327,9 @@ class ContentService
    */
   public function getPublication(string $slug): Publication
   {
-    return Publication::where('slug', $slug)->active()->firstOrFail();
+    return Cache::remember("publication.{$slug}", $this->cacheMinutes, function () use ($slug) {
+      return Publication::where('slug', $slug)->active()->firstOrFail();
+    });
   }
 
   /**
@@ -336,21 +337,25 @@ class ContentService
    */
   public function getRelatedPublications(int $publicationId, array $tags = [], int $limit = 3): Collection
   {
-    $query = Publication::active()->where('id', '!=', $publicationId);
+    $cacheKey = "publications.related.{$publicationId}." . md5(implode(',', $tags) . $limit);
 
-    if (!empty($tags)) {
-      $query->where(function ($q) use ($tags) {
-        foreach ($tags as $tag) {
-          $q->orWhereJsonContains('tags', $tag);
-        }
-      });
-    }
+    return Cache::remember($cacheKey, $this->cacheMinutes, function () use ($publicationId, $tags, $limit) {
+      $query = Publication::active()->where('id', '!=', $publicationId);
 
-    return $query->latest()->limit($limit)->get();
+      if (!empty($tags)) {
+        $query->where(function ($q) use ($tags) {
+          foreach ($tags as $tag) {
+            $q->orWhereJsonContains('tags', $tag);
+          }
+        });
+      }
+
+      return $query->latest()->limit($limit)->get();
+    });
   }
 
     /* ==========================================
-     | JOBS METHODS (if JobListing model exists)
+     | JOBS METHODS
      |========================================== */
 
   /**
@@ -397,8 +402,6 @@ class ContentService
    */
   public function clearCache(): void
   {
-    // In a real implementation, you'd want to clear specific keys or use tags.
-    // For simplicity, we'll just flush the cache store used for content.
     Cache::flush();
   }
 }

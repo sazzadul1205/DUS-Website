@@ -1,20 +1,12 @@
-/* eslint-disable import/order */
 // resources/js/pages/Backend/CMS/Shared/Index.jsx
 
-// React
 import { useState, useEffect } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
-
-// Layout
 import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
-
-// Icons
 import {
   FaSpinner, FaGlobe, FaChevronDown, FaChevronUp
 } from 'react-icons/fa6';
 import { FaEdit } from 'react-icons/fa';
-
-// SweetAlert
 import Swal from 'sweetalert2';
 
 // Import shared components for preview
@@ -23,6 +15,8 @@ import Navbar from '../../../../components/Shared/Navbar';
 import Footer from '../../../../components/Shared/Footer';
 import FAQSection from '../../../../Sections/FAQSection/FAQSection';
 import UpcomingEventsSection from '../../../../Sections/UpcomingEventsSection/UpcomingEventsSection';
+// Import StoriesSection (now from shared data)
+import StoriesSection from '../../../../Sections/StoriesSection/StoriesSection';
 
 // Import Modal Editors
 import TopBarEditor from './Modals/TopBarEditor';
@@ -30,6 +24,7 @@ import NavbarEditor from './Modals/NavbarEditor';
 import FooterEditor from './Modals/FooterEditor';
 import FaqEditor from './Modals/FaqEditor';
 import EventsEditor from './Modals/EventsEditor';
+import StoriesEditor from './Modals/StoriesEditor';
 
 export default function SharedData({ sharedData }) {
   const { flash } = usePage().props;
@@ -39,7 +34,7 @@ export default function SharedData({ sharedData }) {
   const [expandedSection, setExpandedSection] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Type configuration
+  // Type configuration with Stories added
   const typeConfig = {
     topbar: {
       label: 'Top Bar',
@@ -80,6 +75,15 @@ export default function SharedData({ sharedData }) {
       component: UpcomingEventsSection,
       editor: EventsEditor,
       preview: true
+    },
+    // 👇 NEW: Stories added to shared data
+    stories: {
+      label: 'Stories Section',
+      icon: <FaGlobe />,
+      description: 'Stories with images and descriptions',
+      component: StoriesSection,
+      editor: StoriesEditor,
+      preview: true
     }
   };
 
@@ -102,7 +106,6 @@ export default function SharedData({ sharedData }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Don't submit if uploading
     if (isUploading) {
       Swal.fire({
         icon: 'warning',
@@ -186,10 +189,7 @@ export default function SharedData({ sharedData }) {
     }
   }, [flash]);
 
-  // Get editor component
   const EditorComponent = editingItem ? typeConfig[editingItem.type]?.editor : null;
-
-  // Determine if update button should be disabled
   const isUpdateDisabled = loading || isUploading;
 
   return (
@@ -201,7 +201,7 @@ export default function SharedData({ sharedData }) {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Shared Data</h1>
-            <p className="text-sm text-gray-500">Manage shared content across the site (TopBar, Navbar, Footer, FAQ, Events)</p>
+            <p className="text-sm text-gray-500">Manage shared content across the site (TopBar, Navbar, Footer, FAQ, Events, Stories)</p>
           </div>
         </div>
 
@@ -256,6 +256,7 @@ export default function SharedData({ sharedData }) {
                           {...(item.type === 'footer' ? { footerData: item.data } : {})}
                           {...(item.type === 'faq' ? { data: item.data } : {})}
                           {...(item.type === 'upcoming-events' ? { data: item.data } : {})}
+                          {...(item.type === 'stories' ? { data: item.data } : {})}
                         />
                       )}
                     </div>

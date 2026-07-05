@@ -70,6 +70,7 @@ const SectionRow = ({
   const isShared = section.data_table === 'shared_data';
   const isJobs = section.data_table === 'jobs';
   const isPrograms = section.data_table === 'programs' || section.component === 'OurProgramsSection';
+  const isPublications = section.data_table === 'publications';
 
   // Row background color based on type
   const rowBgClass = isBanner
@@ -82,10 +83,12 @@ const SectionRow = ({
           ? 'bg-purple-50/30'
           : isPrograms
             ? 'bg-orange-50/30'
-            : '';
+            : isPublications
+              ? 'bg-indigo-50/30'
+              : '';
 
   // Check if preview should be shown (not for jobs, shared, or programs)
-  const canPreview = !isJobs && !isShared && !isPrograms;
+  const canPreview = !isJobs && !isShared && !isPrograms && !isPublications;
 
   // Handle soft delete with SweetAlert2
   const handleDelete = () => {
@@ -663,6 +666,30 @@ const SectionRow = ({
               >
                 <FaExternalLinkAlt size={14} />
                 Go to Program Manager
+              </button>
+            </div>
+          </td>
+        </tr>
+      )}
+
+      {isPreviewOpen && isPublications && !isTrashed && (
+        <tr>
+          <td colSpan="7" className="px-4 py-6 bg-indigo-50/30 border-t border-indigo-200">
+            <div className="flex flex-col items-center justify-center gap-3 text-center py-8">
+              <FaFileAlt className="text-indigo-500 text-5xl" aria-hidden="true" />
+              <h3 className="text-lg font-semibold text-indigo-700">Publications Section</h3>
+              <p className="text-gray-600 max-w-md">
+                This section displays publications. The data comes from the <strong>Publications</strong> system.
+                To edit publications, please go to the Publications Manager.
+              </p>
+              <button
+                onClick={() => {
+                  window.location.href = route('backend.cms.publications.index');
+                }}
+                className="mt-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2"
+              >
+                <FaExternalLinkAlt size={14} />
+                Go to Publications Manager
               </button>
             </div>
           </td>

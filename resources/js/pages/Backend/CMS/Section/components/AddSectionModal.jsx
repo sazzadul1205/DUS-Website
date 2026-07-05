@@ -7,7 +7,9 @@ import { FaTimes, FaPlus, FaSpinner } from 'react-icons/fa';
 import { showToast } from '../utils/toastHelper';
 
 const SECTION_OPTIONS = {
-  // Special Sections (use external data tables)
+  // ============================================
+  // SPECIAL SECTIONS (use external data tables)
+  // ============================================
   'BlogSection': {
     label: 'Blog Section',
     data_table: 'blogs',
@@ -44,8 +46,23 @@ const SECTION_OPTIONS = {
     description: 'Dynamic content from About Content Manager',
     isSpecial: true
   },
+  'PublicationsSection': {
+    label: 'Publications Section',
+    data_table: 'publications',
+    description: 'Displays publications from Publications Manager',
+    isSpecial: true
+  },
+  // 👇 STORIES SECTION - Now using Shared Data (Reusable)
+  'StoriesSection': {
+    label: 'Stories Section',
+    data_table: 'shared_data',  // ✅ Using shared_data, not custom_section_data
+    description: 'Stories with images and descriptions (Reusable Shared Data)',
+    isSpecial: true  // ✅ Special because it uses shared_data
+  },
 
-  // Custom Data Sections (create custom_section_data entries)
+  // ============================================
+  // CUSTOM DATA SECTIONS (create custom_section_data entries)
+  // ============================================
   'HomeBanner': {
     label: 'Home Banner',
     data_table: 'custom_section_data',
@@ -80,12 +97,6 @@ const SECTION_OPTIONS = {
     label: 'Where We Work Section',
     data_table: 'custom_section_data',
     description: 'Statistics with map image',
-    isSpecial: false
-  },
-  'StoriesSection': {
-    label: 'Stories Section',
-    data_table: 'custom_section_data',
-    description: 'Grid of stories with images and dates',
     isSpecial: false
   },
   'HeroFigureSection': {
@@ -136,27 +147,18 @@ const SECTION_OPTIONS = {
     description: 'Program impact with SDG images',
     isSpecial: false
   },
-
-  'PublicationsSection': {
-    label: 'Publications Section',
-    data_table: 'publications',
-    description: 'Displays publications from Publications Manager',
-    isSpecial: true
-  },
-  // ===== NEW: Gallery Sections =====
   'ImageGallerySection': {
     label: 'Image Gallery Section',
     data_table: 'custom_section_data',
-    description: 'Program impact with SDG images',
+    description: 'Image gallery with grid layout',
     isSpecial: false
   },
   'VideoGallerySection': {
     label: 'Video Gallery Section',
     data_table: 'custom_section_data',
-    description: 'Program impact with SDG Videos',
+    description: 'Video gallery with thumbnails',
     isSpecial: false
   },
-
 };
 
 const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
@@ -263,7 +265,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
               required
             >
               <option value="">-- Select Section Type --</option>
-              <optgroup label="Special Sections (External Data)">
+              <optgroup label="⭐ Special Sections (External Data)">
                 {Object.entries(SECTION_OPTIONS)
                   .filter(([, opt]) => opt.isSpecial)
                   .map(([key, opt]) => (
@@ -272,7 +274,7 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
                     </option>
                   ))}
               </optgroup>
-              <optgroup label="Custom Data Sections">
+              <optgroup label="📝 Custom Data Sections">
                 {Object.entries(SECTION_OPTIONS)
                   .filter(([, opt]) => !opt.isSpecial)
                   .map(([key, opt]) => (
@@ -297,6 +299,11 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
               <p className="text-xs text-blue-500 mt-1">
                 Data Table: <code className="px-1 py-0.5 bg-blue-100 rounded">{selectedOption.data_table}</code>
               </p>
+              {selectedOption.data_table === 'shared_data' && (
+                <p className="text-xs text-green-600 mt-1">
+                  ♻️ Reusable data - Changes will reflect on all pages using this section.
+                </p>
+              )}
             </div>
           )}
 
@@ -348,6 +355,11 @@ const AddSectionModal = ({ isOpen, onClose, pageId, onSuccess }) => {
                     <span className="ml-1 text-sm text-orange-600">
                       Special section - Data managed externally. No custom data entry will be created.
                     </span>
+                    {selectedOption.data_table === 'shared_data' && (
+                      <span className="ml-1 text-sm text-green-600">
+                        ♻️ Shared data - Editable in Shared Data Manager.
+                      </span>
+                    )}
                   </div>
                 )}
                 {!selectedOption.isSpecial && (

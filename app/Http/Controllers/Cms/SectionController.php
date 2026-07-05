@@ -120,7 +120,6 @@ class SectionController extends Controller
           $section['data'] = $aboutContent ? $aboutContent->data : null;
           break;
 
-        // UNCOMMENT AND FIX THIS CASE
         case 'publications':
           $section['data'] = Publication::active()->latest()->get();
           break;
@@ -337,12 +336,11 @@ class SectionController extends Controller
       case 'programs':
       case 'jobs':
       case 'about_content':
-      case 'publications': // ADD THIS
+      case 'publications': 
         // These are managed by their respective systems
         break;
 
       default:
-        // For any other data table, we might want to create custom data
         if ($sectionConfig->data_table !== 'custom_section_data') {
           $this->createCustomSectionData($sectionConfig);
         }

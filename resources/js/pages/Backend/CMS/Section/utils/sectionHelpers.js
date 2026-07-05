@@ -2,11 +2,6 @@
 
 /**
  * Section Helpers - Utility functions for sections
- * Features:
- * - Component label mapping
- * - Data table label mapping
- * - Section type detection
- * - Statistics calculation
  */
 
 /**
@@ -17,13 +12,14 @@ export const getComponentLabel = (component) => {
     // Banner Sections
     'HomeBanner': 'Home Banner',
     'PageBannerSection': 'Page Banner',
+    'PageTagBannerSection': 'Page Tag Banner',
 
     // Content Sections
     'AboutUsSection': 'About Us',
     'OurActionSection': 'Our Actions',
     'WhereWeWorkSection': 'Where We Work',
     'OurProgramsSection': 'Our Programs',
-    'StoriesSection': 'Stories',
+    // 'StoriesSection' removed - now in SharedData
     'BlogSection': 'Blog',
     'JobsSection': 'Jobs',
     'ProgramImpactSection': 'Program Impact',
@@ -37,10 +33,15 @@ export const getComponentLabel = (component) => {
     'FollowUSSection': 'Follow Us',
     'LegalSection': 'Legal',
 
+    // Gallery Sections
+    'ImageGallerySection': 'Image Gallery',
+    'VideoGallerySection': 'Video Gallery',
+
     // Content Sections for Details Pages
     'ProgramContentSection': 'Program Content',
     'BlogContentSection': 'Blog Content',
     'ContentSection': 'Content',
+    'PublicationsSection': 'Publications',
   };
   return labels[component] || component;
 };
@@ -56,6 +57,7 @@ export const getDataTableLabel = (table) => {
     'programs': 'Programs',
     'about_content': 'About Content',
     'jobs': 'Jobs',
+    'publications': 'Publications',
     'our_programs': 'Our Programs',
   };
   return labels[table] || table || 'None';
@@ -63,7 +65,6 @@ export const getDataTableLabel = (table) => {
 
 /**
  * Get section type information (label, color, icon)
- * Used for the "Type" column and styling
  */
 export const getSectionTypeInfo = (section) => {
   // Fixed sections - cannot be moved or deleted
@@ -72,7 +73,9 @@ export const getSectionTypeInfo = (section) => {
   }
 
   // Banner sections
-  if (section.component === 'HomeBanner' || section.component === 'PageBannerSection') {
+  if (section.component === 'HomeBanner' || 
+      section.component === 'PageBannerSection' || 
+      section.component === 'PageTagBannerSection') {
     return { label: 'Banner', color: 'bg-yellow-100 text-yellow-700', icon: '⭐' };
   }
 
@@ -91,19 +94,25 @@ export const getSectionTypeInfo = (section) => {
     return { label: 'Programs', color: 'bg-orange-100 text-orange-700', icon: '📋' };
   }
 
+  // Publications sections
+  if (section.data_table === 'publications') {
+    return { label: 'Publications', color: 'bg-indigo-100 text-indigo-700', icon: '📄' };
+  }
+
   // Default - Normal section
   return { label: 'Normal', color: 'bg-gray-100 text-gray-600', icon: '📄' };
 };
 
 /**
  * Calculate statistics for sections
- * Used in header and footer
  */
 export const getSectionStats = (sections) => {
   return {
     total: sections.length,
     fixed: sections.filter(s => s.is_fixed_section).length,
-    banner: sections.filter(s => s.component === 'HomeBanner' || s.component === 'PageBannerSection').length,
+    banner: sections.filter(s => s.component === 'HomeBanner' || 
+                                s.component === 'PageBannerSection' ||
+                                s.component === 'PageTagBannerSection').length,
     shared: sections.filter(s => s.data_table === 'shared_data').length,
     jobs: sections.filter(s => s.data_table === 'jobs').length,
     programs: sections.filter(s => s.data_table === 'programs' || s.component === 'OurProgramsSection').length,

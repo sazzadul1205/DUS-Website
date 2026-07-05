@@ -24,7 +24,8 @@ class SharedDataController extends Controller
       'navbar',
       'footer',
       'faq',
-      'upcoming-events'
+      'upcoming-events',
+      'stories', 
     ])->get();
 
     return Inertia::render('Backend/CMS/Shared/Index', [

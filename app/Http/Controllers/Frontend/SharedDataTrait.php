@@ -8,7 +8,7 @@ use App\Models\pages\SharedData;
 trait SharedDataTrait
 {
   /**
-   * Get shared data for all frontend pages (TopBar, Navbar, Footer)
+   * Get shared data for all frontend pages (TopBar, Navbar, Footer, Stories)
    */
   public function getSharedData(): array
   {
@@ -22,6 +22,7 @@ trait SharedDataTrait
       'topbar' => 'topbarData',
       'navbar' => 'navbarData',
       'footer' => 'footerData',
+      'stories' => 'storiesData',
     ];
 
     // Initialize an array to hold the shared data
@@ -33,11 +34,10 @@ trait SharedDataTrait
         ->where('is_active', true)
         ->first();
 
-      // Transform the data and store it in the sharedData array, or set it to an empty array if no record is found
+      // Transform the data and store it in the sharedData array
       $sharedData[$key] = $record ? $this->transformAssetUrls($record->data ?? [], $asset) : [];
     }
 
-    // Return the shared data array containing topbar, navbar, and footer data
     return $sharedData;
   }
 

@@ -60,7 +60,7 @@ class PageController extends Controller
     // 7. Build the pageData array with the correct keys
     $pageData = $this->buildPageData($sectionConfigs, $fetchedData, $pageSlug, $detailSlug);
 
-    // 8. Get shared layout data (topbar, navbar, footer) from the trait
+    // 8. Get shared layout data (topbar, navbar, footer, stories) from the trait
     $shared = $this->getSharedData();
 
     // 9. Prepare the section config structure for the frontend
@@ -148,7 +148,6 @@ class PageController extends Controller
       'home' => 'Frontend/Home/Home',
       'about' => 'Frontend/About/About',
       'contact' => 'Frontend/ContactUs/ContactUs',
-      // 'publications' => 'Frontend/Publications/Publications', // REMOVED - using GenericPage instead
     ];
 
     // Detail page components
@@ -160,11 +159,9 @@ class PageController extends Controller
     ];
 
     if ($detailSlug) {
-      // For detail pages, use specific detail component if exists, otherwise GenericPage
       return $detailPages[$normalizedPageSlug] ?? 'Frontend/GenericPage';
     }
 
-    // For regular pages, use specific page component if exists, otherwise GenericPage
     return $specificPages[$normalizedPageSlug] ?? 'Frontend/GenericPage';
   }
 
@@ -226,6 +223,7 @@ class PageController extends Controller
       'navbarData' => 'navbar',
       'footerData' => 'footer',
       'publicationsData' => 'publications',
+      'storiesData' => 'stories', // 👈 NEW: Added stories
     ];
 
     return $map[$dataKey] ?? null;
@@ -238,7 +236,7 @@ class PageController extends Controller
   {
     $data = [];
 
-    // Shared data (topbar, navbar, footer, faq, upcoming-events)
+    // Shared data (topbar, navbar, footer, faq, upcoming-events, stories)
     if (!empty($needs['shared_data'])) {
       foreach ($needs['shared_data'] as $type) {
         $sharedItem = $this->contentService->getSharedData($type);
@@ -431,10 +429,6 @@ class PageController extends Controller
 
   /**
    * Filter related blogs for the detail page.
-   *
-   * @param Collection|array $blogs
-   * @param Model|array|null $currentBlog
-   * @return array
    */
   private function filterRelatedBlogs(Collection|array $blogs, Model|array|null $currentBlog = null): array
   {
@@ -470,10 +464,6 @@ class PageController extends Controller
 
   /**
    * Filter related publications for the detail page.
-   *
-   * @param Collection|array $publications
-   * @param Model|array|null $currentPublication
-   * @return array
    */
   private function filterRelatedPublications(Collection|array $publications, Model|array|null $currentPublication = null): array
   {
@@ -509,9 +499,6 @@ class PageController extends Controller
 
   /**
    * Normalize blog detail data to the shape expected by the frontend.
-   *
-   * @param Model|array $detail
-   * @return array
    */
   private function normalizeBlogDetail(Model|array $detail): array
   {
@@ -537,9 +524,6 @@ class PageController extends Controller
 
   /**
    * Normalize publication detail data to the shape expected by the frontend.
-   *
-   * @param Model|array $detail
-   * @return array
    */
   private function normalizePublicationDetail(Model|array $detail): array
   {

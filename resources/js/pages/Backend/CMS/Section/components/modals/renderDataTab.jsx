@@ -10,6 +10,7 @@ const CardsEditor = lazy(() => import('./Editors/CardsEditor'));
 const LegalEditor = lazy(() => import('./Editors/LegalEditor'));
 const AddressEditor = lazy(() => import('./Editors/AddressEditor'));
 const ContentEditor = lazy(() => import('./Editors/ContentEditor'));
+// StoriesEditor removed - now using Shared Data
 const StoriesEditor = lazy(() => import('./Editors/StoriesEditor'));
 const AboutUsEditor = lazy(() => import('./Editors/AboutUsEditor'));
 const FollowUsEditor = lazy(() => import('./Editors/FollowUsEditor'));
@@ -25,8 +26,6 @@ const ProgramImpactEditor = lazy(() => import('./Editors/ProgramImpactEditor'));
 const ContactOfficeEditor = lazy(() => import('./Editors/ContactOfficeEditor'));
 const UpcomingEventsEditor = lazy(() => import('./Editors/UpcomingEventsEditor'));
 const PublicationsEditor = lazy(() => import('./Editors/PublicationsEditor'));
-
-// ===== NEW: Gallery Editors =====
 const ImageGalleryEditor = lazy(() => import('./Editors/ImageGalleryEditor'));
 const VideoGalleryEditor = lazy(() => import('./Editors/VideoGalleryEditor'));
 
@@ -48,6 +47,7 @@ const EDITOR_COMPONENTS = {
   'CardsSection': CardsEditor,
   'LegalSection': LegalEditor,
   'HomeBanner': HomeBannerEditor,
+  // 'StoriesSection' removed - now in SharedData
   'StoriesSection': StoriesEditor,
   'ContentSection': ContentEditor,
   'AddressSection': AddressEditor,
@@ -64,8 +64,6 @@ const EDITOR_COMPONENTS = {
   'ProgramImpactSection': ProgramImpactEditor,
   'UpcomingEventsSection': UpcomingEventsEditor,
   'PublicationsSection': PublicationsEditor,
-
-  // ===== NEW: Gallery Editors =====
   'ImageGallerySection': ImageGalleryEditor,
   'VideoGallerySection': VideoGalleryEditor,
 };

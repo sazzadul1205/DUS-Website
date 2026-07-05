@@ -92,18 +92,18 @@ class SectionConfigsTableSeeder extends Seeder
         'updated_at' => '2024-01-01 00:00:00',
       ],
       [
-        'id' => 6,
+        'id' => 6,  // Reusing same ID
         'page_slug' => 'home',
         'section_key' => 'stories',
         'component' => 'StoriesSection',
-        'data_table' => 'custom_section_data',
+        'data_table' => 'shared_data',
         'data_key' => 'storiesData',
         'prop_name' => 'data',
         'display_order' => 6,
         'is_enabled' => 1,
         'is_fixed_section' => 0,
         'is_special_component' => 0,
-        'custom_props' => null,
+        'custom_props' => '[]',
         'created_at' => '2024-01-01 00:00:00',
         'updated_at' => '2024-01-01 00:00:00',
       ],
@@ -716,11 +716,11 @@ class SectionConfigsTableSeeder extends Seeder
         'updated_at' => '2024-01-01 00:00:00',
       ],
       [
-        'id' => 45,
+        'id' => 45,  // Reusing same ID
         'page_slug' => 'contact',
         'section_key' => 'stories',
         'component' => 'StoriesSection',
-        'data_table' => 'custom_section_data',
+        'data_table' => 'shared_data',  // CHANGED from custom_section_data to shared_data
         'data_key' => 'storiesData',
         'prop_name' => 'data',
         'display_order' => 7,
@@ -747,7 +747,7 @@ class SectionConfigsTableSeeder extends Seeder
         'created_at' => '2024-01-01 00:00:00',
         'updated_at' => '2024-01-01 00:00:00',
       ],
-      
+
       // ============================================
       // PUBLICATIONS PAGE (formerly Media)
       // ============================================
@@ -800,11 +800,11 @@ class SectionConfigsTableSeeder extends Seeder
         'updated_at' => '2024-01-01 00:00:00',
       ],
       [
-        'id' => 50,
+        'id' => 50,  // Reusing same ID
         'page_slug' => 'publications',
         'section_key' => 'stories',
         'component' => 'StoriesSection',
-        'data_table' => 'custom_section_data',
+        'data_table' => 'shared_data',
         'data_key' => 'storiesData',
         'prop_name' => 'data',
         'display_order' => 4,
