@@ -1,55 +1,57 @@
 // resources/js/pages/Backend/CMS/Section/utils/toastHelper.js
 
-/**
- * Toast Helper - Notification system using SweetAlert2
- * Features:
- * - Toast notifications with auto-dismiss
- * - Position top-right
- * - Progress bar
- * - Hover to pause timer
- * - Custom styling for better UX
- */
-
 import Swal from 'sweetalert2';
 
 /**
- * Show a toast notification
- * @param {string} icon - 'success', 'error', 'warning', 'info'
- * @param {string} title - Notification title
- * @param {string} text - Notification description (optional)
- * @param {number} timer - Duration in milliseconds (default: 3000)
+ * Toast Helper - Simple reliable toast
  */
 export const showToast = (icon, title, text = '', timer = 3000) => {
-  const Toast = Swal.mixin({
+  // ✅ Simple approach - most reliable
+  const toast = Swal.mixin({
     toast: true,
     position: 'top-right',
-    showConfirmButton: false,
-    timer,
-    timerProgressBar: true,
-    didOpen: (toast) => {
-      // Pause timer on hover
-      toast.addEventListener('mouseenter', Swal.stopTimer);
-      toast.addEventListener('mouseleave', Swal.resumeTimer);
-    },
-    customClass: {
-      popup: '!rounded-xl !shadow-2xl',
-      title: '!text-sm !font-semibold',
-      htmlContainer: '!text-xs !text-gray-600',
-    }
-  });
-
-  Toast.fire({
     icon,
     title,
     text,
+    showConfirmButton: false,
+    timer,
+    timerProgressBar: true,
   });
+
+  // Store the toast instance
+  const toastInstance = toast.fire();
+
+  // Add click-to-close after toast is rendered
+  setTimeout(() => {
+    const popup = document.querySelector('.swal2-popup');
+    if (popup) {
+      popup.style.cursor = 'pointer';
+      popup.addEventListener('click', () => {
+        Swal.close();
+      });
+    }
+  }, 100);
+
+  return toastInstance;
 };
 
-/**
- * Show a confirmation dialog with SweetAlert2
- * @param {Object} options - Configuration options
- * @returns {Promise} - Swal result
- */
+// Convenience methods
+export const showSuccessToast = (title, text = '', timer = 3000) => {
+  showToast('success', title, text, timer);
+};
+
+export const showErrorToast = (title, text = '', timer = 4000) => {
+  showToast('error', title, text, timer);
+};
+
+export const showWarningToast = (title, text = '', timer = 3000) => {
+  showToast('warning', title, text, timer);
+};
+
+export const showInfoToast = (title, text = '', timer = 3000) => {
+  showToast('info', title, text, timer);
+};
+
 export const showConfirmDialog = (options = {}) => {
   const defaultOptions = {
     icon: 'warning',
@@ -60,44 +62,17 @@ export const showConfirmDialog = (options = {}) => {
     cancelButtonText: 'Cancel',
     reverseButtons: true,
     customClass: {
-      popup: 'rounded-xl',
+      popup: 'rounded-xl shadow-2xl',
       title: 'text-lg font-semibold',
       htmlContainer: 'text-sm',
-      confirmButton: 'px-4 py-2 rounded-lg',
-      cancelButton: 'px-4 py-2 rounded-lg',
+      confirmButton: 'px-5 py-2.5 rounded-xl font-medium transition hover:scale-[1.02]',
+      cancelButton: 'px-5 py-2.5 rounded-xl font-medium transition hover:bg-gray-100',
     },
+    showLoaderOnConfirm: true,
   };
 
   return Swal.fire({
     ...defaultOptions,
     ...options,
   });
-};
-
-/**
- * Show a success toast
- */
-export const showSuccessToast = (title, text = '', timer = 3000) => {
-  showToast('success', title, text, timer);
-};
-
-/**
- * Show an error toast
- */
-export const showErrorToast = (title, text = '', timer = 4000) => {
-  showToast('error', title, text, timer);
-};
-
-/**
- * Show a warning toast
- */
-export const showWarningToast = (title, text = '', timer = 3000) => {
-  showToast('warning', title, text, timer);
-};
-
-/**
- * Show an info toast
- */
-export const showInfoToast = (title, text = '', timer = 3000) => {
-  showToast('info', title, text, timer);
 };

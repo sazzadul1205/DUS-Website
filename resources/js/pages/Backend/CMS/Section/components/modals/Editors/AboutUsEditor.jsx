@@ -1,146 +1,74 @@
 // resources/js/pages/Backend/CMS/Section/components/modals/Editors/AboutUsEditor.jsx
 
-// React
-import React, { useState, useEffect } from 'react';
-
-// Icons
+import React from 'react';
 import { FaPlus } from 'react-icons/fa';
-
-// Shared Components
 import ImageUpload from './shared/ImageUpload';
 import ArrayManager from './shared/ArrayManager';
 import { useImageUpload } from './shared/useImageUpload';
+import { useSectionEditor } from './shared/useSectionEditor';
 import { TextField, TextAreaField } from './shared/Fields';
 
 const AboutUsEditor = ({ section, hasData, onDataChange }) => {
-  // Get initial data from section prop
-  const initialData = section?.data?.data || section?.data || {};
+  // Use the base editor hook
+  const {
+    formData,
+    updateField,
+    updateArrayItem,
+    addArrayItem,
+    removeArrayItem,
+    isDirty
+  } = useSectionEditor(section, {}, onDataChange);
 
-  // State to hold all form data
-  const [formData, setFormData] = useState(initialData);
+  // Custom hook to handle image upload
+  const image = useImageUpload(formData?.image?.src || '');
 
-  // Custom hook to handle image upload functionality
-  const image = useImageUpload(initialData?.image?.src || '');
-
-  // Notify parent component when form data changes
-  useEffect(() => {
-    if (onDataChange) {
-      onDataChange(formData);
-    }
-  }, [formData, onDataChange]);
-
-  // Helper: Update nested object fields using dot notation (e.g., 'section.title')
-  const updateField = (path, value) => {
-    const keys = path.split('.');
-    const newData = { ...formData };
-    let current = newData;
-
-    // Traverse the path and create nested objects if needed
-    for (let i = 0; i < keys.length - 1; i++) {
-      if (!current[keys[i]]) current[keys[i]] = {};
-      current = current[keys[i]];
-    }
-    // Set the final value
-    current[keys[keys.length - 1]] = value;
-    setFormData(newData);
+  // Handle image changes
+  const handleImageChange = (src) => {
+    image.handleImageChange(src);
+    updateField('image.src', src);
   };
 
-  // Helper: Update a specific field in an array item
-  const updateArrayItem = (path, index, field, value) => {
-    const keys = path.split('.');
-    const newData = { ...formData };
-    let current = newData;
-
-    for (let i = 0; i < keys.length; i++) {
-      if (i === keys.length - 1) {
-        // At the last key, we're accessing the array
-        if (!current[keys[i]]) current[keys[i]] = [];
-        if (!current[keys[i]][index]) current[keys[i]][index] = {};
-        // Update the specific field
-        current[keys[i]][index] = { ...current[keys[i]][index], [field]: value };
-      } else {
-        if (!current[keys[i]]) current[keys[i]] = {};
-        current = current[keys[i]];
-      }
-    }
-    setFormData(newData);
+  const handleImageRemove = () => {
+    image.handleImageRemove();
+    updateField('image.src', '');
   };
 
-  // Helper: Add a new item to an array
-  const addArrayItem = (path, template = {}) => {
-    const keys = path.split('.');
-    const newData = { ...formData };
-    let current = newData;
-
-    // Traverse to the parent of the array
-    for (let i = 0; i < keys.length - 1; i++) {
-      if (!current[keys[i]]) current[keys[i]] = {};
-      current = current[keys[i]];
-    }
-
-    // Get the array
-    const lastKey = keys[keys.length - 1];
-    if (!Array.isArray(current[lastKey])) current[lastKey] = [];
-
-    // Generate a new unique ID
-    const newId = Math.max(0, ...current[lastKey].map(item => item.id || 0)) + 1;
-    // Push new item with template and new ID
-    current[lastKey].push({ ...template, id: newId });
-    setFormData(newData);
-  };
-
-  // Helper: Remove an item from an array by index
-  const removeArrayItem = (path, index) => {
-    const keys = path.split('.');
-    const newData = { ...formData };
-    let current = newData;
-
-    // Traverse to the parent of the array
-    for (let i = 0; i < keys.length - 1; i++) {
-      if (!current[keys[i]]) current[keys[i]] = {};
-      current = current[keys[i]];
-    }
-
-    // Remove the item at the specified index
-    const lastKey = keys[keys.length - 1];
-    if (Array.isArray(current[lastKey])) {
-      current[lastKey].splice(index, 1);
-    }
-    setFormData(newData);
-  };
-
-  // Show empty state if no data is available
+  // Empty state
   if (!hasData || !formData || Object.keys(formData).length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-4 text-center py-8 text-gray-400">
         <p className="text-sm">No data available to edit</p>
-        <p className="text-xs mt-1">Data will appear here once the section has content</p>
+        <p className="text-xs mt-1">Click "Save Changes" to create the initial data structure</p>
       </div>
     );
   }
 
-  // Extract mission items and impact stats from form data
   const missionItems = formData.mission?.items || [];
   const impactStats = formData.impact?.stats || [];
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
+      {isDirty && (
+        <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-700">
+          ⚠️ Unsaved changes - click "Save Changes" to apply
+        </div>
+      )}
+
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit About Us Data</h3>
 
-      {/* ===== SECTION CONTENT ===== */}
-      {/* Basic information about the About Us section */}
+      {/* Section Content */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Section Content</h4>
         <div className="space-y-3">
           <TextField
             label="Title"
-            value={formData.section?.title}
+            value={formData.section?.title || ''}
             onChange={(e) => updateField('section.title', e.target.value)}
             placeholder="About us"
           />
           <TextAreaField
             label="Description"
-            value={formData.section?.description}
+            value={formData.section?.description || ''}
             onChange={(e) => updateField('section.description', e.target.value)}
             placeholder="Description about the organization"
             rows={3}
@@ -148,13 +76,13 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <TextField
               label="Button Text"
-              value={formData.section?.button?.text}
+              value={formData.section?.button?.text || ''}
               onChange={(e) => updateField('section.button.text', e.target.value)}
               placeholder="More about us"
             />
             <TextField
               label="Button Link"
-              value={formData.section?.button?.link}
+              value={formData.section?.button?.link || ''}
               onChange={(e) => updateField('section.button.link', e.target.value)}
               placeholder="/about"
             />
@@ -162,14 +90,13 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      {/* ===== MISSION ITEMS ===== */}
-      {/* List of mission items with icon, title, description, and alt text */}
+      {/* Mission Items */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-medium text-gray-600">Mission Items</h4>
+          <h4 className="text-sm font-medium text-gray-600">Mission Items ({missionItems.length})</h4>
           <button
             type="button"
-            onClick={() => addArrayItem('mission.items', { id: Date.now(), icon: '', title: '', description: '', alt: '' })}
+            onClick={() => addArrayItem('mission.items', { icon: '', title: '', description: '', alt: '' })}
             className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
           >
             <FaPlus size={12} /> Add Mission Item
@@ -178,14 +105,14 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
 
         <TextField
           label="Mission Title"
-          value={formData.mission?.title}
+          value={formData.mission?.title || ''}
           onChange={(e) => updateField('mission.title', e.target.value)}
           placeholder="The mission of our organization"
         />
 
         <ArrayManager
           items={missionItems}
-          onAdd={() => addArrayItem('mission.items', { id: Date.now(), icon: '', title: '', description: '', alt: '' })}
+          onAdd={() => addArrayItem('mission.items', { icon: '', title: '', description: '', alt: '' })}
           onRemove={(index) => removeArrayItem('mission.items', index)}
           itemLabel="Item"
           addLabel="Add Mission Item"
@@ -220,14 +147,13 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
         />
       </div>
 
-      {/* ===== IMPACT STATS ===== */}
-      {/* Statistics showing impact with value, suffix, and label */}
+      {/* Impact Stats */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-medium text-gray-600">Impact Stats</h4>
+          <h4 className="text-sm font-medium text-gray-600">Impact Stats ({impactStats.length})</h4>
           <button
             type="button"
-            onClick={() => addArrayItem('impact.stats', { id: Date.now(), value: '', suffix: '', label: '' })}
+            onClick={() => addArrayItem('impact.stats', { value: '', suffix: '', label: '' })}
             className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
           >
             <FaPlus size={12} /> Add Stat
@@ -236,14 +162,14 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
 
         <TextField
           label="Impact Title"
-          value={formData.impact?.title}
+          value={formData.impact?.title || ''}
           onChange={(e) => updateField('impact.title', e.target.value)}
           placeholder="Impact In Numbers"
         />
 
         <ArrayManager
           items={impactStats}
-          onAdd={() => addArrayItem('impact.stats', { id: Date.now(), value: '', suffix: '', label: '' })}
+          onAdd={() => addArrayItem('impact.stats', { value: '', suffix: '', label: '' })}
           onRemove={(index) => removeArrayItem('impact.stats', index)}
           itemLabel="Stat"
           addLabel="Add Stat"
@@ -272,35 +198,29 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
         />
       </div>
 
-      {/* ===== IMAGE ===== */}
-      {/* Upload and manage the main image for the About Us section */}
+      {/* Image */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Image</h4>
         <ImageUpload
           imageSrc={image.imageSrc}
-          onImageChange={(src) => {
-            image.handleImageChange(src);
-            updateField('image.src', src);
-          }}
-          onImageRemove={() => {
-            image.handleImageRemove();
-            updateField('image.src', '');
-          }}
+          onImageChange={handleImageChange}
+          onImageRemove={handleImageRemove}
           oldImagePath={image.oldImagePath}
           imageChanged={image.imageChanged}
           uploadPath="/storage/AboutUs/"
+          isUploading={image.isUploading}
+          uploadError={image.uploadError}
         />
         <TextField
           label="Image Alt Text"
-          value={formData.image?.alt}
+          value={formData.image?.alt || ''}
           onChange={(e) => updateField('image.alt', e.target.value)}
           placeholder="About Us Image"
           className="mt-2"
         />
       </div>
 
-      {/* ===== DATA INFORMATION ===== */}
-      {/* Display metadata about the section for reference */}
+      {/* Data Information */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
@@ -319,6 +239,12 @@ const AboutUsEditor = ({ section, hasData, onDataChange }) => {
             <span className="text-gray-500">Has Data:</span>
             <span className={`ml-2 font-medium ${hasData ? 'text-green-600' : 'text-gray-400'}`}>
               {hasData ? '✓ Yes' : 'No'}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-500">Modified:</span>
+            <span className={`ml-2 font-medium ${isDirty ? 'text-yellow-600' : 'text-green-600'}`}>
+              {isDirty ? '⚠️ Unsaved' : '✓ Saved'}
             </span>
           </div>
         </div>

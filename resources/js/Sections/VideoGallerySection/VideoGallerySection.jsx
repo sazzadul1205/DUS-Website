@@ -2,11 +2,6 @@
 
 import React, { useState } from 'react';
 
-// Generate placeholder image URL
-const getPlaceholderThumbnail = (text = 'Video') => {
-  return `https://via.placeholder.com/800x450/1a1a2e/FFFFFF?text=${encodeURIComponent(text)}`;
-};
-
 const VideoGallerySection = ({
   data,
   videoData,
@@ -21,7 +16,6 @@ const VideoGallerySection = ({
   sectionId = 'video-gallery-section',
 }) => {
   const [visibleCount, setVisibleCount] = useState(videosPerPage);
-  const [videoErrors, setVideoErrors] = useState({});
 
   // ============================================
   // RESOLVE DATA - FIXED
@@ -138,20 +132,6 @@ const VideoGallerySection = ({
     return null;
   };
 
-  // ============================================
-  // VIDEO ERROR HANDLING
-  // ============================================
-  const handleVideoError = (videoId) => {
-    setVideoErrors(prev => ({ ...prev, [videoId]: true }));
-  };
-
-  const getThumbnail = (video) => {
-    if (videoErrors[video.id]) {
-      return getPlaceholderThumbnail(video.title || 'Video');
-    }
-    return video.thumbnail || video.thumb || video.image || getPlaceholderThumbnail(video.title || 'Video');
-  };
-
   const visibleVideos = resolvedVideos.slice(0, visibleCount);
 
   return (
@@ -178,6 +158,7 @@ const VideoGallerySection = ({
             const videoSrc = video.src || video.url || video.videoUrl || video.embedUrl || video;
             const videoTitle = video.title || video.caption || `Video ${index + 1}`;
             const videoId = video.id || index;
+            const thumbnail = video.thumbnail || video.thumb || video.image || '';
 
             // Get embed URL if it's a YouTube video
             const embedUrl = getYouTubeEmbedUrl(videoSrc);
@@ -205,7 +186,6 @@ const VideoGallerySection = ({
 
             // If it's a self-hosted video or has a direct video source
             if (videoSrc && typeof videoSrc === 'string' && !embedUrl) {
-              const thumbnail = getThumbnail(video);
               return (
                 <div
                   key={videoId}
@@ -216,17 +196,11 @@ const VideoGallerySection = ({
                       src={videoSrc}
                       controls
                       className="absolute top-0 left-0 w-full h-full"
-                      poster={thumbnail}
+                      poster={thumbnail || undefined}
                       preload="metadata"
-                      onError={() => handleVideoError(videoId)}
                     >
                       Your browser does not support the video tag.
                     </video>
-                  </div>
-                  <div className="p-4 sm:p-5">
-                    <h4 className="text-[16px] sm:text-[18px] font-semibold text-[#171D38] mb-2">
-                      {videoTitle}
-                    </h4>
                   </div>
                 </div>
               );
