@@ -88,6 +88,8 @@ class PageController extends Controller
       $pageTitle = $page->title . ' - DUS';
     }
 
+
+    // dd($pageData);
     // 11. Render the Inertia component with all data
     return Inertia::render($component, array_merge(
       $shared,

@@ -1,11 +1,14 @@
 // js/Sections/JobsSection/JobsSection.jsx
 
 // React
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 
 // React Icons
 import { HiOutlineLocationMarker, HiOutlineSearch } from "react-icons/hi";
 import { LuBriefcaseBusiness, LuClock4 } from "react-icons/lu";
+
+// Axios
+import axios from 'axios';
 
 // Arrow Icon
 import ArrowIcon from '../../components/Shared/ArrowIcon';
@@ -22,35 +25,180 @@ const hasValue = (value) => {
 /**
  * JobsSection Component
  * 
- * @param {Object} props
- * @param {Object|Array} props.data - Jobs data from API (from DynamicSectionRenderer)
- * @param {Object|Array} props.jobsData - Jobs data from API (direct prop)
- * @param {string} props.bgColor - Background color (optional)
- * @param {string} props.paddingY - Vertical padding classes
- * @param {string} props.paddingX - Horizontal padding classes
- * @param {string} props.sectionClassName - Additional CSS classes
- * @param {number} props.maxJobs - Maximum number of jobs to display (default: 5)
- * 
- * @returns {JSX.Element} Rendered jobs section
+ * @param {Object} data - Full custom section data containing section and jobs
+ * @param {Object} customProps - Custom props from section configuration (includes limit, showAllText, showAllLink)
+ * @param {string} title - Fallback title (optional)
+ * @param {string} description - Fallback description (optional)
+ * @param {number} limit - Number of jobs to display (if not provided, shows all) - DEPRECATED: use customProps.limit instead
+ * @param {string} showAllText - Text for "View All" button - DEPRECATED: use customProps.showAllText instead
+ * @param {string} showAllLink - Link for "View All" button - DEPRECATED: use customProps.showAllLink instead
+ * @param {string} bgColor - Background color class
+ * @param {string} paddingY - Vertical padding class
+ * @param {string} paddingX - Horizontal padding class
+ * @param {string} sectionClassName - Additional section classes
+ * @param {string} apiEndpoint - API endpoint for fetching jobs
+ * @param {Object} apiParams - Additional API parameters
  */
 const JobsSection = ({
-  data,
-  jobsData,
+  data: propData,
+  customProps = {},
+  title: propTitle,
+  description: propDescription,
+  limit: propLimit,
   bgColor = 'bg-[#F5F5F5]',
   paddingY = 'py-12 sm:py-16 md:py-25 lg:py-37.5',
   paddingX = 'px-5 sm:px-10 md:px-20 lg:px-75',
   sectionClassName = '',
-  maxJobs = 5,
+  apiEndpoint = '/api/jobs',
+  apiParams = {},
 }) => {
   // ============================================
-  // HOOKS - Must be called before any conditional returns
+  // ✅ HELPER: Parse data if it's a string
+  // ============================================
+  const parseData = useCallback((data) => {
+    if (!data) return null;
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        console.warn('Failed to parse data:', e);
+        return null;
+      }
+    }
+    return data;
+  }, []);
+
+  // ============================================
+  // ✅ READ VALUES FROM NESTED DATA STRUCTURE
+  // ============================================
+  const parsedData = parseData(propData);
+
+  // ✅ Get limit from propData?.data?.section?.limit
+  const getLimit = useCallback(() => {
+    // 1. Check customProps
+    if (customProps.limit !== undefined && customProps.limit !== null && customProps.limit !== '') {
+      const val = parseInt(customProps.limit);
+      return isNaN(val) ? 999 : val;
+    }
+
+    // 2. Check propData?.data?.section?.limit (YOUR DATA STRUCTURE)
+    if (propData?.data?.section?.limit !== undefined &&
+      propData?.data?.section?.limit !== null &&
+      propData?.data?.section?.limit !== '') {
+      const val = parseInt(propData.data.section.limit);
+      // If limit is 0, treat as "show all" (fetch 999)
+      if (val === 0) {
+        return 999;
+      }
+      return isNaN(val) ? 999 : val;
+    }
+
+    // 3. Check parsedData?.section?.limit (fallback for other structures)
+    if (parsedData?.section?.limit !== undefined &&
+      parsedData?.section?.limit !== null &&
+      parsedData?.section?.limit !== '') {
+      const val = parseInt(parsedData.section.limit);
+      if (val === 0) {
+        return 999;
+      }
+      return isNaN(val) ? 999 : val;
+    }
+
+    // 4. Check propLimit
+    if (propLimit !== undefined && propLimit !== null && propLimit !== '') {
+      const val = parseInt(propLimit);
+      if (val === 0) {
+        return 999;
+      }
+      return isNaN(val) ? 999 : val;
+    }
+
+    // 5. Default: 999 (show all)
+    return 999;
+  }, [customProps.limit, propData, parsedData, propLimit]);
+
+  const getTitle = useCallback(() => {
+    // 1. Check customProps
+    if (customProps.title) return customProps.title;
+
+    // 2. Check propData?.data?.section?.title
+    if (propData?.data?.section?.title) return propData.data.section.title;
+
+    // 3. Check parsedData?.section?.title
+    if (parsedData?.section?.title) return parsedData.section.title;
+
+    // 4. Check propTitle
+    if (propTitle) return propTitle;
+
+    // 5. Default
+    return 'Job Openings';
+  }, [customProps.title, propData, parsedData, propTitle]);
+
+  const getDescription = useCallback(() => {
+    // 1. Check customProps
+    if (customProps.description) return customProps.description;
+
+    // 2. Check propData?.data?.section?.description
+    if (propData?.data?.section?.description) return propData.data.section.description;
+
+    // 3. Check parsedData?.section?.description
+    if (parsedData?.section?.description) return parsedData.section.description;
+
+    // 4. Check propDescription
+    if (propDescription) return propDescription;
+
+    // 5. Default
+    return 'Join our team and make a difference';
+  }, [customProps.description, propData, parsedData, propDescription]);
+
+  const getFilterPlaceholder = useCallback(() => {
+    // 1. Check customProps
+    if (customProps.filterPlaceholder) return customProps.filterPlaceholder;
+
+    // 2. Check propData?.data?.filter?.placeholder
+    if (propData?.data?.filter?.placeholder) return propData.data.filter.placeholder;
+
+    // 3. Check parsedData?.filter?.placeholder
+    if (parsedData?.filter?.placeholder) return parsedData.filter.placeholder;
+
+    // 4. Default
+    return 'Browse By';
+  }, [customProps.filterPlaceholder, propData, parsedData]);
+
+  // ============================================
+  // ✅ COMPUTED VALUES
+  // ============================================
+  const limitValue = getLimit();
+  // If limit is 999 or null/undefined, show all
+  const shouldFetchAll = limitValue === null || limitValue === undefined || limitValue >= 999;
+  // If limit is a specific number (like 5), use that
+  const effectiveLimit = shouldFetchAll ? null : Math.max(1, limitValue);
+
+  // ============================================
+  // STATE
   // ============================================
   const [selectedFilter, setSelectedFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const searchRef = useRef(null);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filterOptions, setFilterOptions] = useState([
+    { value: 'all', label: 'All Jobs' }
+  ]);
+  const [sectionData, setSectionData] = useState({
+    title: getTitle(),
+    description: getDescription(),
+    filterPlaceholder: getFilterPlaceholder()
+  });
 
-  // Close search dropdown when clicking outside
+  const searchRef = useRef(null);
+  const initialFetchDone = useRef(false);
+  const debounceTimerRef = useRef(null);
+
+  // ============================================
+  // CLOSE SEARCH DROPDOWN
+  // ============================================
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -62,124 +210,249 @@ const JobsSection = ({
   }, []);
 
   // ============================================
-  // RESOLVE DATA
+  // HELPER: Recursively find section object in deeply nested data
   // ============================================
-  let resolvedData = data || jobsData;
+  const findSection = useCallback((obj) => {
+    if (!obj || typeof obj !== 'object') return null;
 
-  // console.log('JobsSection - resolvedData (raw):', resolvedData);
-
-  // ============================================
-  // NORMALIZE DATA STRUCTURE
-  // ============================================
-  if (resolvedData && resolvedData.data && typeof resolvedData.data === 'object') {
-    // console.log('JobsSection - Using nested data property');
-    resolvedData = resolvedData.data;
-  }
-
-  // console.log('JobsSection - resolvedData after normalization:', resolvedData);
-
-  // ============================================
-  // HANDLE DIFFERENT DATA STRUCTURES
-  // ============================================
-  let section = {};
-  let filter = {};
-  let jobs = [];
-
-  if (Array.isArray(resolvedData)) {
-    // console.log('JobsSection - Data is an array of jobs');
-    jobs = resolvedData;
-    section = {
-      title: 'Job Openings',
-      description: 'Join our team and make a difference'
-    };
-    filter = {
-      options: [
-        { value: 'all', label: 'All Jobs' },
-        { value: 'full-time', label: 'Full Time' },
-        { value: 'part-time', label: 'Part Time' },
-        { value: 'contract', label: 'Contract' },
-        { value: 'internship', label: 'Internship' }
-      ]
-    };
-  } else if (resolvedData && typeof resolvedData === 'object') {
-    // console.log('JobsSection - Data is an object');
-
-    if (resolvedData.filter && resolvedData.filter.options) {
-      filter = resolvedData.filter;
-      // console.log('JobsSection - Found filter.options:', filter.options);
-    } else {
-      filter = { options: [{ value: 'all', label: 'All Jobs' }] };
+    // If this object has a section with a title, return it
+    if (obj.section && obj.section.title) {
+      return obj.section;
     }
 
-    if (Array.isArray(resolvedData.jobs)) {
-      jobs = resolvedData.jobs;
-      // console.log('JobsSection - Found jobs array in jobs property');
-    } else if (resolvedData.jobsData && Array.isArray(resolvedData.jobsData)) {
-      jobs = resolvedData.jobsData;
-      // console.log('JobsSection - Found jobs array in jobsData property');
-    } else {
-      let foundJobs = false;
-      for (const key in resolvedData) {
-        if (Array.isArray(resolvedData[key]) && resolvedData[key].length > 0) {
-          const firstItem = resolvedData[key][0];
-          if (firstItem && (firstItem.title || firstItem.description || firstItem.type)) {
-            jobs = resolvedData[key];
-            foundJobs = true;
-            // console.log(`JobsSection - Found jobs in property: ${key}`);
-            break;
+    // Recursively search through all properties
+    for (const key in obj) {
+      if (obj[key] && typeof obj[key] === 'object') {
+        const result = findSection(obj[key]);
+        if (result) return result;
+      }
+    }
+
+    return null;
+  }, []);
+
+  // ============================================
+  // HELPER: Recursively find jobs array in deeply nested data
+  // ============================================
+  const findJobsArray = useCallback((obj) => {
+    if (!obj || typeof obj !== 'object') return null;
+
+    // If this object has a jobs array with items, return it
+    if (obj.jobs && Array.isArray(obj.jobs) && obj.jobs.length > 0) {
+      return obj.jobs;
+    }
+
+    // Recursively search through all properties
+    for (const key in obj) {
+      if (obj[key] && typeof obj[key] === 'object') {
+        const result = findJobsArray(obj[key]);
+        if (result) return result;
+      }
+    }
+
+    return null;
+  }, []);
+
+  // ============================================
+  // PROCESS INCOMING DATA PROP
+  // ============================================
+  const processDataProp = useCallback((data) => {
+    if (!data) return;
+
+    let parsedData = data;
+
+    // If data is a string, parse it
+    if (typeof data === 'string') {
+      try {
+        parsedData = JSON.parse(data);
+      } catch (e) {
+        console.warn('Failed to parse data prop:', e);
+        return;
+      }
+    }
+
+    // Find the section object anywhere in the nested data
+    const section = findSection(parsedData) || {};
+
+    // Update section title/description
+    setSectionData(prev => ({
+      ...prev,
+      title: section.title || prev.title,
+      description: section.description || prev.description,
+      filterPlaceholder: parsedData?.filter?.placeholder || prev.filterPlaceholder,
+    }));
+  }, [findSection]);
+
+  // ============================================
+  // FETCH JOBS FROM API
+  // ============================================
+  const fetchJobs = useCallback(async (params = {}) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const queryParams = new URLSearchParams();
+
+      if (searchTerm.trim()) {
+        queryParams.append('search', searchTerm.trim());
+      }
+
+      if (selectedFilter && selectedFilter !== 'all') {
+        queryParams.append('job_type', selectedFilter);
+      }
+
+      // ✅ If shouldFetchAll is true, fetch all (999)
+      // ✅ Otherwise, fetch limit + 1 to check if there are more
+      if (shouldFetchAll) {
+        // No limit - fetch all active jobs
+        queryParams.append('limit', 999);
+        queryParams.append('all', 'true');
+      } else {
+        // Fetch limit + 1 to check if there are more
+        const maxLimit = Math.max(1, effectiveLimit + 1);
+        queryParams.append('limit', maxLimit);
+      }
+
+      Object.keys(apiParams).forEach(key => {
+        if (apiParams[key] !== undefined && apiParams[key] !== null) {
+          queryParams.append(key, apiParams[key]);
+        }
+      });
+
+      Object.keys(params).forEach(key => {
+        if (params[key] !== undefined && params[key] !== null) {
+          queryParams.append(key, params[key]);
+        }
+      });
+
+      const url = `${apiEndpoint}?${queryParams.toString()}`;
+
+      const response = await axios.get(url);
+
+      let fetchedJobs = [];
+
+      // Handle different response structures
+      if (response.data?.data?.data) {
+        fetchedJobs = response.data.data.data || [];
+      } else if (response.data?.data) {
+        fetchedJobs = response.data.data || [];
+      } else if (Array.isArray(response.data)) {
+        fetchedJobs = response.data;
+      } else {
+        fetchedJobs = response.data?.jobs || [];
+      }
+
+      if (!Array.isArray(fetchedJobs)) {
+        fetchedJobs = [];
+      }
+
+      // Map API jobs to the expected format
+      const mappedJobs = fetchedJobs.map(job => ({
+        id: job.id,
+        title: job.title || 'Untitled Position',
+        description: job.description || job.requirements || 'No description available.',
+        type: job.job_type || job.type || 'Full-time',
+        department: job.department || job.category?.name || 'General',
+        location: job.location || job.locations?.[0]?.name || 'Bangladesh',
+        link: job.link || `/jobs/${job.slug || job.id}`,
+        slug: job.slug,
+        views: job.views_count || 0,
+        salary_min: job.salary_min,
+        salary_max: job.salary_max,
+        is_active: job.is_active,
+        category: job.category,
+        employer: job.employer,
+      }));
+
+      setJobs(mappedJobs);
+
+      // Extract filter options from the fetched jobs
+      const types = new Set();
+      mappedJobs.forEach(job => {
+        if (job.type) {
+          const type = job.type.toLowerCase().replace(/\s+/g, '-');
+          types.add(type);
+        }
+      });
+
+      const options = [{ value: 'all', label: 'All Jobs' }];
+      types.forEach(type => {
+        const label = type.split('-').map(word =>
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+        options.push({ value: type, label });
+      });
+      setFilterOptions(options);
+
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load jobs');
+
+      // Fallback to static jobs from prop data if API fails
+      if (propData) {
+        // Parse the prop data if it's a string
+        let parsedPropData = propData;
+        if (typeof propData === 'string') {
+          try {
+            parsedPropData = JSON.parse(propData);
+          } catch (e) {
+            console.warn('Failed to parse fallback data:', e);
           }
         }
+
+        // Find jobs array anywhere in the nested data
+        const fallbackJobs = findJobsArray(parsedPropData);
+
+        if (fallbackJobs && Array.isArray(fallbackJobs) && fallbackJobs.length > 0) {
+          setError(null); // Clear error since we have fallback data
+        }
       }
-      if (!foundJobs) {
-        console.warn('JobsSection - No jobs array found in data');
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, selectedFilter, effectiveLimit, shouldFetchAll, apiEndpoint, apiParams, propData, findJobsArray]);
+
+  // ============================================
+  // INITIAL FETCH
+  // ============================================
+  useEffect(() => {
+    if (!initialFetchDone.current) {
+      initialFetchDone.current = true;
+
+      // First, process the prop data to get section title/description
+      if (propData) {
+        processDataProp(propData);
       }
+
+      // Then fetch jobs from API
+      fetchJobs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ============================================
+  // RE-FETCH ON FILTER/SEARCH CHANGE - WITH DEBOUNCE
+  // ============================================
+  useEffect(() => {
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
 
-    if (resolvedData.section) {
-      section = resolvedData.section;
-      // console.log('JobsSection - Found section data:', section);
+    // Only fetch if initial fetch is done and we're not in the middle of initial load
+    if (initialFetchDone.current && !loading) {
+      debounceTimerRef.current = setTimeout(() => {
+        fetchJobs();
+      }, 500); // 500ms debounce
     }
-  }
 
-  // ============================================
-  // GENERATE FILTER OPTIONS FROM JOBS
-  // ============================================
-  if ((!filter.options || filter.options.length <= 1) && jobs.length > 0) {
-    // console.log('JobsSection - Generating filter options from jobs');
-    const jobTypes = new Set();
-    jobs.forEach(job => {
-      if (job.type) {
-        const type = job.type.toLowerCase().replace(" ", "-");
-        jobTypes.add(type);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
-    });
-
-    filter.options = [{ value: 'all', label: 'All Jobs' }];
-    jobTypes.forEach(type => {
-      const label = type.split('-').map(word =>
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(' ');
-      filter.options.push({ value: type, label });
-    });
-    // console.log('JobsSection - Generated filter options:', filter.options);
-  }
-
-  // ============================================
-  // EARLY RETURN - No data
-  // ============================================
-  if (!hasValue(jobs)) return null;
-
-  // ============================================
-  // CHECK FOR CONTENT
-  // ============================================
-  const hasTitle = hasValue(section.title);
-  const hasDescription = hasValue(section.description);
-  const hasFilterOptions = hasValue(filter.options);
-  const hasJobs = hasValue(jobs);
-
-  const hasAnyContent = hasTitle || hasDescription || hasFilterOptions || hasJobs;
-
-  if (!hasAnyContent) return null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedFilter]);
 
   // ============================================
   // SEARCH HANDLING
@@ -192,7 +465,6 @@ const JobsSection = ({
   const handleSearchSelect = (job) => {
     setSearchTerm(job.title);
     setIsSearchOpen(false);
-    // Scroll to or highlight the job card
     const element = document.getElementById(`job-${job.id}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -204,42 +476,39 @@ const JobsSection = ({
   };
 
   // ============================================
-  // FILTER JOBS
+  // FILTER JOBS (Client-side filtering)
   // ============================================
-  // Filter by type
-  const typeFilteredJobs = selectedFilter === "" || selectedFilter === "all"
-    ? jobs
-    : jobs.filter(job => {
-      const jobType = job.type?.toLowerCase().replace(" ", "-");
-      return jobType === selectedFilter;
-    });
+  const getFilteredJobs = () => {
+    let filtered = jobs;
 
-  // Filter by search term
-  const searchFilteredJobs = searchTerm.trim() === ""
-    ? typeFilteredJobs
-    : typeFilteredJobs.filter(job => {
+    if (searchTerm.trim() !== '') {
       const searchLower = searchTerm.toLowerCase().trim();
-      return (
-        job.title?.toLowerCase().includes(searchLower) ||
-        job.description?.toLowerCase().includes(searchLower) ||
-        job.type?.toLowerCase().includes(searchLower) ||
-        job.department?.toLowerCase().includes(searchLower) ||
-        job.location?.toLowerCase().includes(searchLower)
-      );
-    });
+      filtered = filtered.filter(job => {
+        return (
+          job.title?.toLowerCase().includes(searchLower) ||
+          job.description?.toLowerCase().includes(searchLower) ||
+          job.type?.toLowerCase().includes(searchLower) ||
+          job.department?.toLowerCase().includes(searchLower) ||
+          job.location?.toLowerCase().includes(searchLower)
+        );
+      });
+    }
 
-  // Get search suggestions (max 5)
-  const searchSuggestions = searchTerm.trim() !== "" && isSearchOpen
-    ? searchFilteredJobs.slice(0, 5)
+    return filtered;
+  };
+
+  const filteredJobs = getFilteredJobs();
+  const searchSuggestions = isSearchOpen && searchTerm.trim() !== ''
+    ? filteredJobs.slice(0, 5)
     : [];
 
-  // console.log('JobsSection - Selected filter:', selectedFilter);
-  // console.log('JobsSection - Search term:', searchTerm);
-  // console.log('JobsSection - Filtered jobs count:', searchFilteredJobs.length);
-
-  // Limit to maxJobs (5 by default)
-  const displayedJobs = searchFilteredJobs.slice(0, maxJobs);
-  const hasMoreJobs = searchFilteredJobs.length > maxJobs;
+  // ============================================
+  // DISPLAY JOBS
+  // ============================================
+  // ✅ If shouldFetchAll is true, show all jobs (no limit)
+  // ✅ Otherwise, limit to effectiveLimit
+  const maxJobs = shouldFetchAll ? filteredJobs.length : Math.max(1, effectiveLimit);
+  const displayedJobs = shouldFetchAll ? filteredJobs : filteredJobs.slice(0, maxJobs);
 
   // ============================================
   // RENDER
@@ -249,27 +518,27 @@ const JobsSection = ({
       id='jobs'
       className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
     >
-      {/* Header Section */}
-      {(hasTitle || hasDescription || hasFilterOptions) && (
+      {/* Header Section - Always visible */}
+      {(hasValue(sectionData.title) || hasValue(sectionData.description) || hasValue(filterOptions)) && (
         <div className='flex flex-col lg:flex-row justify-between items-start lg:items-center pb-8 sm:pb-10 lg:pb-15 flex-wrap gap-5'>
 
           {/* Left - Title and Description */}
-          {(hasTitle || hasDescription) && (
+          {(hasValue(sectionData.title) || hasValue(sectionData.description)) && (
             <div>
-              {hasTitle && (
+              {hasValue(sectionData.title) && (
                 <h1 className='bricolage-grotesque text-[#080C14] font-semibold text-[36px] pb-2.5'>
-                  {section.title}
+                  {sectionData.title}
                 </h1>
               )}
-              {hasDescription && (
+              {hasValue(sectionData.description) && (
                 <p className='bricolage-grotesque text-[#524B48] font-normal text-[16px] sm:text-[18px] lg:text-[20px]'>
-                  {section.description}
+                  {sectionData.description}
                 </p>
               )}
             </div>
           )}
 
-          {/* Right - Search and Filter */}
+          {/* Right - Search */}
           <div className='flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto'>
             {/* Search Box with Autocomplete */}
             <div className="relative w-full lg:min-w-80" ref={searchRef}>
@@ -314,13 +583,36 @@ const JobsSection = ({
                 </div>
               )}
             </div>
-
           </div>
         </div>
       )}
 
+      {/* Loading State */}
+      {loading && jobs.length === 0 && (
+        <div className="flex items-center justify-center min-h-50">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#009BE2] border-t-transparent" />
+            <p className="mt-4 text-[#524B48]">Loading jobs...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-4">
+          <p>Error loading jobs: {error}</p>
+        </div>
+      )}
+
+      {/* No Jobs Available Message */}
+      {!loading && jobs.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-[#524B48] text-[18px]">No jobs available at the moment.</p>
+        </div>
+      )}
+
       {/* Jobs List */}
-      {hasJobs && (
+      {!loading && jobs.length > 0 && (
         <div className='space-y-4 sm:space-y-5 lg:space-y-6'>
           {displayedJobs.map((job) => (
             <div
@@ -331,11 +623,10 @@ const JobsSection = ({
               <div className='flex flex-col md:flex-row items-start justify-between gap-5'>
                 <div className='flex-1 w-full'>
 
-                  {/* Job Meta Info (Type, Department, Location) */}
+                  {/* Job Meta Info */}
                   {(hasValue(job.type) || hasValue(job.department) || hasValue(job.location)) && (
                     <div className='flex items-center gap-2 sm:gap-3 text-[#524B48] text-[12px] sm:text-[14px] font-400 uppercase mb-3 flex-wrap'>
 
-                      {/* Job Type */}
                       {hasValue(job.type) && (
                         <>
                           <p className='flex items-center gap-1 sm:gap-1.5'>
@@ -348,7 +639,6 @@ const JobsSection = ({
                         </>
                       )}
 
-                      {/* Department */}
                       {hasValue(job.department) && (
                         <>
                           <p className='flex items-center gap-1 sm:gap-1.5'>
@@ -361,7 +651,6 @@ const JobsSection = ({
                         </>
                       )}
 
-                      {/* Location */}
                       {hasValue(job.location) && (
                         <p className='flex items-center gap-1 sm:gap-1.5'>
                           <HiOutlineLocationMarker className="text-[12px] sm:text-[14px]" />
@@ -384,6 +673,21 @@ const JobsSection = ({
                       {job.description}
                     </p>
                   )}
+
+                  {/* Salary Info */}
+                  {(job.salary_min || job.salary_max) && (
+                    <div className="mt-3 flex items-center gap-2 text-[#009BE2] font-500 text-[14px]">
+                      {job.salary_min && job.salary_max && (
+                        <span>${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}</span>
+                      )}
+                      {job.salary_min && !job.salary_max && (
+                        <span>From ${job.salary_min.toLocaleString()}</span>
+                      )}
+                      {!job.salary_min && job.salary_max && (
+                        <span>Up to ${job.salary_max.toLocaleString()}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Apply Button */}
@@ -404,25 +708,9 @@ const JobsSection = ({
             </div>
           ))}
 
-          {/* Show "View All" button if there are more jobs */}
-          {hasMoreJobs && (
-            <div className='text-center pt-4'>
-              <button
-                className="bricolage-grotesque border border-[#009BE2] rounded-md text-[#009BE2] px-6 sm:px-8 py-3 sm:py-4 font-600 text-[14px] sm:text-[15px] lg:text-[16px] inline-flex items-center justify-center gap-2 group hover:bg-[#009BE2] hover:text-white transition-all duration-300"
-                onClick={() => {
-                  // Show all jobs or navigate to jobs page
-                  setSearchTerm('');
-                  setSelectedFilter('all');
-                }}
-              >
-                View All Jobs ({searchFilteredJobs.length})
-                <ArrowIcon className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
-              </button>
-            </div>
-          )}
 
-          {/* No Jobs Message */}
-          {searchFilteredJobs.length === 0 && (
+          {/* No Jobs Found Message (when search returns no results) */}
+          {filteredJobs.length === 0 && jobs.length > 0 && (
             <div className='bg-white p-8 sm:p-10 lg:p-12 rounded-2xl text-center'>
               <p className='text-[#515151] text-[16px] sm:text-[17px] lg:text-[18px] font-400'>
                 No jobs found matching your search.

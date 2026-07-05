@@ -4,6 +4,7 @@
 
 // Inertia
 use App\Http\Controllers\Api\ContentApiController;
+use App\Http\Controllers\Api\JobListingApiController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 
@@ -86,7 +87,13 @@ Route::prefix('data')->group(function () {
     Route::get('jobs.json', [ContentApiController::class, 'jobs']);
 });
 
-
+// ============================================
+// ADD JOB LISTING API ROUTES HERE
+// ============================================
+Route::prefix('api/jobs')->name('api.jobs.')->group(function () {
+    Route::get('/', [JobListingApiController::class, 'index'])->name('index');
+    Route::get('/{id}', [JobListingApiController::class, 'show'])->name('show');
+});
 
 /*
 |--------------------------------------------------------------------------

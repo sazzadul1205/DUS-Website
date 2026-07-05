@@ -128,7 +128,7 @@ class SectionConfigsTableSeeder extends Seeder
         'page_slug' => 'home',
         'section_key' => 'jobs',
         'component' => 'JobsSection',
-        'data_table' => 'jobs',
+        'data_table' => 'custom_section_data',
         'data_key' => 'jobsData',
         'prop_name' => 'data',
         'display_order' => 8,

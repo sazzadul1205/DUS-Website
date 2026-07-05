@@ -70,19 +70,6 @@ const EDITOR_COMPONENTS = {
 
 // ===== COMPONENT =====
 const RenderDataTab = ({ section, hasData, onDataChange }) => {
-  // Check if data exists
-  if (!hasData || !section?.data || Object.keys(section.data).length === 0) {
-    return (
-      <div className="space-y-4">
-        <div className="text-center py-8 text-gray-400">
-          <p className="text-sm">No data available to edit</p>
-          <p className="text-xs mt-1">Data will appear here once the section has content</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Get the appropriate editor component from the map
   const EditorComponent = EDITOR_COMPONENTS[section.component];
 
   if (!EditorComponent) {
@@ -108,5 +95,4 @@ const RenderDataTab = ({ section, hasData, onDataChange }) => {
     </div>
   );
 };
-
 export default RenderDataTab;

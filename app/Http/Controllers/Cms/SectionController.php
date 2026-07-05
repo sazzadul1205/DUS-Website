@@ -4,6 +4,7 @@
 namespace App\Http\Controllers\Cms;
 
 use App\Http\Controllers\Controller;
+use App\Models\JobListing;
 use App\Models\pages\Page;
 use App\Models\pages\SectionConfig;
 use App\Models\pages\CustomSectionData;
@@ -335,8 +336,10 @@ class SectionController extends Controller
       case 'blogs':
       case 'programs':
       case 'jobs':
+        $section['data'] = JobListing::active()->latest()->get();
+        break;
       case 'about_content':
-      case 'publications': 
+      case 'publications':
         // These are managed by their respective systems
         break;
 
@@ -932,49 +935,12 @@ class SectionController extends Controller
       'JobsSection' => [
         'section' => [
           'title' => 'Join our big family',
-          'description' => 'Join us on this journey of kindness, and let\'s make a difference, one act of charity at a time.'
+          'description' => 'Join us on this journey of kindness, and let\'s make a difference, one act of charity at a time.',
+          'limit' => 5,
         ],
         'filter' => [
           'placeholder' => 'Browse By',
-          'options' => [
-            ['value' => '', 'label' => 'Browse By'],
-            ['value' => 'all', 'label' => 'All Jobs'],
-            ['value' => 'full-time', 'label' => 'Full Time'],
-            ['value' => 'part-time', 'label' => 'Part Time'],
-            ['value' => 'contract', 'label' => 'Contract'],
-            ['value' => 'remote', 'label' => 'Remote'],
-            ['value' => 'internship', 'label' => 'Internship']
-          ]
         ],
-        'jobs' => [
-          [
-            'id' => 1,
-            'type' => 'Full time',
-            'department' => 'Management',
-            'location' => 'Dhaka, Bangladesh',
-            'title' => 'Senior Program Manager - Microfinance',
-            'description' => 'Lead and oversee microfinance program operations, manage team of field officers, and ensure sustainable financial inclusion for underserved communities.',
-            'link' => '/jobs/senior-program-manager'
-          ],
-          [
-            'id' => 2,
-            'type' => 'Part time',
-            'department' => 'Development',
-            'location' => 'Anywhere in Bangladesh',
-            'title' => 'Program Coordinator - Youth Empowerment',
-            'description' => 'Develop and deliver workshops, mentorship programs, and educational events for underprivileged youth to build essential life skills.',
-            'link' => '/jobs/youth-coordinator'
-          ],
-          [
-            'id' => 3,
-            'type' => 'Full time',
-            'department' => 'Climate Action',
-            'location' => 'Hatiya, Noakhali',
-            'title' => 'Climate Change Specialist',
-            'description' => 'Design and implement climate adaptation strategies, conduct risk assessments, and train communities on disaster preparedness.',
-            'link' => '/jobs/climate-specialist'
-          ]
-        ]
       ],
 
 
