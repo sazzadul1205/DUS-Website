@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Cms;
 use App\Http\Controllers\Controller;
 use App\Models\pages\Blog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +20,7 @@ class BlogController extends Controller
    */
   public function index(): Response
   {
-    $items = Blog::withTrashed()->get();
+    $items = Blog::withTrashed()->orderBy('created_at', 'desc')->get();
 
     return Inertia::render('Backend/CMS/Blogs/Index', [
       'items' => $items,
@@ -34,13 +35,14 @@ class BlogController extends Controller
     $validator = Validator::make($request->all(), [
       'title' => 'required|string|max:255',
       'slug' => 'nullable|string|unique:blogs,slug',
-      'excerpt' => 'nullable|string',
+      'excerpt' => 'nullable|string|max:500',
       'full_content' => 'nullable|string',
       'image' => 'nullable|string',
       'date' => 'nullable|string|max:255',
       'author' => 'nullable|string|max:255',
-      'read_time' => 'nullable|integer|min:1',
+      'read_time' => 'nullable|integer|min:1|max:60',
       'tags' => 'nullable|array',
+      'tags.*' => 'string|max:50',
       'is_featured' => 'boolean',
       'is_active' => 'boolean',
     ]);
@@ -53,27 +55,35 @@ class BlogController extends Controller
 
     // Process image if it's a base64 string
     if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-      $data['image'] = $this->uploadImage($data['image']);
+      $uploadedPath = $this->uploadImage($data['image']);
+      if ($uploadedPath) {
+        $data['image'] = $uploadedPath;
+      } else {
+        // If upload fails, remove the image data
+        unset($data['image']);
+      }
     }
 
     // Auto-generate slug from title if not provided
     if (empty($data['slug'])) {
-      $data['slug'] = $this->generateSlug($data['title']);
+      $data['slug'] = $this->generateUniqueSlug($data['title']);
     }
 
-    // Set default date if not provided
-    if (empty($data['date'])) {
-      $data['date'] = now()->format('F j, Y');
-    }
+    // Set default values if not provided
+    $data['date'] = $data['date'] ?? now()->format('F j, Y');
+    $data['author'] = $data['author'] ?? 'Admin';
+    $data['read_time'] = $data['read_time'] ?? 5;
+    $data['is_active'] = $data['is_active'] ?? true;
+    $data['is_featured'] = $data['is_featured'] ?? false;
 
-    // Set default author if not provided
-    if (empty($data['author'])) {
-      $data['author'] = 'Admin';
+    // Ensure tags are stored as JSON
+    if (isset($data['tags']) && is_array($data['tags'])) {
+      $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
     }
 
     Blog::create($data);
 
-    return redirect()->back()->with('success', 'Blog created successfully.');
+    return redirect()->back()->with('success', '✅ Blog created successfully!');
   }
 
   /**
@@ -86,13 +96,14 @@ class BlogController extends Controller
     $validator = Validator::make($request->all(), [
       'title' => 'required|string|max:255',
       'slug' => 'nullable|string|unique:blogs,slug,' . $id,
-      'excerpt' => 'nullable|string',
+      'excerpt' => 'nullable|string|max:500',
       'full_content' => 'nullable|string',
       'image' => 'nullable|string',
       'date' => 'nullable|string|max:255',
       'author' => 'nullable|string|max:255',
-      'read_time' => 'nullable|integer|min:1',
+      'read_time' => 'nullable|integer|min:1|max:60',
       'tags' => 'nullable|array',
+      'tags.*' => 'string|max:50',
       'is_featured' => 'boolean',
       'is_active' => 'boolean',
     ]);
@@ -105,24 +116,33 @@ class BlogController extends Controller
 
     // Process image if it's a base64 string
     if (!empty($data['image']) && $this->isBase64Image($data['image'])) {
-      // Delete old image if exists
+      // Delete old image if exists and is not a URL
       if ($blog->image && !filter_var($blog->image, FILTER_VALIDATE_URL)) {
-        $oldPath = str_replace('/storage/', '', $blog->image);
-        if (Storage::disk('public')->exists($oldPath)) {
-          Storage::disk('public')->delete($oldPath);
-        }
+        $this->deleteImageFile($blog->image);
       }
-      $data['image'] = $this->uploadImage($data['image']);
+
+      $uploadedPath = $this->uploadImage($data['image']);
+      if ($uploadedPath) {
+        $data['image'] = $uploadedPath;
+      } else {
+        // If upload fails, keep the old image
+        unset($data['image']);
+      }
     }
 
-    // Auto-generate slug from title if slug is empty or if title changed and slug matches old title
+    // Auto-generate slug from title if needed
     if (empty($data['slug']) || ($data['title'] !== $blog->title && $data['slug'] === $blog->slug)) {
-      $data['slug'] = $this->generateSlug($data['title']);
+      $data['slug'] = $this->generateUniqueSlug($data['title'], $id);
+    }
+
+    // Ensure tags are stored as JSON
+    if (isset($data['tags']) && is_array($data['tags'])) {
+      $data['tags'] = array_values(array_unique(array_filter($data['tags'])));
     }
 
     $blog->update($data);
 
-    return redirect()->back()->with('success', 'Blog updated successfully.');
+    return redirect()->back()->with('success', '✅ Blog updated successfully!');
   }
 
   /**
@@ -134,7 +154,8 @@ class BlogController extends Controller
     $blog->is_active = !$blog->is_active;
     $blog->save();
 
-    return redirect()->back()->with('success', 'Blog status updated successfully.');
+    $status = $blog->is_active ? 'activated' : 'deactivated';
+    return redirect()->back()->with('success', "✅ Blog {$status} successfully.");
   }
 
   /**
@@ -143,10 +164,17 @@ class BlogController extends Controller
   public function toggleFeatured(int $id)
   {
     $blog = Blog::findOrFail($id);
+
+    // If making this blog featured, remove featured status from others
+    if (!$blog->is_featured) {
+      Blog::where('is_featured', true)->update(['is_featured' => false]);
+    }
+
     $blog->is_featured = !$blog->is_featured;
     $blog->save();
 
-    return redirect()->back()->with('success', 'Blog featured status updated successfully.');
+    $status = $blog->is_featured ? 'featured' : 'unfeatured';
+    return redirect()->back()->with('success', "✅ Blog {$status} successfully.");
   }
 
   /**
@@ -157,7 +185,7 @@ class BlogController extends Controller
     $blog = Blog::findOrFail($id);
     $blog->delete();
 
-    return redirect()->back()->with('success', 'Blog deleted successfully.');
+    return redirect()->back()->with('success', '🗑️ Blog moved to trash successfully.');
   }
 
   /**
@@ -168,7 +196,7 @@ class BlogController extends Controller
     $blog = Blog::withTrashed()->findOrFail($id);
     $blog->restore();
 
-    return redirect()->back()->with('success', 'Blog restored successfully.');
+    return redirect()->back()->with('success', '🔄 Blog restored successfully.');
   }
 
   /**
@@ -178,32 +206,33 @@ class BlogController extends Controller
   {
     $blog = Blog::withTrashed()->findOrFail($id);
 
-    // Delete associated image
+    // Delete main image
     if ($blog->image && !filter_var($blog->image, FILTER_VALIDATE_URL)) {
-      $oldPath = str_replace('/storage/', '', $blog->image);
-      if (Storage::disk('public')->exists($oldPath)) {
-        Storage::disk('public')->delete($oldPath);
-      }
+      $this->deleteImageFile($blog->image);
     }
 
-    // 👇 NEW: Delete images embedded in the content
+    // Delete images embedded in the content
     $this->deleteImagesFromContent($blog->full_content);
 
     $blog->forceDelete();
 
-    return redirect()->back()->with('success', 'Blog permanently deleted.');
+    return redirect()->back()->with('success', '🗑️ Blog permanently deleted.');
   }
 
   /**
-   * Generate a unique slug from title
+   * Generate a unique slug
    */
-  protected function generateSlug(string $title): string
+  protected function generateUniqueSlug(string $title, ?int $excludeId = null): string
   {
     $slug = Str::slug($title);
     $originalSlug = $slug;
     $counter = 1;
 
-    while (Blog::withTrashed()->where('slug', $slug)->exists()) {
+    while (Blog::withTrashed()
+      ->where('slug', $slug)
+      ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+      ->exists()
+    ) {
       $slug = $originalSlug . '-' . $counter;
       $counter++;
     }
@@ -222,22 +251,42 @@ class BlogController extends Controller
   /**
    * Upload image and return the path
    */
-  protected function uploadImage(string $base64String): string
+  protected function uploadImage(string $base64String): ?string
   {
     try {
+      // Validate base64 format
+      if (!preg_match('/^data:image\/(\w+);base64,/', $base64String, $matches)) {
+        return null;
+      }
+
       $imageData = explode(',', $base64String);
-      $imageData = $imageData[1] ?? $base64String;
-      $imageContent = base64_decode($imageData);
+      if (count($imageData) < 2) {
+        return null;
+      }
+
+      $imageContent = base64_decode($imageData[1]);
+      if ($imageContent === false) {
+        return null;
+      }
+
       $extension = $this->getImageExtension($base64String);
 
+      // Generate a unique filename
       $filename = Str::uuid() . '.' . $extension;
       $path = 'Blogs/' . date('Y/m/d') . '/' . $filename;
 
-      Storage::disk('public')->put($path, $imageContent);
+      // Store the image
+      $stored = Storage::disk('public')->put($path, $imageContent);
+
+      if (!$stored) {
+        return null;
+      }
 
       return '/storage/' . $path;
     } catch (\Exception $e) {
-      return '';
+      // Log the error but don't expose to user
+      Log::error('Image upload failed: ' . $e->getMessage());
+      return null;
     }
   }
 
@@ -247,25 +296,40 @@ class BlogController extends Controller
   protected function getImageExtension(string $base64String): string
   {
     $mimeMap = [
-      'image/jpeg' => 'jpg',
-      'image/jpg' => 'jpg',
-      'image/png' => 'png',
-      'image/gif' => 'gif',
-      'image/webp' => 'webp',
-      'image/svg+xml' => 'svg',
-      'image/svg' => 'svg',
-      'image/bmp' => 'bmp',
-      'image/tiff' => 'tiff',
-      'image/x-icon' => 'ico',
-      'image/vnd.microsoft.icon' => 'ico',
+      'jpeg' => 'jpg',
+      'jpg' => 'jpg',
+      'png' => 'png',
+      'gif' => 'gif',
+      'webp' => 'webp',
+      'svg+xml' => 'svg',
+      'bmp' => 'bmp',
+      'tiff' => 'tiff',
+      'x-icon' => 'ico',
+      'vnd.microsoft.icon' => 'ico',
     ];
 
-    if (preg_match('/^data:([^;]+);base64,/', $base64String, $matches)) {
+    if (preg_match('/^data:image\/([^;]+);base64,/', $base64String, $matches)) {
       $mimeType = $matches[1];
       return $mimeMap[$mimeType] ?? 'png';
     }
 
     return 'png';
+  }
+
+  /**
+   * Delete image file from storage
+   */
+  protected function deleteImageFile(string $imagePath): void
+  {
+    try {
+      // Remove storage prefix if present
+      $relativePath = str_replace('/storage/', '', $imagePath);
+      if (Storage::disk('public')->exists($relativePath)) {
+        Storage::disk('public')->delete($relativePath);
+      }
+    } catch (\Exception $e) {
+      Log::warning('Failed to delete image: ' . $e->getMessage());
+    }
   }
 
   /**
@@ -279,10 +343,15 @@ class BlogController extends Controller
     if (empty($matches[1])) return;
 
     foreach ($matches[1] as $src) {
+      // Only delete images from the editor-images folder
       if (str_starts_with($src, '/storage/editor-images/')) {
         $relativePath = str_replace('/storage/', '', $src);
-        if (Storage::disk('public')->exists($relativePath)) {
-          Storage::disk('public')->delete($relativePath);
+        try {
+          if (Storage::disk('public')->exists($relativePath)) {
+            Storage::disk('public')->delete($relativePath);
+          }
+        } catch (\Exception $e) {
+          Log::warning('Failed to delete embedded image: ' . $e->getMessage());
         }
       }
     }

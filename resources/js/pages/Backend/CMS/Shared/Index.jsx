@@ -5,9 +5,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 
-// Icons
-import { FaEdit } from 'react-icons/fa';
-import { FaSpinner, FaGlobe, FaChevronDown, FaChevronUp, FaExclamationTriangle } from 'react-icons/fa6';
+// Icons - Using Ionicons 5
+import {
+  MdEdit,
+  MdPublic,
+  MdExpandMore,
+  MdExpandLess,
+  MdWarning
+} from 'react-icons/md';
+import { FaSpinner } from 'react-icons/fa'; // Only spinner from FA
 
 // SweetAlert
 import Swal from 'sweetalert2';
@@ -55,7 +61,7 @@ export default function SharedData({ sharedData }) {
   const typeConfig = {
     topbar: {
       label: 'Top Bar',
-      icon: <FaGlobe />,
+      icon: <MdPublic className="text-blue-600" />,
       description: 'Contact info, language selector, social links',
       component: TopBar,
       editor: TopBarEditor,
@@ -64,7 +70,7 @@ export default function SharedData({ sharedData }) {
     },
     navbar: {
       label: 'Navigation Bar',
-      icon: <FaGlobe />,
+      icon: <MdPublic className="text-blue-600" />,
       description: 'Logo, nav links, CTA button',
       component: Navbar,
       editor: NavbarEditor,
@@ -73,7 +79,7 @@ export default function SharedData({ sharedData }) {
     },
     footer: {
       label: 'Footer',
-      icon: <FaGlobe />,
+      icon: <MdPublic className="text-blue-600" />,
       description: 'Logo, links, social, newsletter, copyright',
       component: Footer,
       editor: FooterEditor,
@@ -82,7 +88,7 @@ export default function SharedData({ sharedData }) {
     },
     faq: {
       label: 'FAQ Section',
-      icon: <FaGlobe />,
+      icon: <MdPublic className="text-blue-600" />,
       description: 'Frequently asked questions with answers',
       component: FAQSection,
       editor: FaqEditor,
@@ -91,7 +97,7 @@ export default function SharedData({ sharedData }) {
     },
     'upcoming-events': {
       label: 'Upcoming Events',
-      icon: <FaGlobe />,
+      icon: <MdPublic className="text-blue-600" />,
       description: 'Events listing with dates and descriptions',
       component: UpcomingEventsSection,
       editor: EventsEditor,
@@ -100,7 +106,7 @@ export default function SharedData({ sharedData }) {
     },
     stories: {
       label: 'Stories Section',
-      icon: <FaGlobe />,
+      icon: <MdPublic className="text-blue-600" />,
       description: 'Stories with images and descriptions',
       component: StoriesSection,
       editor: StoriesEditor,
@@ -324,7 +330,7 @@ export default function SharedData({ sharedData }) {
                     onClick={() => toggleSection(item.type)}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="text-blue-600 text-xl shrink-0">{config.icon}</div>
+                      <div className="text-2xl shrink-0">{config.icon}</div>
                       <div className="min-w-0">
                         <h3 className="font-semibold text-gray-900">{config.label}</h3>
                         <p className="text-xs text-gray-500 truncate">{config.description}</p>
@@ -343,12 +349,12 @@ export default function SharedData({ sharedData }) {
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
                         title="Edit this item"
                       >
-                        <FaEdit size={16} />
+                        <MdEdit size={18} />
                       </button>
                       {isExpanded ? (
-                        <FaChevronUp className="text-gray-400" />
+                        <MdExpandLess className="text-gray-400 text-2xl" />
                       ) : (
-                        <FaChevronDown className="text-gray-400" />
+                        <MdExpandMore className="text-gray-400 text-2xl" />
                       )}
                     </div>
                   </div>
@@ -360,7 +366,7 @@ export default function SharedData({ sharedData }) {
                         <span>Preview:</span>
                         {!hasData && (
                           <span className="text-yellow-500 flex items-center gap-1">
-                            <FaExclamationTriangle size={12} />
+                            <MdWarning size={14} />
                             No data configured
                           </span>
                         )}
@@ -421,7 +427,7 @@ export default function SharedData({ sharedData }) {
                 )}
                 <button
                   onClick={closeEdit}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition cursor-pointer"
                   aria-label="Close modal"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -447,7 +453,7 @@ export default function SharedData({ sharedData }) {
                 <button
                   type="button"
                   onClick={closeEdit}
-                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition cursor-pointer"
                   disabled={isUpdateDisabled}
                 >
                   Cancel
@@ -455,7 +461,7 @@ export default function SharedData({ sharedData }) {
                 <button
                   type="submit"
                   disabled={isUpdateDisabled}
-                  className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 ${isUpdateDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                  className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 cursor-pointer ${isUpdateDisabled ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                 >
                   {loading ? (
