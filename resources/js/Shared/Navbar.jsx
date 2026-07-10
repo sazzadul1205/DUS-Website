@@ -1,4 +1,4 @@
-// resources/js/components/Navbar.jsx
+// resources/js/Shared/Navbar.jsx
 
 /**
  * ============================================

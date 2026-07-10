@@ -1,12 +1,21 @@
 // resources/js/Pages/Frontend/JobsDetails/JobsDetails.jsx
 
-import React, { useState, useEffect } from 'react';
+// React
 import { Head } from '@inertiajs/react';
+import React, { useState, useEffect } from 'react';
+
+// Axios
+import axios from 'axios';
+
+// Icons
 import { CiCalendar, CiLocationOn } from "react-icons/ci";
 import { FaRegClock, FaFacebookF, FaLinkedinIn, FaInstagram, FaBriefcase, FaMoneyBillWave, FaGraduationCap, FaBuilding } from "react-icons/fa";
-import axios from 'axios';
+
+// Layout
 import PublicLayout from '../../../layouts/PublicLayout';
-import DynamicSectionRenderer from '../../../components/Shared/DynamicSectionRenderer';
+
+// Components
+import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
 
 // Banner Section Component
 const BannerSection = ({ bannerData, jobData, loading }) => {
@@ -22,6 +31,7 @@ const BannerSection = ({ bannerData, jobData, loading }) => {
     );
   }
 
+  // Normalize job data
   const normalizedJobData = {
     title: jobData?.title || 'Job Opportunity',
     department: jobData?.category?.name || jobData?.category_name || 'General',
@@ -45,6 +55,7 @@ const BannerSection = ({ bannerData, jobData, loading }) => {
     }
   };
 
+  // Use default banner if bannerData is not available
   const banner = bannerData || defaultBanner;
 
   return (
@@ -341,6 +352,7 @@ const JobContentSection = ({
   );
 };
 
+// JobsDetails Component
 const JobsDetails = ({
   topBarData,
   navbarData,

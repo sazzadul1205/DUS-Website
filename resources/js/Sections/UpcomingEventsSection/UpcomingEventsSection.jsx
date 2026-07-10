@@ -3,7 +3,7 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
 import { CiLocationOn } from "react-icons/ci";
-import ArrowIcon from '../../components/Shared/ArrowIcon';
+import ArrowIcon from '../../Shared/ArrowIcon';
 
 /**
  * Utility function to check if value exists

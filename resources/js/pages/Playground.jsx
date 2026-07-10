@@ -1,6 +1,13 @@
+// Playground
+
+// React
 import React from 'react';
-import PublicLayout from '../layouts/PublicLayout';
 import { Head } from '@inertiajs/react';
+
+//  layouts
+import PublicLayout from '../layouts/PublicLayout';
+
+// components
 import PageTagBanner from '../Sections/BannerSection/PageTagBannerSection';
 
 const Playground = ({
@@ -47,8 +54,8 @@ const Playground = ({
               gradient: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent'
             },
             tagTitle: pageData?.galleryData?.title || 'Photo Gallery',
-            tags: tags,
-            activeTag: activeTag,
+            tags,
+            activeTag,
           }}
           height="h-125 md:h-147.25"
           bgColor="bg-white"

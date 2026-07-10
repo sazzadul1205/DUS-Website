@@ -4,9 +4,9 @@
 import React from 'react';
 
 // Components
-import Navbar from '../components/Shared/Navbar';
-import TopBar from '../components/Shared/TopBar';
-import Footer from '../components/Shared/Footer';
+import Navbar from '../Shared/Navbar';
+import TopBar from '../Shared/TopBar';
+import Footer from '../Shared/Footer';
 
 const PublicLayout = ({ children, topBarData, navbarData, footerData, storageUrl }) => {
   return (

@@ -11,7 +11,7 @@ import { LuBriefcaseBusiness, LuClock4 } from "react-icons/lu";
 import axios from 'axios';
 
 // Arrow Icon
-import ArrowIcon from '../../components/Shared/ArrowIcon';
+import ArrowIcon from '../../Shared/ArrowIcon';
 import { Link } from '@inertiajs/react';
 
 // Utility function to check if value exists

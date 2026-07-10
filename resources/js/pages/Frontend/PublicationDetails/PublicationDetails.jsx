@@ -1,11 +1,20 @@
 // resources/js/Pages/Frontend/PublicationDetails/PublicationDetails.jsx
 
+// React
 import React from 'react';
 import { Head } from '@inertiajs/react';
+
+// Icons
 import { CiCalendar } from "react-icons/ci";
 import { FaRegClock, FaFacebookF, FaLinkedinIn, FaInstagram, FaDownload, FaFilePdf } from "react-icons/fa";
+
+// Layout
 import PublicLayout from '../../../layouts/PublicLayout';
-import DynamicSectionRenderer from '../../../components/Shared/DynamicSectionRenderer';
+
+// Components
+import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
+
+// Sections
 import PublicationsSection from '../../../Sections/PublicationsSection/PublicationsSection'; 
 
 // Banner Section Component
@@ -15,6 +24,7 @@ const BannerSection = ({ bannerData, publicationData }) => {
     "bg-[#FF6B6B]", "bg-[#FDCB6E]", "bg-[#6C5CE7]",
   ];
 
+  // Normalize publication data
   const normalizedPublicationData = {
     title: publicationData?.title || 'Publication',
     author: publicationData?.author || publicationData?.createdBy || 'ADMIN',

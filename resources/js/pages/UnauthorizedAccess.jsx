@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // resources/js/pages/UnauthorizedAccess.jsx
 
 import { Head, Link } from '@inertiajs/react';
@@ -34,7 +35,7 @@ export default function UnauthorizedAccess({ status = 403, message = null }) {
           {/* Main Card */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
             {/* Top Gradient Bar */}
-            <div className="h-2 bg-linear-to-r from-red-500 to-orange-500"></div>
+            <div className="h-2 bg-linear-to-r from-red-500 to-orange-500" />
 
             <div className="p-8 text-center">
               {/* Icon */}

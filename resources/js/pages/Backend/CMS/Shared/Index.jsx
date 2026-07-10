@@ -1,38 +1,49 @@
 /* eslint-disable no-undef */
 // resources/js/pages/Backend/CMS/Shared/Index.jsx
 
+// React
 import { useState, useEffect } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
-import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
-import {
-  FaSpinner, FaGlobe, FaChevronDown, FaChevronUp
-} from 'react-icons/fa6';
+
+// Icons
 import { FaEdit } from 'react-icons/fa';
+import { FaSpinner, FaGlobe, FaChevronDown, FaChevronUp } from 'react-icons/fa6';
+
+// SweetAlert
 import Swal from 'sweetalert2';
 
-// Import shared components for preview
-import TopBar from '../../../../components/Shared/TopBar';
-import Navbar from '../../../../components/Shared/Navbar';
-import Footer from '../../../../components/Shared/Footer';
+// Layout
+import AuthenticatedLayout from '../../../../layouts/AuthenticatedLayout';
+
+// Shared
+import TopBar from '../../../../Shared/TopBar';
+import Navbar from '../../../../Shared/Navbar';
+import Footer from '../../../../Shared/Footer';
+
+// Sections
 import FAQSection from '../../../../Sections/FAQSection/FAQSection';
-import UpcomingEventsSection from '../../../../Sections/UpcomingEventsSection/UpcomingEventsSection';
 import StoriesSection from '../../../../Sections/StoriesSection/StoriesSection';
+import UpcomingEventsSection from '../../../../Sections/UpcomingEventsSection/UpcomingEventsSection';
 
 // Import Modal Editors
+import FaqEditor from './Modals/FaqEditor';
 import TopBarEditor from './Modals/TopBarEditor';
 import NavbarEditor from './Modals/NavbarEditor';
 import FooterEditor from './Modals/FooterEditor';
-import FaqEditor from './Modals/FaqEditor';
 import EventsEditor from './Modals/EventsEditor';
 import StoriesEditor from './Modals/StoriesEditor';
 
 export default function SharedData({ sharedData }) {
+
+  // Props
   const { flash } = usePage().props;
-  const [editingItem, setEditingItem] = useState(null);
+
+  // State
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
-  const [expandedSection, setExpandedSection] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [expandedSection, setExpandedSection] = useState(null);
 
   const typeConfig = {
     topbar: {

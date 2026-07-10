@@ -1,16 +1,25 @@
 // resources/js/Pages/Frontend/AboutDetails/AboutDetails.jsx
 
+// React
 import React from 'react';
 import { Head } from "@inertiajs/react";
+
+// Layout
 import PublicLayout from '../../../layouts/PublicLayout';
-import DynamicSectionRenderer from '../../../components/Shared/DynamicSectionRenderer';
+
+// Components
+import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
 
 // Special ContentSection component (fixed)
 const ContentSection = ({ subPageData, bgColor, paddingY, paddingX, sectionClassName, sectionId }) => {
+
+  // Render HTML
   const renderHTML = (htmlString) => ({ __html: htmlString });
 
+  // Data
   const data = subPageData || {};
 
+  // Destructure
   const title = data.title;
   const content = data.full_content || data.content;
   const image = data.image;
@@ -63,6 +72,7 @@ const ContentSection = ({ subPageData, bgColor, paddingY, paddingX, sectionClass
   );
 };
 
+// Main Component
 const AboutDetails = ({
   topBarData,
   navbarData,

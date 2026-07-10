@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 
 // Arrow Icon
-import ArrowIcon from '../../components/Shared/ArrowIcon';
+import ArrowIcon from '../../Shared/ArrowIcon';
 
 // Utility function for consistent value checking
 const hasValue = (value) => {

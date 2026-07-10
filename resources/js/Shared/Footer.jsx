@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 // resources/js/components/Footer.jsx
 
 /**

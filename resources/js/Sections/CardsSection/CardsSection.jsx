@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 
 // Components
-import ArrowIcon from '../../components/Shared/ArrowIcon';
+import ArrowIcon from '../../Shared/ArrowIcon';
 
 // Utility function to check if value exists (SAME as other sections)
 const hasValue = (value) => {

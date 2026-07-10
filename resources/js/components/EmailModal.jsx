@@ -1,12 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
+/* eslint-disable no-undef */
+// resources/js/components/EmailModal.jsx
+// React
+import { useState, useEffect } from 'react';
+
+// Axios
 import axios from 'axios';
+
+// SweetAlert
 import Swal from 'sweetalert2';
+
+// Icons
 import {
   FaEnvelope,
   FaMagic,
   FaSpinner,
   FaPaperPlane,
-  FaTimesCircle,
   FaCode,
   FaEye as FaPreview,
 } from 'react-icons/fa';
@@ -172,7 +180,6 @@ const EmailModal = ({
     subject: '',
     content: '',
   });
-  const contentRef = useRef(null);
 
   // Reset form when modal opens with new recipients
   useEffect(() => {
@@ -288,7 +295,7 @@ const EmailModal = ({
       if (response.data.success) {
         let message = response.data.message;
         if (response.data.failed_emails && response.data.failed_emails.length > 0) {
-          message += '\n\nFailed emails: ' + response.data.failed_emails.join(', ');
+          message += `\n\nFailed emails: ${response.data.failed_emails.join(', ')}`;
         }
 
         Swal.fire({

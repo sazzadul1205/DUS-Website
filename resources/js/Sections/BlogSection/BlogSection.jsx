@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
 
 // Components
-import ArrowIcon from '../../components/Shared/ArrowIcon';
+import ArrowIcon from '../../Shared/ArrowIcon';
 
 // Utility function to check if value exists
 const hasValue = (value) => {

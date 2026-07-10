@@ -1,8 +1,13 @@
 // resources/js/pages/Backend/CMS/Shared/Modals/NavbarEditor.jsx
 
-import { useState, useEffect } from 'react';
+// React
+import { useState, useEffect } from 'react'; 
+
+// Icons
 import { FaTimes } from 'react-icons/fa';
 import { FaPlus, FaTrash, FaUpload } from 'react-icons/fa6';
+
+// Sweetalert
 import Swal from 'sweetalert2';
 
 export default function NavbarEditor({

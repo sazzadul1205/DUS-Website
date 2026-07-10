@@ -33,7 +33,7 @@ import React, { Suspense } from 'react';
 import SectionLoader from './SectionLoader';
 
 // Import section registry
-import { SECTION_COMPONENTS, SECTION_CONFIGS } from '../../config/sectionRegistry';
+import { SECTION_COMPONENTS, SECTION_CONFIGS } from '../config/sectionRegistry';
 
 /**
  * DynamicSectionRenderer Component

@@ -1,11 +1,18 @@
 // resources/js/Pages/Frontend/BlogDetails/BlogDetails.jsx
 
+// React
 import React from 'react';
 import { Head } from '@inertiajs/react';
+
+// Icons
 import { CiCalendar } from "react-icons/ci";
 import { FaRegClock, FaFacebookF, FaLinkedinIn, FaInstagram } from "react-icons/fa";
+
+// Layout
 import PublicLayout from '../../../layouts/PublicLayout';
-import DynamicSectionRenderer from '../../../components/Shared/DynamicSectionRenderer';
+
+// Components
+import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
 
 // Banner Section Component
 const BannerSection = ({ bannerData, blogData }) => {
@@ -14,6 +21,7 @@ const BannerSection = ({ bannerData, blogData }) => {
     "bg-[#FF6B6B]", "bg-[#FDCB6E]", "bg-[#6C5CE7]",
   ];
 
+  // Normalize blog data
   const normalizedBlogData = {
     title: blogData?.title || 'Blog Post',
     createdBy: blogData?.createdBy || blogData?.author || 'ADMIN',
@@ -34,6 +42,7 @@ const BannerSection = ({ bannerData, blogData }) => {
     }
   };
 
+  // Use default banner if bannerData is not available
   const banner = bannerData || defaultBanner;
 
   return (
@@ -120,12 +129,14 @@ const BlogContentSection = ({
     return `${storageUrl}/${cleanPath}`;
   };
 
+  // Normalize blog data
   const normalizedBlogData = {
     title: blogData?.title || 'Blog Post',
     image: blogData?.image,
     fullContent: blogData?.fullContent || blogData?.full_content || blogData?.content || '',
   };
 
+  // Function to render HTML content safely
   const renderHTML = (htmlString) => ({ __html: htmlString });
 
   if (!blogData) {

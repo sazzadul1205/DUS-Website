@@ -2,8 +2,12 @@
 
 import React from 'react';
 import { Head } from "@inertiajs/react";
+
+// Layout
 import PublicLayout from "../../layouts/PublicLayout";
-import DynamicSectionRenderer from '../../components/Shared/DynamicSectionRenderer';
+
+// Components
+import DynamicSectionRenderer from '../../Shared/DynamicSectionRenderer';
 
 const DynamicPage = ({
   topbarData,

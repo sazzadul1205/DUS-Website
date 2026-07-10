@@ -1,9 +1,14 @@
 // resources/js/pages/Backend/CMS/Shared/Modals/FooterEditor.jsx
 
+// 
 import { useState, useEffect } from 'react';
+
+// Sweetalert
+import Swal from 'sweetalert2';
+
+// Icons
 import { FaTimes } from 'react-icons/fa';
 import { FaPlus, FaTrash, FaUpload } from 'react-icons/fa6';
-import Swal from 'sweetalert2';
 
 export default function FooterEditor({
   formData,

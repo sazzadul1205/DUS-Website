@@ -1,9 +1,14 @@
 // resources/js/Pages/Frontend/ProjectsAndProgramsDetails/ProjectsAndProgramsDetails.jsx
 
+// React
 import React from 'react';
 import { Head } from "@inertiajs/react";
+
+// Layout
 import PublicLayout from '../../../layouts/PublicLayout';
-import DynamicSectionRenderer from '../../../components/Shared/DynamicSectionRenderer';
+
+// Components
+import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
 
 // Program Content Section Component
 const ProgramContentSection = ({ programData, bgColor, paddingY, paddingX, sectionClassName, sectionId }) => {
