@@ -10,6 +10,7 @@ use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class PageController extends Controller
 {
@@ -23,47 +24,53 @@ class PageController extends Controller
   }
 
   /**
-   * Handle all public pages dynamically.
-   *
-   * @param  string  $pageSlug     (home, about, blogs, contact, projects-programs, or any custom page)
-   * @param  string|null  $detailSlug  (optional slug for detail pages)
+   * Cache duration in seconds (24 hours)
+   */
+  protected function getCacheDuration(): int
+  {
+    return 86400; // 24 hours
+  }
+
+  /**
+   * Handle all public pages dynamically with caching.
    */
   public function show(string $pageSlug = 'home', ?string $detailSlug = null): Response
   {
-    // 1. Get the page from database
+    // Generate a unique cache key for this page
+    $cacheKey = $this->generateCacheKey($pageSlug, $detailSlug);
+
+    // Try to get cached page data
+    $cachedData = Cache::get($cacheKey);
+
+    if ($cachedData) {
+      return Inertia::render(
+        $cachedData['component'],
+        $cachedData['props']
+      );
+    }
+
+    // If not cached, fetch fresh data
     $page = $this->getPageBySlug($pageSlug);
 
-    // If page doesn't exist, return 404
     if (!$page) {
       abort(404, 'Page not found');
     }
 
-    // 2. Determine which Inertia component to render
     $component = $this->resolveComponent($pageSlug, $detailSlug);
-
-    // 3. Get the page slug used for section configs
     $configSlug = $this->resolveConfigSlug($pageSlug, $detailSlug);
 
-    // 4. Fetch section configs from the database using the service
     $sectionConfigs = $this->contentService->getPageSections($configSlug);
 
     if ($sectionConfigs->isEmpty()) {
       abort(404, 'Page configuration not found');
     }
 
-    // 5. Determine data requirements from configs
     $dataNeeds = $this->determineDataNeeds($sectionConfigs);
-
-    // 6. Fetch all required data
     $fetchedData = $this->fetchAllData($dataNeeds, $pageSlug, $detailSlug);
 
-    // 7. Build the pageData array with the correct keys
     $pageData = $this->buildPageData($sectionConfigs, $fetchedData, $pageSlug, $detailSlug);
-
-    // 8. Get shared layout data (topbar, navbar, footer, stories) from the trait
     $shared = $this->getSharedData();
 
-    // 9. Prepare the section config structure for the frontend
     $sectionConfig = [
       'sections' => $sectionConfigs->map(function ($config) {
         return [
@@ -80,18 +87,13 @@ class PageController extends Controller
       })->toArray(),
     ];
 
-    // 10. Determine page title
     $pageTitle = $page->title ?? $page->name;
 
-    // Add suffix for detail pages
     if ($detailSlug && $page->title) {
       $pageTitle = $page->title . ' - DUS';
     }
 
-
-    // dd($pageData);
-    // 11. Render the Inertia component with all data
-    return Inertia::render($component, array_merge(
+    $props = array_merge(
       $shared,
       [
         'storageUrl'    => config('app.storage_url', ''),
@@ -102,8 +104,50 @@ class PageController extends Controller
         'pageSlug'      => $page->slug,
         'pageDescription' => $page->description ?? '',
       ]
-    ));
+    );
+
+    // Store in cache
+    $cachedData = [
+      'component' => $component,
+      'props' => $props,
+    ];
+    Cache::put($cacheKey, $cachedData, $this->getCacheDuration());
+
+    return Inertia::render($component, $props);
   }
+
+  /**
+   * Generate a unique cache key for a page
+   */
+  private function generateCacheKey(string $pageSlug, ?string $detailSlug): string
+  {
+    $key = 'frontend_page_' . $pageSlug;
+    if ($detailSlug) {
+      $key .= '_' . $detailSlug;
+    }
+    return $key;
+  }
+
+  /**
+   * Clear cache for a specific page
+   */
+  public function clearPageCache(string $pageSlug, ?string $detailSlug = null): void
+  {
+    $cacheKey = $this->generateCacheKey($pageSlug, $detailSlug);
+    Cache::forget($cacheKey);
+  }
+
+  /**
+   * Clear all frontend cache
+   */
+  public function clearAllCache(): void
+  {
+    Cache::tags(['frontend'])->flush();
+    // Or use a prefix pattern:
+    $this->clearFrontendCache();
+  }
+
+    // ... rest of your existing methods (getPageBySlug, resolveConfigSlug, etc.)
 
   /**
    * Get page by slug from database
@@ -125,7 +169,6 @@ class PageController extends Controller
    */
   private function resolveConfigSlug(string $pageSlug, ?string $detailSlug): string
   {
-    // Handle 'blogs' alias for 'blog'
     $normalized = $pageSlug === 'blogs' ? 'blog' : $pageSlug;
 
     if ($detailSlug) {
@@ -137,22 +180,17 @@ class PageController extends Controller
 
   /**
    * Map page slug + detail flag to the correct Inertia component.
-   * 
-   * All pages that don't have a specific component will use the GenericPage
    */
   private function resolveComponent(string $pageSlug, ?string $detailSlug): string
   {
-    // Normalize 'blogs' to 'blog'
     $normalizedPageSlug = $pageSlug === 'blogs' ? 'blog' : $pageSlug;
 
-    // Specific page components (only for special cases that have dedicated React components)
     $specificPages = [
       'home' => 'Frontend/Home/Home',
       'about' => 'Frontend/About/About',
       'contact' => 'Frontend/ContactUs/ContactUs',
     ];
 
-    // Detail page components
     $detailPages = [
       'about' => 'Frontend/AboutDetails/AboutDetails',
       'blog' => 'Frontend/BlogDetails/BlogDetails',
@@ -171,8 +209,6 @@ class PageController extends Controller
   /**
    * Analyze section configs to determine what data we need.
    */
-  // app/Http/Controllers/Frontend/PageController.php
-
   private function determineDataNeeds(Collection $sectionConfigs): array
   {
     $needs = ['shared_data' => []];
@@ -196,9 +232,9 @@ class PageController extends Controller
           $needs['about_content'] = true;
           break;
         case 'jobs':
-          $needs['jobs'] = true; 
+          $needs['jobs'] = true;
           break;
-        case 'job_details': 
+        case 'job_details':
           $needs['job_details'] = true;
           break;
         case 'publications':
@@ -231,7 +267,7 @@ class PageController extends Controller
       'navbarData' => 'navbar',
       'footerData' => 'footer',
       'publicationsData' => 'publications',
-      'storiesData' => 'stories', // 👈 NEW: Added stories
+      'storiesData' => 'stories',
     ];
 
     return $map[$dataKey] ?? null;
@@ -244,55 +280,73 @@ class PageController extends Controller
   {
     $data = [];
 
-    // Shared data (topbar, navbar, footer, faq, upcoming-events, stories)
+    // Shared data with caching
     if (!empty($needs['shared_data'])) {
       foreach ($needs['shared_data'] as $type) {
-        $sharedItem = $this->contentService->getSharedData($type);
+        $cacheKey = 'frontend_shared_' . $type;
+        $sharedItem = Cache::remember($cacheKey, $this->getCacheDuration(), function () use ($type) {
+          return $this->contentService->getSharedData($type);
+        });
         if ($sharedItem) {
           $data['shared'][$type] = $sharedItem->data;
         }
       }
     }
 
-    // Programs
+    // Programs with caching
     if (!empty($needs['programs'])) {
-      $data['programs'] = $this->contentService->getPrograms();
+      $data['programs'] = Cache::remember('frontend_programs', $this->getCacheDuration(), function () {
+        return $this->contentService->getPrograms();
+      });
     }
 
-    // Blogs
+    // Blogs with caching
     if (!empty($needs['blogs'])) {
-      $data['blogs'] = $this->contentService->getBlogs();
+      $data['blogs'] = Cache::remember('frontend_blogs', $this->getCacheDuration(), function () {
+        return $this->contentService->getBlogs();
+      });
     }
 
-    // About content
+    // About content with caching
     if (!empty($needs['about_content'])) {
-      $data['about_content'] = $this->contentService->getAboutDetails();
+      $data['about_content'] = Cache::remember('frontend_about_details', $this->getCacheDuration(), function () {
+        return $this->contentService->getAboutDetails();
+      });
     }
 
-    // Jobs
+    // Jobs with caching
     if (!empty($needs['jobs'])) {
-      $data['jobs'] = \App\Models\JobListing::active()
-        ->orderBy('views_count', 'desc')
-        ->limit(5)
-        ->get();
+      $data['jobs'] = Cache::remember('frontend_jobs', $this->getCacheDuration(), function () {
+        return \App\Models\JobListing::active()
+          ->orderBy('views_count', 'desc')
+          ->limit(5)
+          ->get();
+      });
     }
 
-    // Publications
+    // Publications with caching
     if (!empty($needs['publications'])) {
-      $data['publications'] = $this->contentService->getPublications();
+      $data['publications'] = Cache::remember('frontend_publications', $this->getCacheDuration(), function () {
+        return $this->contentService->getPublications();
+      });
     }
 
-    // Pages
+    // Pages with caching
     if (!empty($needs['pages'])) {
-      $data['pages'] = \App\Models\pages\Page::where('is_active', true)
-        ->orderBy('name')
-        ->get();
+      $data['pages'] = Cache::remember('frontend_pages', $this->getCacheDuration(), function () {
+        return \App\Models\pages\Page::where('is_active', true)
+          ->orderBy('name')
+          ->get();
+      });
     }
 
-    // Custom section data
+    // Custom section data with caching
     if (!empty($needs['custom'])) {
       foreach ($needs['custom'] as $sectionKey) {
-        $customData = $this->contentService->getSectionData($pageSlug, $sectionKey);
+        $cacheKey = 'frontend_custom_' . $pageSlug . '_' . $sectionKey;
+        $customData = Cache::remember($cacheKey, $this->getCacheDuration(), function () use ($pageSlug, $sectionKey) {
+          return $this->contentService->getSectionData($pageSlug, $sectionKey);
+        });
         if ($customData) {
           if (method_exists($customData, 'getDataAttribute')) {
             $data['custom'][$sectionKey] = $customData->data;
@@ -303,31 +357,28 @@ class PageController extends Controller
       }
     }
 
-    // Detail item
+    // Detail item with caching
     if ($detailSlug) {
-      $detail = null;
-      $baseSlug = $pageSlug;
-      if ($pageSlug === 'blogs') {
-        $baseSlug = 'blog';
-      }
+      $detailCacheKey = 'frontend_detail_' . $pageSlug . '_' . $detailSlug;
+      $detail = Cache::remember($detailCacheKey, $this->getCacheDuration(), function () use ($pageSlug, $detailSlug) {
+        $baseSlug = $pageSlug;
+        if ($pageSlug === 'blogs') {
+          $baseSlug = 'blog';
+        }
 
-      switch ($baseSlug) {
-        case 'about':
-          $detail = $this->contentService->getAboutContent($detailSlug);
-          break;
-        case 'blog':
-          $detail = $this->contentService->getBlog($detailSlug);
-          break;
-        case 'projects-programs':
-          $detail = $this->contentService->getProgram($detailSlug);
-          break;
-        case 'publications':
-          $detail = $this->contentService->getPublication($detailSlug);
-          break;
-        default:
-          $detail = $this->contentService->getSectionData($pageSlug, $detailSlug);
-          break;
-      }
+        switch ($baseSlug) {
+          case 'about':
+            return $this->contentService->getAboutContent($detailSlug);
+          case 'blog':
+            return $this->contentService->getBlog($detailSlug);
+          case 'projects-programs':
+            return $this->contentService->getProgram($detailSlug);
+          case 'publications':
+            return $this->contentService->getPublication($detailSlug);
+          default:
+            return $this->contentService->getSectionData($pageSlug, $detailSlug);
+        }
+      });
       $data['detail'] = $detail;
     }
 
@@ -339,6 +390,7 @@ class PageController extends Controller
    */
   private function buildPageData(Collection $sectionConfigs, array $fetchedData, string $pageSlug, ?string $detailSlug): array
   {
+    // ... (keep your existing buildPageData method)
     $pageData = [];
 
     foreach ($sectionConfigs as $config) {

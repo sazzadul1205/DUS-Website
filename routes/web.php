@@ -3,6 +3,8 @@
 // routes/web.php
 
 // Inertia
+
+use App\Http\Controllers\Admin\CacheController;
 use App\Http\Controllers\Api\ContentApiController;
 use App\Http\Controllers\Api\JobListingApiController;
 use Inertia\Inertia;
@@ -690,3 +692,10 @@ Route::get('/api/programs', function (Request $request) {
 
 Route::post('/admin/upload-editor-image', [EditorImageUploadController::class, 'upload'])->name('admin.upload-editor-image');
 Route::delete('/admin/editor-image', [EditorImageUploadController::class, 'deleteImages'])->name('admin.editor-image.delete');
+
+
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+    Route::post('/cache/clear', [CacheController::class, 'clearAll']);
+    Route::post('/cache/clear/{pageSlug}', [CacheController::class, 'clearPage']);
+    Route::get('/cache/status', [CacheController::class, 'status']);
+});
