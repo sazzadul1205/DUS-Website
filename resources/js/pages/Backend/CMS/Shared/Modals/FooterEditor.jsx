@@ -55,6 +55,8 @@ export default function FooterEditor({
   const [loadingItems, setLoadingItems] = useState(false);
   const [itemsError, setItemsError] = useState(null);
   const fileInputRef = useRef(null);
+  const quickLinkIconInputRef = useRef(null);
+  const programLinkIconInputRef = useRef(null);
 
   // ============================================
   // FETCH NAVIGATION ITEMS
@@ -72,7 +74,6 @@ export default function FooterEditor({
 
       const data = await response.json();
 
-      // Handle different response structures
       let items = [];
       if (data.items && Array.isArray(data.items)) {
         items = data.items;
@@ -193,6 +194,87 @@ export default function FooterEditor({
         updateFormData('logo.src', '');
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
+        }
+      }
+    });
+  };
+
+  // ============================================
+  // LINK ICON HANDLING (NEW)
+  // ============================================
+  const handleLinkIconDrag = (e, type) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Set drag active state for specific icon
+    setDragActive(type === 'quick' ? 'quick' : 'program');
+  };
+
+  const handleLinkIconDrop = async (e, type) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = e.dataTransfer.files;
+    if (!files || !files[0]) return;
+    await uploadLinkIcon(files[0], type);
+  };
+
+  const handleLinkIconFileSelect = async (e, type) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadLinkIcon(file, type);
+    e.target.value = '';
+  };
+
+  const uploadLinkIcon = async (file, type) => {
+    setUploading(true);
+    if (setIsLoading) setIsLoading(true);
+
+    try {
+      const imageUrl = await processImageFile(file);
+      const fieldName = type === 'quick' ? 'quickLinkLinkIcon' : 'OurProgramLinkIcon';
+      updateFormData(fieldName, imageUrl);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Icon Uploaded',
+        text: `${type === 'quick' ? 'Quick Link' : 'Program'} icon uploaded successfully!`,
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Upload Failed',
+        text: error.message || 'Could not upload icon. Please try again.',
+        confirmButtonColor: '#3b82f6',
+      });
+    } finally {
+      setUploading(false);
+      if (setIsLoading) setIsLoading(false);
+    }
+  };
+
+  const removeLinkIcon = (type) => {
+    const iconName = type === 'quick' ? 'Quick Link Icon' : 'Program Link Icon';
+    const fieldName = type === 'quick' ? 'quickLinkLinkIcon' : 'OurProgramLinkIcon';
+
+    Swal.fire({
+      title: `Remove ${iconName}?`,
+      text: `This will remove the ${iconName.toLowerCase()} from the footer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, remove it',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        updateFormData(fieldName, '');
+        if (type === 'quick' && quickLinkIconInputRef.current) {
+          quickLinkIconInputRef.current.value = '';
+        }
+        if (type === 'program' && programLinkIconInputRef.current) {
+          programLinkIconInputRef.current.value = '';
         }
       }
     });
@@ -339,6 +421,89 @@ export default function FooterEditor({
   const programsHaveDuplicates = hasDuplicateLinks(formData.programs);
 
   // ============================================
+  // RENDER LINK ICON DROP ZONE
+  // ============================================
+  const renderLinkIconDropZone = (type, label, fieldName, currentValue, inputRef) => {
+    const isDragActive = dragActive === type;
+
+    return (
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          {label}
+          <span className="text-xs text-gray-400 ml-2">(Drag & drop or click to upload)</span>
+        </label>
+        <div className="relative">
+          <div
+            className={`relative border-2 border-dashed rounded-lg p-3 transition-all ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+              } ${uploading ? 'opacity-50' : ''}`}
+            onDragEnter={(e) => handleLinkIconDrag(e, type)}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragActive(false);
+            }}
+            onDragOver={(e) => handleLinkIconDrag(e, type)}
+            onDrop={(e) => handleLinkIconDrop(e, type)}
+          >
+            <div className="flex items-center gap-3 min-h-14">
+              {currentValue ? (
+                <div className="flex items-center gap-3 w-full">
+                  <img
+                    src={currentValue}
+                    alt={label}
+                    className="w-12 h-12 object-contain rounded border"
+                    onError={(e) => {
+                      e.target.src = '/images/placeholder-icon.png';
+                    }}
+                  />
+                  <span className="text-xs text-gray-500 truncate flex-1">
+                    {typeof currentValue === 'string' && currentValue.startsWith('data:image')
+                      ? '📷 New icon (will be saved)'
+                      : `📁 ${currentValue.length > 40 ? `${currentValue.substring(0, 40)}...` : currentValue}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeLinkIcon(type)}
+                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
+                    title={`Remove ${label}`}
+                    disabled={isDisabled}
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 w-full text-gray-400 py-2">
+                  <FaUpload size={18} className="shrink-0" />
+                  <span className="text-sm">Drop {label.toLowerCase()} or click to browse</span>
+                </div>
+              )}
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleLinkIconFileSelect(e, type)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                disabled={isDisabled}
+              />
+            </div>
+            {uploading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <FaSpinner className="animate-spin text-blue-600" size={20} />
+                  <span className="text-sm text-gray-600">Uploading...</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            Max 5MB. Supported: JPG, PNG, GIF, WebP, SVG
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================
   // RENDER
   // ============================================
   return (
@@ -354,7 +519,7 @@ export default function FooterEditor({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <div className="relative">
             <div
-              className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+              className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${dragActive === true ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
                 } ${uploading ? 'opacity-50' : ''}`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -375,7 +540,7 @@ export default function FooterEditor({
                     <span className="text-xs text-gray-500 truncate flex-1">
                       {typeof formData.logo.src === 'string' && formData.logo.src.startsWith('data:image')
                         ? '📷 New image (will be saved)'
-                        : `📁 ${formData.logo.src.length > 40 ? `${formData.logo.src.substring(0, 40)  }...` : formData.logo.src}`}
+                        : `📁 ${formData.logo.src.length > 40 ? `${formData.logo.src.substring(0, 40)}...` : formData.logo.src}`}
                     </span>
                     <button
                       type="button"
@@ -926,35 +1091,29 @@ export default function FooterEditor({
       </div>
 
       {/* ============================================
-          ICON IMAGES (for bullet points)
+          LINK ICONS (Updated with Drag & Drop)
           ============================================ */}
       <div>
         <h3 className="font-semibold text-lg pt-2">Link Icons</h3>
         <p className="text-xs text-gray-500 mb-2">Small icons shown next to links (optional)</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Quick Link Icon URL</label>
-            <input
-              type="text"
-              value={formData.quickLinkLinkIcon || ''}
-              onChange={(e) => updateFormData('quickLinkLinkIcon', e.target.value)}
-              placeholder="/storage/images/arrow-icon.png"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={isDisabled}
-            />
-            <p className="text-xs text-gray-400 mt-1">Image path for quick link bullet icons</p>
+            {renderLinkIconDropZone(
+              'quick',
+              'Quick Link Icon',
+              'quickLinkLinkIcon',
+              formData.quickLinkLinkIcon || '',
+              quickLinkIconInputRef
+            )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Program Link Icon URL</label>
-            <input
-              type="text"
-              value={formData.OurProgramLinkIcon || ''}
-              onChange={(e) => updateFormData('OurProgramLinkIcon', e.target.value)}
-              placeholder="/storage/images/program-icon.png"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={isDisabled}
-            />
-            <p className="text-xs text-gray-400 mt-1">Image path for program link bullet icons</p>
+            {renderLinkIconDropZone(
+              'program',
+              'Program Link Icon',
+              'OurProgramLinkIcon',
+              formData.OurProgramLinkIcon || '',
+              programLinkIconInputRef
+            )}
           </div>
         </div>
       </div>

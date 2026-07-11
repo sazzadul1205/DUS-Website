@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // resources/js/pages/Backend/JobCategories/Index.jsx
 
 // React
@@ -43,14 +44,10 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
 
   // Use centralized auth hook
   const {
-    user: currentUser,
     hasAnyPermission,
-    hasRole,
-    isAuthenticated,
   } = useAuth();
 
   // Check permissions for category management
-  const isSuperAdmin = hasRole('super-admin');
   const canViewCategories = hasAnyPermission(['categories.view', 'categories.manage']);
   const canEditCategories = hasAnyPermission(['categories.update', 'categories.manage']);
   const canCreateCategories = hasAnyPermission(['categories.create', 'categories.manage']);
@@ -164,7 +161,7 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
 
     router.get(route('backend.categories.index'), {
       ...filters,
-      page: page,
+      page,
     }, {
       preserveState: true,
       preserveScroll: true,
@@ -233,7 +230,7 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
     const pages = [];
     const maxVisible = 5;
     let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+    const endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
 
     if (endPage - startPage + 1 < maxVisible) {
       startPage = Math.max(1, endPage - maxVisible + 1);
@@ -495,7 +492,7 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
             setIsBulkProcessing(false);
           },
           onError: (error) => {
-            let errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete categories.';
+            const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete categories.';
             Swal.fire({
               icon: 'error',
               title: 'Failed',

@@ -13,7 +13,6 @@
             const appearance = @json($appearance ?? 'system');
             const root = document.documentElement;
 
-            // Optimize: Only add/remove classes, no other DOM operations
             if (appearance === 'dark') {
                 root.classList.add('dark');
             } else if (appearance === 'light') {
@@ -26,7 +25,6 @@
 
     <!-- ✅ Improved: Critical CSS inline to prevent flash -->
     <style>
-        /* Optimized initial render */
         html {
             background-color: oklch(1 0 0);
             color-scheme: light;
@@ -38,33 +36,46 @@
             color-scheme: dark;
         }
 
-        /* Prevent layout shift during loading */
         body {
             min-height: 100vh;
             min-height: 100dvh;
-            /* Dynamic viewport height for mobile */
             margin: 0;
             padding: 0;
         }
     </style>
 
-    <!-- ✅ Improved: Security headers via meta tags -->
-    {{-- <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https://fonts.bunny.net; font-src 'self' https://fonts.bunny.net; img-src 'self' data: https:; connect-src 'self' https:;"> --}}
-    <meta name="referrer" content= "strict-origin-when-cross-origin">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="theme-color" content="{{ ($appearance ?? 'system') === 'dark' ? '#252525' : '#ffffff' }}">
 
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <!-- ✅ Improved: Favicon with proper sizes and fallbacks -->
-    <link rel="icon" href="{{ asset('images/icon.png') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('storage/images/icon.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('storage/images/icon.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('storage/images/icon.png') }}">
+    <!-- ✅ Dynamic Favicon - Check for custom icon -->
+    @php
+        $iconPath = public_path('images/icon.png');
+        $iconSvgPath = public_path('images/icon.svg');
+        $iconIcoPath = public_path('images/icon.ico');
+    @endphp
+
+    <!-- Favicon with dynamic detection -->
+    @if (file_exists($iconSvgPath))
+        <link rel="icon" href="{{ asset('images/icon.svg') }}" type="image/svg+xml">
+    @endif
+
+    @if (file_exists($iconPath))
+        <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/icon.png') }}">
+        <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/icon.png') }}">
+        <link rel="apple-touch-icon" href="{{ asset('images/icon.png') }}">
+    @elseif(file_exists($iconIcoPath))
+        <link rel="icon" href="{{ asset('images/icon.ico') }}" type="image/x-icon">
+        <link rel="shortcut icon" href="{{ asset('images/icon.ico') }}" type="image/x-icon">
+    @else
+        <!-- Fallback default icon -->
+        <link rel="icon" href="{{ asset('images/default-icon.png') }}" type="image/png">
+    @endif
 
     <!-- ✅ Added: Web app manifest for PWA support -->
-    {{-- <link rel="manifest" href="{{ asset('manifest.json') }}" crossorigin="use-credentials"> --}}
+    <link rel="manifest" href="{{ asset('manifest.json') }}" crossorigin="use-credentials">
 
     <!-- ✅ Improved: Font loading with preload for performance -->
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
@@ -96,13 +107,11 @@
 </head>
 
 <body class="font-sans antialiased">
-    <!-- ✅ Added: Skip to main content for accessibility -->
     <a href="#main"
         class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded focus:shadow-lg">
         Skip to main content
     </a>
 
-    <!-- ✅ Added: Loading indicator placeholder -->
     <div id="app-loading" aria-hidden="true"
         class="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-gray-900 transition-opacity duration-300">
         <div class="w-8 h-8 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
@@ -110,7 +119,6 @@
 
     @inertia
 
-    <!-- ✅ Added: Script to remove loading indicator -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const loading = document.getElementById('app-loading');

@@ -9,7 +9,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
 // Icons
-import { FaSearchLocation, FaLayerGroup } from "react-icons/fa";
+import { FaSearchLocation, FaLayerGroup, FaImage } from "react-icons/fa";
 import {
   FiHome, FiBell, FiBriefcase, FiFileText, FiSettings, FiLogOut,
   FiChevronDown, FiChevronRight, FiPlusCircle, FiUsers, FiBarChart2,
@@ -348,6 +348,14 @@ const AdminLayout = ({ children }) => {
           subItems: subs,
         });
       }
+    }
+
+    if (hasPermission('icon.manage')) {
+      items.push({
+        name: 'Site Icon',
+        routeName: 'backend.icon.index',
+        icon: FaImage
+      });
     }
 
     // Admin Settings

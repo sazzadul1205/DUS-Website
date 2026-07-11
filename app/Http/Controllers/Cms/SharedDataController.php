@@ -56,8 +56,19 @@ class SharedDataController extends Controller
     DB::beginTransaction();
 
     try {
+      // Decode old data if it's a JSON string
+      $oldData = $shared->data;
+      if (is_string($oldData)) {
+        $oldData = json_decode($oldData, true);
+        if (!is_array($oldData)) {
+          $oldData = [];
+        }
+      } elseif (!is_array($oldData)) {
+        $oldData = [];
+      }
+
       // Process data - handle image uploads
-      $processedData = $this->processData($request->data, $shared->data, $shared->type);
+      $processedData = $this->processData($request->data, $oldData, $shared->type);
 
       // Always store as JSON string for consistency
       $dataToSave = json_encode($processedData);
@@ -120,6 +131,11 @@ class SharedDataController extends Controller
         break;
     }
 
+    // Specifically handle link icons for footer type
+    if ($type === 'footer') {
+      $processed = $this->processLinkIcons($newData, $oldData, $processed);
+    }
+
     return $processed;
   }
 
@@ -180,6 +196,38 @@ class SharedDataController extends Controller
     }
 
     return $newData;
+  }
+
+  /**
+   * Process link icons for footer
+   */
+  protected function processLinkIcons(array $newData, array $oldData, array $processed): array
+  {
+    $iconFields = [
+      'quickLinkLinkIcon',
+      'OurProgramLinkIcon'
+    ];
+
+    foreach ($iconFields as $field) {
+      if (isset($newData[$field]) && $this->isBase64Image($newData[$field])) {
+        // Delete old icon if exists
+        if (!empty($oldData[$field] ?? '') && !$this->isBase64Image($oldData[$field])) {
+          $this->deleteImage($oldData[$field]);
+        }
+        $processed[$field] = $this->uploadLinkIcon($newData[$field]);
+      } else if (isset($newData[$field]) && empty($newData[$field])) {
+        // Icon was removed
+        if (!empty($oldData[$field] ?? '')) {
+          $this->deleteImage($oldData[$field]);
+        }
+        $processed[$field] = '';
+      } else if (isset($newData[$field])) {
+        // Keep existing icon path
+        $processed[$field] = $newData[$field];
+      }
+    }
+
+    return $processed;
   }
 
   /**
@@ -285,6 +333,30 @@ class SharedDataController extends Controller
   }
 
   /**
+   * Upload link icon
+   */
+  protected function uploadLinkIcon(string $base64String): string
+  {
+    try {
+      $imageContent = $this->decodeBase64Image($base64String);
+      $extension = $this->getImageExtension($base64String) ?: 'png';
+
+      $datePrefix = date('Ymd');
+      $uuid = Str::uuid();
+      $filename = $datePrefix . '_' . $uuid . '.' . $extension;
+
+      $path = 'images/icons/' . $filename;
+
+      Storage::disk('public')->put($path, $imageContent);
+
+      return '/storage/' . $path;
+    } catch (\Exception $e) {
+      Log::error('Failed to upload link icon: ' . $e->getMessage());
+      return $base64String;
+    }
+  }
+
+  /**
    * Process array recursively for image uploads
    */
   protected function processArrayRecursive(array $data, array $oldData): array
@@ -344,6 +416,11 @@ class SharedDataController extends Controller
       throw new \Exception('Failed to decode base64 image');
     }
 
+    // Check if image is valid
+    if (strlen($decoded) === 0) {
+      throw new \Exception('Decoded image is empty');
+    }
+
     return $decoded;
   }
 
@@ -367,8 +444,17 @@ class SharedDataController extends Controller
     // Remove leading slash if present
     $path = ltrim($path, '/');
 
-    if (Storage::disk('public')->exists($path)) {
-      return Storage::disk('public')->delete($path);
+    // Don't delete if path is empty or invalid
+    if (empty($path) || $path === '/' || $path === 'storage') {
+      return false;
+    }
+
+    try {
+      if (Storage::disk('public')->exists($path)) {
+        return Storage::disk('public')->delete($path);
+      }
+    } catch (\Exception $e) {
+      Log::warning('Failed to delete image: ' . $e->getMessage(), ['path' => $path]);
     }
 
     return false;
@@ -403,10 +489,10 @@ class SharedDataController extends Controller
 
     if (preg_match('/^data:([^;]+);base64,/', $base64String, $matches)) {
       $mimeType = $matches[1];
-      return $mimeMap[$mimeType] ?? null;
+      return $mimeMap[$mimeType] ?? 'png';
     }
 
-    return null;
+    return 'png';
   }
 
   /**
@@ -418,5 +504,24 @@ class SharedDataController extends Controller
       return $matches[1];
     }
     return null;
+  }
+
+  /**
+   * Get the size of base64 image in bytes
+   */
+  protected function getBase64ImageSize(string $base64String): int
+  {
+    $imageData = explode(',', $base64String);
+    $encodedData = $imageData[1] ?? '';
+    return (int) (strlen($encodedData) * 3 / 4);
+  }
+
+  /**
+   * Validate base64 image size
+   */
+  protected function validateImageSize(string $base64String, int $maxSize = 5 * 1024 * 1024): bool
+  {
+    $size = $this->getBase64ImageSize($base64String);
+    return $size <= $maxSize;
   }
 }

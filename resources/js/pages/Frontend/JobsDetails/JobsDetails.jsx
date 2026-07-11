@@ -46,7 +46,7 @@ const BannerSection = ({ bannerData, jobData, loading }) => {
   // Use job image as banner if bannerData is not available
   const defaultBanner = {
     background: {
-      src: jobData?.image || '/storage/Jobs/banner-default.jpg',
+      src: jobData?.image || 'https://via.placeholder.com/1200x400/2a2a2a/ffffff?text=Job+Banner',
       alt: jobData?.title || 'Job Banner'
     },
     overlay: {

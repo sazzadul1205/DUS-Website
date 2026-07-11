@@ -52,7 +52,7 @@ use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\PasswordController;
 
 // Controllers - Auth
-
+use App\Http\Controllers\ImageManagerController;
 use App\Http\Controllers\Auth\Shared\GoogleAuthController;
 use App\Http\Controllers\Auth\Shared\NewPasswordController;
 use App\Http\Controllers\Auth\Shared\VerifyEmailController;
@@ -75,7 +75,6 @@ use App\Http\Controllers\Cms\ProgramController as CmsProgramController;
 use App\Http\Controllers\Cms\SectionController as CmsSectionController;
 use App\Http\Controllers\Cms\PublicationController as CmsPublicationController;
 use App\Http\Controllers\Cms\AboutContentController as CmsAboutContentController;
-
 // Models
 use App\Models\pages\Page;
 use App\Models\pages\Program;
@@ -681,4 +680,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('/cache/clear', [CacheController::class, 'clearAll'])->name('admin.cache.clear');
     Route::post('/cache/clear/{pageSlug}', [CacheController::class, 'clearPage'])->name('admin.cache.clear-page');
     Route::get('/cache/status', [CacheController::class, 'status'])->name('admin.cache.status');
+});
+
+Route::prefix('backend/icon')->middleware(['auth'])->group(function () {
+    Route::get('/', [ImageManagerController::class, 'index'])->name('backend.icon.index');
+    Route::post('/update', [ImageManagerController::class, 'updateIcon'])->name('backend.icon.update');
+    Route::delete('/reset', [ImageManagerController::class, 'resetIcon'])->name('backend.icon.reset');
 });
