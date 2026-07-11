@@ -232,7 +232,7 @@ const PublicationsSection = ({
         return (
           <div
             key={publication.id}
-            className="flex h-full flex-col rounded-2xl bg-white p-5 sm:p-6 md:p-7.5 shadow-2xl transition-shadow duration-300 hover:shadow-3xl"
+            className="text-black flex h-full flex-col rounded-2xl bg-white p-5 sm:p-6 md:p-7.5 shadow-2xl transition-shadow duration-300 hover:shadow-3xl"
           >
             {hasValue(publication.image) && (
               <img
@@ -296,7 +296,7 @@ const PublicationsSection = ({
   // RENDER LIST VIEW
   // ============================================
   const renderListView = () => (
-    <div className={`flex flex-col gap-5 sm:gap-6 ${hasMainPublication ? 'pt-10 sm:pt-12 md:pt-15' : ''}`}>
+    <div className={`text-black flex flex-col gap-5 sm:gap-6 ${hasMainPublication ? 'pt-10 sm:pt-12 md:pt-15' : ''}`}>
       {sortedPublications.map((publication) => {
         // Skip the main publication if it's featured and we're showing it separately
         if (hasMainPublication && resolvedMainPublication.id === publication.id) {

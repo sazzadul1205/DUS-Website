@@ -151,7 +151,7 @@ const BlogSection = ({
   return (
     <section
       id={sectionId}
-      className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName}`}
+      className={`${bgColor} ${paddingX} ${paddingY} ${sectionClassName} text-black`}
     >
       {/* Section Title - Only show if sectionTitle exists */}
       {hasValue(resolvedSectionTitle) && (

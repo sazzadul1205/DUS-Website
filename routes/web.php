@@ -13,12 +13,11 @@
 
 // Inertia
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
 // Controllers - Frontend
-use App\Http\Controllers\Frontend\FrontendController;
 use App\Http\Controllers\Frontend\PageController;
 
 // Controllers - Admin
@@ -32,54 +31,54 @@ use App\Http\Controllers\Api\JobListingApiController;
 use App\Http\Controllers\JobListing\JobListingController;
 
 // Controllers - Profile
-use App\Http\Controllers\Profile\ApplicantProfileController;
 use App\Http\Controllers\Profile\EmployerProfileController;
+use App\Http\Controllers\Profile\ApplicantProfileController;
 use App\Http\Controllers\Auth\JobSeeker\ProfileCompletionController;
 
 // Controllers - Backend
-use App\Http\Controllers\Backend\LocationController;
+use App\Http\Controllers\Backend\UserController;
+use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\ApplyController;
+use App\Http\Controllers\Backend\LocationController;
 use App\Http\Controllers\Backend\JobCategoryController;
 use App\Http\Controllers\Backend\ApplicationsController;
 use App\Http\Controllers\Backend\NotificationController;
-use App\Http\Controllers\Backend\RoleController;
-use App\Http\Controllers\Backend\UserController;
 
 // Controllers - Profile (Admin/Employer)
 use App\Http\Controllers\Profile\AdminProfileController;
 
 // Controllers - Settings
-use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\PasswordController;
 
 // Controllers - Auth
+
+use App\Http\Controllers\Auth\Shared\GoogleAuthController;
+use App\Http\Controllers\Auth\Shared\NewPasswordController;
+use App\Http\Controllers\Auth\Shared\VerifyEmailController;
+use App\Http\Controllers\Auth\Shared\EmailVerifiedController;
 use App\Http\Controllers\Auth\AdminStaff\AdminLoginController;
 use App\Http\Controllers\Auth\JobSeeker\JobSeekerLoginController;
+use App\Http\Controllers\Auth\Shared\PasswordResetLinkController;
 use App\Http\Controllers\Auth\JobSeeker\JobSeekerRegisterController;
 use App\Http\Controllers\Auth\Shared\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\Shared\ConfirmablePasswordController;
-use App\Http\Controllers\Auth\Shared\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\Shared\EmailVerificationPromptController;
-use App\Http\Controllers\Auth\Shared\EmailVerifiedController;
-use App\Http\Controllers\Auth\Shared\GoogleAuthController;
-use App\Http\Controllers\Auth\Shared\NewPasswordController;
-use App\Http\Controllers\Auth\Shared\PasswordResetLinkController;
-use App\Http\Controllers\Auth\Shared\VerifyEmailController;
+use App\Http\Controllers\Auth\Shared\EmailVerificationNotificationController;
 
 // Controllers - CMS
 use App\Http\Controllers\Cms\SharedDataController;
+use App\Http\Controllers\Cms\EditorImageUploadController;
 use App\Http\Controllers\Cms\PageController as CmsPageController;
 use App\Http\Controllers\Cms\BlogController as CmsBlogController;
 use App\Http\Controllers\Cms\ProgramController as CmsProgramController;
 use App\Http\Controllers\Cms\SectionController as CmsSectionController;
-use App\Http\Controllers\Cms\AboutContentController as CmsAboutContentController;
 use App\Http\Controllers\Cms\PublicationController as CmsPublicationController;
-use App\Http\Controllers\Cms\EditorImageUploadController;
+use App\Http\Controllers\Cms\AboutContentController as CmsAboutContentController;
 
 // Models
 use App\Models\pages\Page;
 use App\Models\pages\Program;
-use Illuminate\Support\Facades\Log;
 
 // ============================================
 // API ROUTES (Data endpoints for the frontend)
@@ -89,18 +88,18 @@ use Illuminate\Support\Facades\Log;
 // ============================================
 
 Route::prefix('data')->group(function () {
-    Route::get('pages.json', [ContentApiController::class, 'pages']);
-    Route::get('section_configs.json', [ContentApiController::class, 'sectionConfigs']);
-    Route::get('shared_data.json', [ContentApiController::class, 'sharedData']);
-    Route::get('custom_section_data.json', [ContentApiController::class, 'customSectionData']);
-    Route::get('programs.json', [ContentApiController::class, 'programs']);
-    Route::get('blogs.json', [ContentApiController::class, 'blogs']);
-    Route::get('about_content.json', [ContentApiController::class, 'aboutContent']);
     Route::get('jobs.json', [ContentApiController::class, 'jobs']);
+    Route::get('blogs.json', [ContentApiController::class, 'blogs']);
+    Route::get('pages.json', [ContentApiController::class, 'pages']);
+    Route::get('programs.json', [ContentApiController::class, 'programs']);
+    Route::get('shared_data.json', [ContentApiController::class, 'sharedData']);
+    Route::get('about_content.json', [ContentApiController::class, 'aboutContent']);
+    Route::get('section_configs.json', [ContentApiController::class, 'sectionConfigs']);
+    Route::get('custom_section_data.json', [ContentApiController::class, 'customSectionData']);
 });
 
 // Combined navigation endpoint
-Route::get('/data/navigation.json', function (Request $request) {
+Route::get('/data/navigation.json', function () {
     // Fetch all active pages (excluding detail pages)
     $pages = Page::where('is_active', true)
         ->where('slug', 'not like', '%-details')
@@ -144,7 +143,7 @@ Route::get('/data/navigation.json', function (Request $request) {
 })->name('data.navigation');
 
 // Individual endpoints for backward compatibility
-Route::get('/api/pages', function (Request $request) {
+Route::get('/api/pages', function () {
     $pages = Page::where('is_active', true)
         ->where('slug', 'not like', '%-details')
         ->select('id', 'slug', 'name')
@@ -157,7 +156,7 @@ Route::get('/api/pages', function (Request $request) {
     ]);
 })->name('api.pages');
 
-Route::get('/api/programs', function (Request $request) {
+Route::get('/api/programs', function () {
     $programs = Program::where('is_active', true)
         ->select('id', 'slug', 'title as name')
         ->orderBy('display_order')
@@ -209,9 +208,6 @@ Route::get('/storage/{path}', function ($path) {
     return response()->file($disk->path($path));
 })->where('path', '.*')->name('storage.file');
 
-// Asset route for serving assets (with caching)
-Route::get('/asset/{path}', [FrontendController::class, 'asset'])->where('path', '.*')->name('asset');
-
 // Unauthorized access page
 Route::get('/unauthorized', function () {
     return Inertia::render('UnauthorizedAccess', [
@@ -229,74 +225,6 @@ Route::get('/unauthorized', function () {
 
 // Home page
 Route::get('/', [PageController::class, 'show'])->name('home');
-
-// ============================================
-// STARTUP CACHE WARMUP
-// ============================================
-// On application startup, we warm up the cache
-// by visiting key pages. This ensures the cache
-// is populated and ready for visitors.
-// ============================================
-
-Route::get('/_warmup', function () {
-    try {
-        $startTime = microtime(true);
-        $results = [];
-
-        // List of key pages to warm up
-        $pages = [
-            '/',
-            '/about',
-            '/blogs',
-            '/projects-programs',
-            '/publications',
-            '/jobs',
-            '/contact',
-        ];
-
-        foreach ($pages as $page) {
-            try {
-                // Make a request to the page to trigger cache
-                $response = file_get_contents(url($page));
-                $results[$page] = [
-                    'status' => 'success',
-                    'size' => strlen($response) . ' bytes'
-                ];
-            } catch (\Exception $e) {
-                $results[$page] = [
-                    'status' => 'failed',
-                    'error' => $e->getMessage()
-                ];
-            }
-        }
-
-        $executionTime = round(microtime(true) - $startTime, 2);
-
-        Log::info('Cache warmup completed', [
-            'pages' => count($pages),
-            'execution_time' => $executionTime . 's',
-            'results' => $results
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cache warmup completed',
-            'execution_time' => $executionTime . ' seconds',
-            'pages_warmed' => count($pages),
-            'results' => $results,
-            'timestamp' => now()->toDateTimeString()
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Cache warmup failed', [
-            'error' => $e->getMessage()
-        ]);
-
-        return response()->json([
-            'success' => false,
-            'error' => $e->getMessage()
-        ], 500);
-    }
-})->name('cache.warmup');
 
 // Playground (development/testing)
 Route::get('/Playground', function () {

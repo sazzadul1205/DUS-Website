@@ -84,6 +84,9 @@ class PageController extends Controller
       ]
     );
 
+    // Remove dd($props); - this was stopping execution
+    // dd($props);
+
     return Inertia::render($component, $props);
   }
 
@@ -316,10 +319,18 @@ class PageController extends Controller
 
   /**
    * Build the pageData array with keys expected by frontend components.
+   * Also parses JSON strings for specific data keys.
    */
   private function buildPageData(Collection $sectionConfigs, array $fetchedData, string $pageSlug, ?string $detailSlug): array
   {
     $pageData = [];
+
+    // Define which data keys need JSON parsing
+    $jsonDataKeys = [
+      'storiesData',
+      'upcomingEventsData',
+      // Add any other keys that store JSON strings here
+    ];
 
     foreach ($sectionConfigs as $config) {
       $dataTable = $config->data_table;
@@ -329,7 +340,8 @@ class PageController extends Controller
         case 'shared_data':
           $type = $this->mapDataKeyToSharedType($dataKey);
           if ($type && isset($fetchedData['shared'][$type])) {
-            $pageData[$dataKey] = $fetchedData['shared'][$type];
+            $value = $fetchedData['shared'][$type];
+            $pageData[$dataKey] = $this->parseIfJsonString($value, $dataKey, $jsonDataKeys);
           }
           break;
         case 'programs':
@@ -379,12 +391,14 @@ class PageController extends Controller
         case 'custom_section_data':
           $sectionKey = $config->section_key;
           if (isset($fetchedData['custom'][$sectionKey])) {
-            $pageData[$dataKey] = $fetchedData['custom'][$sectionKey];
+            $value = $fetchedData['custom'][$sectionKey];
+            $pageData[$dataKey] = $this->parseIfJsonString($value, $dataKey, $jsonDataKeys);
           }
           break;
         default:
           if (isset($fetchedData[$dataTable])) {
-            $pageData[$dataKey] = $fetchedData[$dataTable];
+            $value = $fetchedData[$dataTable];
+            $pageData[$dataKey] = $this->parseIfJsonString($value, $dataKey, $jsonDataKeys);
           }
           break;
       }
@@ -412,7 +426,6 @@ class PageController extends Controller
           $pageData['publicationData'] = $this->normalizePublicationDetail($detail);
           break;
         case 'jobs':
-          // If job_details was already set, use it; otherwise set from detail
           if (!isset($pageData['jobData']) && !isset($pageData['job_details'])) {
             $pageData['jobData'] = $this->normalizeJobDetail($detail);
           }
@@ -424,6 +437,33 @@ class PageController extends Controller
     }
 
     return $pageData;
+  }
+
+  /**
+   * Parse a value if it's a JSON string and in the list of keys that need parsing
+   */
+  private function parseIfJsonString($value, string $dataKey, array $jsonDataKeys): mixed
+  {
+    // Only parse if the data key is in the list
+    if (!in_array($dataKey, $jsonDataKeys)) {
+      return $value;
+    }
+
+    // If it's not a string, return as is
+    if (!is_string($value)) {
+      return $value;
+    }
+
+    // Try to decode JSON
+    $decoded = json_decode($value, true);
+
+    // Check if JSON decoding was successful and it's an object/array
+    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+      return $decoded;
+    }
+
+    // If not valid JSON, return original value
+    return $value;
   }
 
   /**

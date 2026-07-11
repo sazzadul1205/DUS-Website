@@ -465,8 +465,8 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      // ===== IMAGE SECTION =====
-      // Drag & drop image upload with preview
+      {/* // ===== IMAGE SECTION ===== */}
+      {/* // Drag & drop image upload with preview */}
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-600 mb-2">Image</h4>
         <div
@@ -616,8 +616,8 @@ const HeroFigureEditor = ({ section, hasData, onDataChange }) => {
         </div>
       </div>
 
-      // ===== DATA INFORMATION =====
-      // Display metadata about the section
+      {/* // ===== DATA INFORMATION ===== */}
+      {/* // Display metadata about the section */}
       <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>

@@ -24,7 +24,7 @@ const ProgramContentSection = ({ programData, bgColor, paddingY, paddingX, secti
   return (
     <section id={sectionId} className={`${bgColor || ''} ${paddingY || ''} ${paddingX || ''} ${sectionClassName || ''}`}>
       {data?.title && (
-        <h1 className='font-700 text-[28px] sm:text-[36px] md:text-[48px] lg:text-[64px] xl:text-[80px] leading-tight pb-12.5'>
+        <h1 className='text-black font-700 text-[28px] sm:text-[36px] md:text-[48px] lg:text-[64px] xl:text-[80px] leading-tight pb-12.5'>
           {data.title}
         </h1>
       )}

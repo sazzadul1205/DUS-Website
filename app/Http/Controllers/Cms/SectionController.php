@@ -151,7 +151,6 @@ class SectionController extends Controller
 
         $sections[] = $section;
       }
-
       return Inertia::render('Backend/CMS/Section/Index', [
         'page' => $page,
         'sections' => $sections,
