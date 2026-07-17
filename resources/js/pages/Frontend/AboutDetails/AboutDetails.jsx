@@ -9,6 +9,7 @@ import PublicLayout from '../../../layouts/PublicLayout';
 
 // Components
 import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
+import NotFoundContent from '../../../Shared/NotFoundContent';
 
 // Special ContentSection component (fixed)
 const ContentSection = ({ subPageData, bgColor, paddingY, paddingX, sectionClassName, sectionId }) => {
@@ -79,8 +80,31 @@ const AboutDetails = ({
   footerData,
   storageUrl,
   sectionConfig,
+  notFound,
+  notFoundMessage,
   ...props
 }) => {
+  // If notFound is true, render a simple not found message within PublicLayout
+  if (notFound) {
+    return (
+      <PublicLayout
+        topBarData={topBarData}
+        navbarData={navbarData}
+        footerData={footerData}
+        storageUrl={storageUrl}
+      >
+        <Head title="Content Not Found | DUS" />
+        <NotFoundContent
+          icon="📄"
+          title="Page Not Available"
+          message={notFoundMessage || 'The page you are looking for is no longer available or has been removed.'}
+          buttonText="Return to Home"
+          buttonLink="/"
+        />
+      </PublicLayout>
+    );
+  }
+
   // The data might be nested under pageData or at the root level
   const pageData = props.pageData || props; // Fallback to props if pageData doesn't exist
 

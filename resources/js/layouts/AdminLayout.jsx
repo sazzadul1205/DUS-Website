@@ -28,7 +28,7 @@ const AdminLayout = ({ children }) => {
   // ============================================================
   // STATE
   // ============================================================
-  const [isCollapsed, setIsCollapsed] = useState(false); // Sidebar collapsed state
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState({
     adminJobs: false,
     adminApps: false,
@@ -158,13 +158,27 @@ const AdminLayout = ({ children }) => {
   // ============================================================
   const toggleMenu = (menu) => setOpenMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
 
+  // Enhanced auto-expand with better CMS detection
   useEffect(() => {
+    const isCmsPage =
+      url.includes('/backend/cms/pages') ||
+      url.includes('/backend/cms/sections') ||
+      url.includes('/backend/cms/shared') ||
+      url.includes('/backend/cms/blogs') ||
+      url.includes('/backend/cms/programs') ||
+      url.includes('/backend/cms/about') ||
+      url.includes('/backend/cms/publications');
+
+    // Also check for specific section page pattern: /backend/cms/sections/page/{id}
+    const isSectionPage = url.match(/\/backend\/cms\/sections\/page\/\d+/);
+
     const shouldOpen = {
-      adminJobs: url.includes('/listing') || url.includes('/locations') || url.includes('/categories') || url.includes('/statistics'),
-      adminApps: url.includes('/applications') || url.includes('/apply'),
-      adminRoles: url.includes('/roles'),
-      cms: url.includes('/backend/admin'),
+      adminJobs: url.includes('/backend/listing') || url.includes('/backend/locations') || url.includes('/backend/categories') || url.includes('/backend/statistics'),
+      adminApps: url.includes('/backend/applications') || url.includes('/backend/apply'),
+      adminRoles: url.includes('/backend/roles'),
+      cms: isCmsPage || isSectionPage,  // ← FIX: Keep CMS open for sections pages
     };
+
     setOpenMenus(prev => ({
       ...prev,
       adminJobs: prev.adminJobs || shouldOpen.adminJobs,
@@ -180,16 +194,21 @@ const AdminLayout = ({ children }) => {
   const menuItems = useMemo(() => {
     const items = [];
 
-    // Dashboard
+    // Dashboard - URL: /dashboard
     if (hasPermission('dashboard.admin') || hasPermission('dashboard.employer')) {
-      items.push({ name: 'Dashboard', routeName: 'backend.dashboard', icon: FiHome, description: 'System overview' });
+      items.push({
+        name: 'Dashboard',
+        routeName: 'backend.dashboard',
+        icon: FiHome,
+        description: 'System overview'
+      });
     }
 
-    // Jobs Management Dropdown
+    // Jobs Management Dropdown - URL: /backend/listing/*
     if (hasAnyPermission(['job.view.any', 'job.create', 'category.view', 'location.view', 'statistics.view'])) {
       const subs = [];
 
-      // All Jobs - Using adminIndex
+      // All Jobs - URL: /backend/listing
       if (hasPermission('job.view.any')) {
         subs.push({
           name: 'All Jobs',
@@ -199,7 +218,7 @@ const AdminLayout = ({ children }) => {
         });
       }
 
-      // Create New Job
+      // Create New Job - URL: /backend/listing/create
       if (hasPermission('job.create')) {
         subs.push({
           name: 'Create New Job',
@@ -209,7 +228,7 @@ const AdminLayout = ({ children }) => {
         });
       }
 
-      // Locations
+      // Locations - URL: /backend/locations
       if (hasPermission('location.view')) {
         subs.push({
           name: 'Locations',
@@ -218,7 +237,7 @@ const AdminLayout = ({ children }) => {
         });
       }
 
-      // Categories
+      // Categories - URL: /backend/categories
       if (hasPermission('category.view')) {
         subs.push({
           name: 'Categories',
@@ -227,7 +246,7 @@ const AdminLayout = ({ children }) => {
         });
       }
 
-      // Job Statistics
+      // Job Statistics - URL: /backend/statistics
       if (hasPermission('statistics.view') || hasPermission('report.jobs')) {
         subs.push({
           name: 'Job Statistics',
@@ -247,12 +266,16 @@ const AdminLayout = ({ children }) => {
       }
     }
 
-    // Applicant Profiles
+    // Applicant Profiles - URL: /backend/applicant-profiles
     if (hasAnyPermission(['profiles.view.any', 'applicant-profiles.manage'])) {
-      items.push({ name: 'Applicant Profiles', routeName: 'backend.applicant-profile.index', icon: FiUsers });
+      items.push({
+        name: 'Applicant Profiles',
+        routeName: 'backend.applicant-profile.index',
+        icon: FiUsers
+      });
     }
 
-    // Applications Dropdown
+    // Applications Dropdown - URL: /backend/applications
     if (hasAnyPermission(['application.view.any', 'application.shortlist', 'application.reject'])) {
       const subs = [];
       if (hasPermission('application.view.any')) {
@@ -262,24 +285,53 @@ const AdminLayout = ({ children }) => {
         subs.push({ name: 'Rejected', href: '/backend/applications?status=rejected', matchQuery: true, icon: FiXCircle });
         subs.push({ name: 'Hired', href: '/backend/applications?status=hired', matchQuery: true, icon: FiAward });
       }
-      if (subs.length) items.push({ name: 'Applications', icon: FiFileText, isDropdown: true, dropdownKey: 'adminApps', subItems: subs });
+      if (subs.length) items.push({
+        name: 'Applications',
+        icon: FiFileText,
+        isDropdown: true,
+        dropdownKey: 'adminApps',
+        subItems: subs
+      });
     }
 
-    // Users Management
+    // Users Management - URL: /backend/users
     if (hasAnyPermission(['user.view', 'user.create', 'user.edit'])) {
-      items.push({ name: 'Users Management', routeName: 'backend.users.index', icon: FiUsers });
+      items.push({
+        name: 'Users Management',
+        routeName: 'backend.users.index',
+        icon: FiUsers
+      });
     }
 
-    // Roles & Permissions
+    // Roles & Permissions - URL: /backend/roles/*
     if (hasAnyPermission(['role.view', 'role.create', 'role.edit', 'role.delete'])) {
       const subs = [];
-      if (hasPermission('role.view')) subs.push({ name: 'All Roles', routeName: 'backend.roles.index', icon: FiKey, exact: true });
-      if (hasPermission('role.create')) subs.push({ name: 'Create Role', routeName: 'backend.roles.create', icon: FiPlusCircle });
-      if (hasPermission('role.view')) subs.push({ name: 'Trashed Roles', routeName: 'backend.roles.trashed', icon: FiTrash2 });
-      if (subs.length) items.push({ name: 'Roles & Permissions', icon: FiShield, isDropdown: true, dropdownKey: 'adminRoles', subItems: subs });
+      if (hasPermission('role.view')) subs.push({
+        name: 'All Roles',
+        routeName: 'backend.roles.index',
+        icon: FiKey,
+        exact: true
+      });
+      if (hasPermission('role.create')) subs.push({
+        name: 'Create Role',
+        routeName: 'backend.roles.create',
+        icon: FiPlusCircle
+      });
+      if (hasPermission('role.view')) subs.push({
+        name: 'Trashed Roles',
+        routeName: 'backend.roles.trashed',
+        icon: FiTrash2
+      });
+      if (subs.length) items.push({
+        name: 'Roles & Permissions',
+        icon: FiShield,
+        isDropdown: true,
+        dropdownKey: 'adminRoles',
+        subItems: subs
+      });
     }
 
-    // CMS Management
+    // CMS Management - URL: /backend/cms/*
     if (hasAnyPermission([
       'pages.view',
       'shared-data.view',
@@ -290,14 +342,22 @@ const AdminLayout = ({ children }) => {
     ])) {
       const subs = [];
 
+      // Pages - URL: /backend/cms/pages
+      // Add activeAliases to detect section pages too!
       if (hasPermission('pages.view')) {
         subs.push({
           name: 'Pages',
           routeName: 'backend.cms.pages.index',
           icon: FiFileText,
+          // ← FIX: Add active aliases for section pages
+          activeAliases: [
+            '/backend/cms/sections',      // Any sections page
+            '/backend/cms/sections/page', // Sections for a specific page
+          ],
         });
       }
 
+      // Shared Data - URL: /backend/cms/shared
       if (hasPermission('shared-data.view')) {
         subs.push({
           name: 'Shared Data',
@@ -306,6 +366,7 @@ const AdminLayout = ({ children }) => {
         });
       }
 
+      // Blogs - URL: /backend/cms/blogs
       if (hasPermission('blogs.view')) {
         subs.push({
           name: 'Blogs',
@@ -314,6 +375,7 @@ const AdminLayout = ({ children }) => {
         });
       }
 
+      // Programs - URL: /backend/cms/programs
       if (hasPermission('programs.view')) {
         subs.push({
           name: 'Programs',
@@ -322,6 +384,7 @@ const AdminLayout = ({ children }) => {
         });
       }
 
+      // About - URL: /backend/cms/about
       if (hasPermission('about.view')) {
         subs.push({
           name: 'About',
@@ -330,7 +393,7 @@ const AdminLayout = ({ children }) => {
         });
       }
 
-      // ADD THIS BLOCK FOR PUBLICATIONS
+      // Publications - URL: /backend/cms/publications
       if (hasPermission('publications.view')) {
         subs.push({
           name: 'Publications',
@@ -350,6 +413,7 @@ const AdminLayout = ({ children }) => {
       }
     }
 
+    // Site Icon - URL: /backend/icon
     if (hasPermission('icon.manage')) {
       items.push({
         name: 'Site Icon',
@@ -358,14 +422,23 @@ const AdminLayout = ({ children }) => {
       });
     }
 
-    // Admin Settings
+    // Admin Settings - URL: /backend/admin-profile
     if (hasPermission('admin_profile.edit') || hasPermission('admin_profile.update')) {
-      items.push({ name: 'Admin Settings', routeName: 'backend.admin-profile.edit', icon: FiSettings });
+      items.push({
+        name: 'Admin Settings',
+        routeName: 'backend.admin-profile.edit',
+        icon: FiSettings
+      });
     }
 
-    // Notifications
+    // Notifications - URL: /backend/notifications
     if (hasPermission('notification.view')) {
-      items.push({ name: 'Notifications', routeName: 'backend.notifications.index', icon: FiBell, badgeCount: notificationMeta.unread_count });
+      items.push({
+        name: 'Notifications',
+        routeName: 'backend.notifications.index',
+        icon: FiBell,
+        badgeCount: notificationMeta.unread_count
+      });
     }
 
     return items;

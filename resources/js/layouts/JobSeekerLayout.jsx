@@ -53,36 +53,36 @@ const JobSeekerLayout = ({ children }) => {
     }
   };
 
-  // Job Seeker Menu Items with actual route names from your Laravel app
+  // Job Seeker Menu Items with actual route names from Laravel
   const menuItems = [
     {
       name: 'Dashboard',
-      routeName: 'backend.dashboard',
+      routeName: 'backend.dashboard',           // URL: /dashboard
       icon: FiHome,
       description: 'Overview & stats',
     },
     {
       name: 'Browse Jobs',
-      routeName: 'public.jobs.index', // ✅ UPDATED: Using the consolidated public route
+      routeName: 'public.jobs.index',           // URL: /seeker/jobs
       icon: FiSearch,
       description: 'Find your next role',
     },
     {
       name: 'My Profile',
-      routeName: 'backend.applicant.profile.show',
+      routeName: 'backend.applicant.profile.show', // URL: /backend/applicant/profile/{id?}
       icon: FiUser,
       description: 'View & edit profile',
       routeParams: { id: user?.applicantProfile?.id || null },
     },
     {
       name: 'My Applications',
-      routeName: 'backend.apply.index',
+      routeName: 'backend.apply.index',        // URL: /backend/apply
       icon: FiFileText,
       description: 'Track applications',
     },
     {
       name: 'Notifications',
-      routeName: 'backend.notifications.index',
+      routeName: 'backend.notifications.index', // URL: /backend/notifications
       icon: FiBell,
       badgeCount: notificationMeta.unread_count,
       description: 'Updates & alerts',

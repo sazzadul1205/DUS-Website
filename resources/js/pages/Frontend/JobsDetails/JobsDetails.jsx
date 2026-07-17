@@ -16,16 +16,30 @@ import PublicLayout from '../../../layouts/PublicLayout';
 
 // Components
 import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
+import NotFoundContent from '../../../Shared/NotFoundContent';
 
 // Banner Section Component
-const BannerSection = ({ bannerData, jobData, loading }) => {
+const BannerSection = ({ bannerData, jobData, loading, notFound }) => {
   if (loading) {
-    const newLocal = "relative isolate w-full min-h-100 sm:min-h-125 lg:h-125 overflow-hidden bg-[#080C14] flex items-center justify-center";
     return (
-      <section className={newLocal}>
+      <section className="relative isolate w-full min-h-100 sm:min-h-125 lg:h-125 overflow-hidden bg-[#080C14] flex items-center justify-center">
         <div className="text-white text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-white border-r-transparent" />
           <p className="mt-4 text-lg">Loading job details...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <section className="relative isolate w-full min-h-100 sm:min-h-125 lg:h-125 overflow-hidden bg-[#080C14] flex items-center justify-center">
+        <div className="text-white text-center max-w-2xl px-4">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Job Not Available</h1>
+          <p className="text-lg text-gray-300">The job posting you're looking for is no longer available or has been removed.</p>
+          <a href="/seeker/jobs" className="inline-block mt-6 bg-[#009BE2] text-white px-6 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
+            Browse All Jobs
+          </a>
         </div>
       </section>
     );
@@ -55,7 +69,6 @@ const BannerSection = ({ bannerData, jobData, loading }) => {
     }
   };
 
-  // Use default banner if bannerData is not available
   const banner = bannerData || defaultBanner;
 
   return (
@@ -134,7 +147,8 @@ const JobContentSection = ({
   paddingX = 'px-4',
   sectionClassName = '',
   sectionId,
-  loading
+  loading,
+  notFound
 }) => {
   const renderHTML = (htmlString) => {
     if (!htmlString) return { __html: '' };
@@ -153,7 +167,7 @@ const JobContentSection = ({
     );
   }
 
-  if (!jobData) {
+  if (notFound || !jobData) {
     return null;
   }
 
@@ -360,6 +374,8 @@ const JobsDetails = ({
   storageUrl,
   sectionConfig,
   pageData: pageDataProp,
+  notFound: serverNotFound,
+  notFoundMessage,
   ...pageData
 }) => {
   // Get slug from Inertia route parameters or from URL
@@ -369,23 +385,35 @@ const JobsDetails = ({
   // State for job data
   const [jobData, setJobData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(serverNotFound || false);
   const [error, setError] = useState(null);
 
-  // Fetch job data from API
+  // Only fetch if server didn't already determine not found
   useEffect(() => {
+    if (serverNotFound) {
+      setLoading(false);
+      setNotFound(true);
+      return;
+    }
+
     const fetchJobData = async () => {
       try {
         setLoading(true);
         const response = await axios.get(`/api/jobs/${slug}`);
 
-        if (response.data.success) {
+        if (response.data.success && response.data.data) {
           setJobData(response.data.data);
+          setNotFound(false);
         } else {
-          setError('Failed to load job details');
+          setNotFound(true);
         }
       } catch (err) {
         console.error('Error fetching job details:', err);
-        setError(err.response?.data?.message || 'Failed to load job details');
+        if (err.response?.status === 404) {
+          setNotFound(true);
+        } else {
+          setError(err.response?.data?.message || 'Failed to load job details');
+        }
       } finally {
         setLoading(false);
       }
@@ -394,7 +422,28 @@ const JobsDetails = ({
     if (slug) {
       fetchJobData();
     }
-  }, [slug]);
+  }, [slug, serverNotFound]);
+
+  // If server already determined not found, show the message
+  if (serverNotFound) {
+    return (
+      <PublicLayout
+        topBarData={topBarData}
+        navbarData={navbarData}
+        footerData={footerData}
+        storageUrl={storageUrl}
+      >
+        <Head title="Job Not Found | DUS" />
+        <NotFoundContent
+          icon="💼"
+          title="Job Not Available"
+          message={notFoundMessage || 'The job posting you are looking for is no longer available or has been removed.'}
+          buttonText="Browse All Jobs"
+          buttonLink="/seeker/jobs"
+        />
+      </PublicLayout>
+    );
+  }
 
   // Use the data from the correct nesting
   const actualPageData = pageDataProp || pageData || {};
@@ -416,6 +465,7 @@ const JobsDetails = ({
           bannerData={bannerData}
           jobData={jobData}
           loading={loading}
+          notFound={notFound}
           {...customProps}
         />
       );
@@ -428,6 +478,7 @@ const JobsDetails = ({
           jobData={jobData}
           storageUrl={storageUrl}
           loading={loading}
+          notFound={notFound}
           bgColor={customProps.bgColor || 'bg-white'}
           paddingY={customProps.paddingY || 'py-12 lg:py-16'}
           paddingX={customProps.paddingX || 'px-4'}
@@ -444,6 +495,36 @@ const JobsDetails = ({
     ? `${jobData.title} | DUS - Dwip Unnayan Society | Career Opportunities`
     : 'Job Details | DUS - Dwip Unnayan Society';
 
+  // Show 404 content if not found (client-side detected)
+  if (notFound && !serverNotFound) {
+    return (
+      <PublicLayout
+        topBarData={topBarData}
+        navbarData={navbarData}
+        footerData={footerData}
+        storageUrl={storageUrl}
+      >
+        <Head title="Job Not Found | DUS" />
+        {sectionsToRender.map((section) => {
+          if (section.component === 'BannerSection' || section.component === 'PageBannerSection') {
+            return (
+              <BannerSection
+                key={section.id}
+                bannerData={bannerData}
+                jobData={null}
+                loading={false}
+                notFound={true}
+                {...section.customProps}
+              />
+            );
+          }
+          return null;
+        })}
+        <NotFoundContent />
+      </PublicLayout>
+    );
+  }
+
   // Show error state
   if (error) {
     return (
@@ -453,12 +534,12 @@ const JobsDetails = ({
         footerData={footerData}
         storageUrl={storageUrl}
       >
-        <Head title="Job Not Found | DUS" />
+        <Head title="Error | DUS" />
         <div className="max-w-275 mx-auto px-4 py-20 text-center">
-          <h2 className="text-3xl font-bold text-[#080C14] mb-4">Job Not Found</h2>
+          <h2 className="text-3xl font-bold text-[#080C14] mb-4">Something Went Wrong</h2>
           <p className="text-gray-600">{error}</p>
-          <a href="/jobs" className="inline-block mt-6 bg-[#009BE2] text-white px-6 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
-            View All Jobs
+          <a href="/seeker/jobs" className="inline-block mt-6 bg-[#009BE2] text-white px-6 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
+            Browse All Jobs
           </a>
         </div>
       </PublicLayout>

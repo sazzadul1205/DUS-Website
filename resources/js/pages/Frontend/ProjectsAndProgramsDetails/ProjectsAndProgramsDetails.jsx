@@ -9,14 +9,15 @@ import PublicLayout from '../../../layouts/PublicLayout';
 
 // Components
 import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
+import NotFoundContent from '../../../Shared/NotFoundContent';
 
 // Program Content Section Component
 const ProgramContentSection = ({ programData, bgColor, paddingY, paddingX, sectionClassName, sectionId }) => {
   const renderHTML = (htmlString) => ({ __html: htmlString });
 
-  const data = programData || window.programData;
+  if (!programData) return null;
 
-  if (!data) return null;
+  const data = programData;
 
   // Try multiple property names (supports both underscore and camelCase)
   const content = data.full_content_html || data.fullContentHtml || data.fullContent || data?.content;
@@ -56,16 +57,39 @@ const ProgramContentSection = ({ programData, bgColor, paddingY, paddingX, secti
   );
 };
 
+// Main Component
 const ProjectsAndProgramsDetails = ({
   topBarData,
   navbarData,
   footerData,
   storageUrl,
   sectionConfig,
-  slug,
+  notFound,
+  notFoundMessage,
   pageData: incomingPageData,
   ...rest
 }) => {
+  // If notFound is true, render a simple not found message within PublicLayout
+  if (notFound) {
+    return (
+      <PublicLayout
+        topBarData={topBarData}
+        navbarData={navbarData}
+        footerData={footerData}
+        storageUrl={storageUrl}
+      >
+        <Head title="Program Not Found | DUS" />
+        <NotFoundContent
+          icon="📁"
+          title="Program Not Available"
+          message={notFoundMessage || 'The program you are looking for is no longer available or has been removed.'}
+          buttonText="View All Programs"
+          buttonLink="/projects-programs"
+        />
+      </PublicLayout>
+    );
+  }
+
   const pageData = incomingPageData || rest;
 
   const allSections = (sectionConfig?.sections || [])
@@ -78,6 +102,15 @@ const ProjectsAndProgramsDetails = ({
   const bannerSection = dynamicSections.find(s => s.component === 'PageBannerSection');
   const otherDynamicSections = dynamicSections.filter(s => s.component !== 'PageBannerSection');
 
+  // Get program data from pageData (passed from controller)
+  const programData = pageData.programContentData || pageData.programData;
+
+  // Prepare page data with program data
+  const enrichedPageData = {
+    ...pageData,
+    programContentData: programData,
+  };
+
   return (
     <PublicLayout
       topBarData={topBarData}
@@ -85,14 +118,14 @@ const ProjectsAndProgramsDetails = ({
       footerData={footerData}
       storageUrl={storageUrl}
     >
-      <Head title={`${pageData.programContentData?.title || 'Program'} | DUS - Dwip Unnayan Society`} />
+      <Head title={`${programData?.title || 'Program'} | DUS - Dwip Unnayan Society`} />
 
       {/* 1. Banner (first dynamic section) */}
       {bannerSection && (
         <DynamicSectionRenderer
           key={bannerSection.id}
           section={bannerSection}
-          pageData={pageData}
+          pageData={enrichedPageData}
           globalProps={{ storageUrl }}
         />
       )}
@@ -103,8 +136,7 @@ const ProjectsAndProgramsDetails = ({
           return (
             <ProgramContentSection
               key={section.id}
-              programData={pageData.programContentData}
-              slug={slug}
+              programData={programData}
               {...section.customProps}
             />
           );
@@ -117,7 +149,7 @@ const ProjectsAndProgramsDetails = ({
         <DynamicSectionRenderer
           key={section.id}
           section={section}
-          pageData={pageData}
+          pageData={enrichedPageData}
           globalProps={{ storageUrl }}
         />
       ))}

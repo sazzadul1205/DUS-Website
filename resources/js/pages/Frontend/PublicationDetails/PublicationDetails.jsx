@@ -1,12 +1,11 @@
-// resources/js/Pages/Frontend/PublicationDetails/PublicationDetails.jsx
+// resources/js/Pages/Frontend/ProjectsAndProgramsDetails/ProjectsAndProgramsDetails.jsx
 
 // React
-import React from 'react';
-import { Head } from '@inertiajs/react';
+import React, { useState, useEffect } from 'react';
+import { Head, usePage } from "@inertiajs/react";
 
-// Icons
-import { CiCalendar } from "react-icons/ci";
-import { FaRegClock, FaFacebookF, FaLinkedinIn, FaInstagram, FaDownload, FaFilePdf } from "react-icons/fa";
+// Axios
+import axios from 'axios';
 
 // Layout
 import PublicLayout from '../../../layouts/PublicLayout';
@@ -14,320 +13,181 @@ import PublicLayout from '../../../layouts/PublicLayout';
 // Components
 import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
 
-// Sections
-import PublicationsSection from '../../../Sections/PublicationsSection/PublicationsSection'; 
+// Program Content Section Component
+const ProgramContentSection = ({ programData, bgColor, paddingY, paddingX, sectionClassName, sectionId, notFound }) => {
+  const renderHTML = (htmlString) => ({ __html: htmlString });
 
-// Banner Section Component
-const BannerSection = ({ bannerData, publicationData }) => {
-  const tagColors = [
-    "bg-[#3866FF]", "bg-[#503AF2]", "bg-[#00B894]",
-    "bg-[#FF6B6B]", "bg-[#FDCB6E]", "bg-[#6C5CE7]",
-  ];
+  if (notFound || !programData) return null;
 
-  // Normalize publication data
-  const normalizedPublicationData = {
-    title: publicationData?.title || 'Publication',
-    author: publicationData?.author || publicationData?.createdBy || 'ADMIN',
-    date: publicationData?.date || publicationData?.created_at || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(),
-    readTime: publicationData?.read_time || publicationData?.timerRead || '5 MIN READ',
-    tags: publicationData?.tags || [],
-    category: publicationData?.category || 'General',
-  };
+  const data = programData;
 
-  // Use publication image as banner if bannerData is not available
-  const defaultBanner = {
-    background: {
-      src: publicationData?.image || '/storage/Publications/default-banner.png',
-      alt: publicationData?.title || 'Publication Banner'
-    },
-    overlay: {
-      darkOverlay: 'bg-black/60',
-      gradient: 'bg-gradient-to-r from-black/85 via-black/10 to-transparent'
-    }
-  };
-
-  const banner = bannerData || defaultBanner;
+  // Try multiple property names (supports both underscore and camelCase)
+  const content = data.full_content_html || data.fullContentHtml || data.fullContent || data?.content;
 
   return (
-    <section className="relative isolate w-full h-125 overflow-hidden bg-[#080C14]">
-      <div className="absolute inset-0 z-0">
-        {banner?.background?.src && (
-          <img
-            src={banner.background.src}
-            alt={banner.background.alt || 'Banner background'}
-            className="h-full w-full object-cover object-center"
-          />
-        )}
-        <div className={`absolute inset-0 ${banner?.overlay?.darkOverlay || 'bg-black/60'}`}>
-          {banner?.overlay?.gradient && (
-            <div className={`absolute inset-0 ${banner.overlay.gradient}`} />
-          )}
-        </div>
-      </div>
-
-      <div className="relative z-10 max-w-275 mx-auto px-4 pt-24 sm:pt-28 lg:pt-32 h-full flex flex-col items-center justify-start text-center">
-        <div className="flex items-center justify-center gap-2.5 flex-wrap mb-5">
-          {normalizedPublicationData.category && (
-            <span className="text-white bg-[#009BE2] text-[12px] sm:text-[13px] font-semibold px-3 py-1 rounded-full">
-              {normalizedPublicationData.category}
-            </span>
-          )}
-          {normalizedPublicationData.tags?.length > 0 && (
-            normalizedPublicationData.tags.map((tag, index) => (
-              <span
-                key={index}
-                className={`text-white text-[12px] sm:text-[13px] font-semibold px-2 py-1 rounded-md ${tagColors[index % tagColors.length]}`}
-              >
-                {tag}
-              </span>
-            ))
-          )}
-        </div>
-
-        <h1 className="text-white font-bold text-[40px] sm:text-[54px] lg:text-[100px] leading-[1.05] mb-4 max-w-380">
-          {normalizedPublicationData.title || 'Publication'}
+    <section id={sectionId} className={`${bgColor || ''} ${paddingY || ''} ${paddingX || ''} ${sectionClassName || ''}`}>
+      {data?.title && (
+        <h1 className='text-black font-700 text-[28px] sm:text-[36px] md:text-[48px] lg:text-[64px] xl:text-[80px] leading-tight pb-12.5'>
+          {data.title}
         </h1>
+      )}
 
-        <div className="flex items-center justify-center gap-4 sm:gap-6 flex-wrap text-white text-[12px] sm:text-[14px] font-semibold">
-          <div className="flex items-center gap-2.5">
-            <div className="relative w-5 h-5 rounded-full overflow-hidden">
-              <img src="https://placehold.co/20x20" alt="Author" className="w-5 h-5 object-cover" />
-              <div className="absolute inset-0 bg-[#503AF2]/40" />
-            </div>
-            <p className="flex items-center">
-              BY : <span className="pl-1">{normalizedPublicationData.author}</span>
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <CiCalendar className="text-base" />
-            <span>{normalizedPublicationData.date}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <FaRegClock className="text-base" />
-            <span>{normalizedPublicationData.readTime}</span>
-          </div>
+      {data?.image && (
+        <div className="mb-6 sm:mb-8 md:mb-10 lg:mb-12.5">
+          <img
+            src={data.image}
+            alt={data?.title || 'Program image'}
+            className="w-full h-auto max-h-64 sm:max-h-80 md:max-h-96 lg:max-h-125 object-cover rounded-2xl"
+          />
         </div>
-      </div>
+      )}
+
+      {content && (
+        <div
+          className="bricolage-grotesque prose prose-lg max-w-none
+            prose-headings:font-700 prose-headings:text-[#080C14] 
+            prose-p:text-[#333333] prose-p:leading-relaxed prose-p:mb-4
+            prose-ul:text-[#333333] prose-ul:leading-relaxed
+            prose-li:text-[#333333] prose-li:leading-relaxed
+            prose-strong:text-[#009BE2]
+            prose-h2:font-700 prose-h2:text-[#080C14] prose-h2:mt-8 prose-h2:mb-4
+            prose-h2:text-2xl sm:prose-h2:text-3xl lg:prose-h2:text-4xl"
+          dangerouslySetInnerHTML={renderHTML(content)}
+        />
+      )}
     </section>
   );
 };
 
-// Publication Content Section Component
-const PublicationContentSection = ({
-  publicationData,
-  storageUrl,
-  bgColor = 'bg-white',
-  paddingY = 'py-12 lg:py-16',
-  paddingX = 'px-4',
-  sectionClassName = '',
-  sectionId
-}) => {
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return null;
-    if (imagePath.startsWith('http')) return imagePath;
-    if (imagePath.startsWith('https')) return imagePath;
+// Not Found Component
+const NotFoundContent = ({ type = 'Program' }) => (
+  <div className="max-w-275 mx-auto px-4 py-20 text-center">
+    <div className="bg-white rounded-2xl shadow-lg p-12 max-w-2xl mx-auto">
+      <div className="text-6xl mb-6">📁</div>
+      <h2 className="text-3xl font-bold text-[#080C14] mb-4">{type} Not Found</h2>
+      <p className="text-gray-600 text-lg mb-6">
+        The {type.toLowerCase()} you're looking for is no longer available or has been removed.
+      </p>
+      <a href="/projects-programs" className="inline-block bg-[#009BE2] text-white font-600 px-8 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
+        View All {type}s
+      </a>
+    </div>
+  </div>
+);
 
-    const cleanPath = imagePath.replace(/^\//, '');
-    return `${storageUrl}/${cleanPath}`;
-  };
-
-  const getPdfUrl = (pdfPath) => {
-    if (!pdfPath) return null;
-    if (pdfPath.startsWith('http')) return pdfPath;
-    if (pdfPath.startsWith('https')) return pdfPath;
-
-    const cleanPath = pdfPath.replace(/^\//, '');
-    return `${storageUrl}/${cleanPath}`;
-  };
-
-  const normalizedPublicationData = {
-    title: publicationData?.title || 'Publication',
-    image: publicationData?.image,
-    fullContent: publicationData?.fullContent || publicationData?.full_content || publicationData?.content || '',
-    pdfUrl: publicationData?.pdf_url || publicationData?.pdfUrl || null,
-    excerpt: publicationData?.excerpt || '',
-  };
-
-  const renderHTML = (htmlString) => {
-    if (!htmlString) return { __html: '' };
-    return { __html: htmlString };
-  };
-
-  if (!publicationData) {
-    return null;
-  }
-
-  const imageUrl = getImageUrl(normalizedPublicationData.image);
-  const pdfUrl = getPdfUrl(normalizedPublicationData.pdfUrl);
-
-  const handleDownloadPdf = () => {
-    if (pdfUrl) {
-      window.open(pdfUrl, '_blank');
-    }
-  };
-
-  return (
-    <section id={sectionId} className={`${bgColor} ${paddingY} ${paddingX} ${sectionClassName}`}>
-      {/* Image Section */}
-      <div className="relative z-10 max-w-275 mx-auto">
-        <div className="-mt-16 sm:-mt-20 lg:-mt-24">
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={normalizedPublicationData.title || "Publication main image"}
-              className="w-full h-auto max-h-96 sm:max-h-125 object-cover object-center rounded-[28px] shadow-2xl"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "https://placehold.co/1100x500/080C14/FFFFFF?text=Publication+Image";
-              }}
-            />
-          ) : (
-            <div className="w-full h-64 sm:h-96 bg-gray-200 rounded-[28px] flex items-center justify-center">
-              <span className="text-gray-500">No image available</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Content Section */}
-      <div className="max-w-275 mx-auto mt-12 sm:mt-16 lg:mt-20">
-        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-25">
-          {/* Social Share Sidebar */}
-          <div className="hidden lg:flex flex-col items-center gap-4 pt-2 sticky top-25">
-            <a href="#" className="w-8 h-8 rounded-full bg-[#080C14] text-white flex items-center justify-center hover:bg-[#009BE2] transition-colors">
-              <FaFacebookF className="text-sm" />
-            </a>
-            <a href="#" className="w-8 h-8 rounded-full bg-[#080C14] text-white flex items-center justify-center hover:bg-[#009BE2] transition-colors">
-              <FaLinkedinIn className="text-sm" />
-            </a>
-            <a href="#" className="w-8 h-8 rounded-full bg-[#080C14] text-white flex items-center justify-center hover:bg-[#009BE2] transition-colors">
-              <FaInstagram className="text-sm" />
-            </a>
-          </div>
-
-          <div className="flex-1 min-w-0">
-            {/* PDF Download Button - Now at the end (right side) */}
-            {pdfUrl && (
-              <div className="mb-8 flex justify-end">
-                <button
-                  onClick={handleDownloadPdf}
-                  className="inline-flex items-center gap-3 px-6 py-3 bg-[#009BE2] text-white rounded-lg hover:bg-[#009BE2]/80 transition-colors shadow-lg hover:shadow-xl"
-                >
-                  <FaFilePdf className="text-xl" />
-                  <span className="font-semibold">Download PDF</span>
-                  <FaDownload className="text-sm" />
-                </button>
-              </div>
-            )}
-
-            {/* Full Content - Rendered HTML */}
-            {normalizedPublicationData.fullContent ? (
-              <div
-                className="bricolage-grotesque prose prose-sm sm:prose-base lg:prose-lg max-w-none
-                  prose-headings:font-700 prose-headings:text-[#080C14]
-                  prose-p:text-[#333333] prose-p:leading-relaxed
-                  prose-ul:text-[#333333] prose-ul:leading-relaxed
-                  prose-li:text-[#333333] prose-li:leading-relaxed
-                  prose-strong:text-[#009BE2]
-                  prose-p:mt-4 prose-p:mb-4
-                  prose-h2:mt-8 prose-h2:mb-4
-                  prose-h3:mt-6 prose-h3:mb-3"
-                dangerouslySetInnerHTML={renderHTML(normalizedPublicationData.fullContent)}
-              />
-            ) : (
-              <p className="text-gray-500 text-center py-8">No content available for this publication.</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// REMOVED: RelatedPublicationsSection - Now using PublicationsSection with isRelated prop
-
-const PublicationDetails = ({
+const ProjectsAndProgramsDetails = ({
   topBarData,
   navbarData,
   footerData,
   storageUrl,
   sectionConfig,
-  pageData: pageDataProp,
-  ...pageData
+  slug: slugProp,
+  pageData: incomingPageData,
+  ...rest
 }) => {
-  // Use the data from the correct nesting
-  const actualPageData = pageDataProp || pageData || {};
+  const { page } = usePage();
+  const slug = slugProp || page.props.slug || page.props.pageSlug || window.location.pathname.split('/').pop();
 
-  // Get publication data - try multiple possible locations
-  const publicationData =
-    actualPageData.publicationData ||
-    actualPageData.detailData ||
-    actualPageData.data ||
-    actualPageData.publication ||
-    actualPageData.detail;
+  const [programData, setProgramData] = useState(null);
+  const [setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState(null);
 
-  const bannerData = actualPageData.bannerData;
-  const publicationsData = actualPageData.publicationsData ||
-    actualPageData.relatedPublicationsData ||
-    actualPageData.relatedMediaData ||
-    [];
+  // Fetch program data from API
+  useEffect(() => {
+    const fetchProgramData = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`/api/programs/${slug}`);
 
-  const sectionsToRender = (sectionConfig?.sections || [])
-    .filter(section => section.enabled === true)
+        if (response.data.success && response.data.data) {
+          setProgramData(response.data.data);
+          setNotFound(false);
+        } else {
+          setNotFound(true);
+        }
+      } catch (err) {
+        console.error('Error fetching program details:', err);
+        if (err.response?.status === 404) {
+          setNotFound(true);
+        } else {
+          setError(err.response?.data?.message || 'Failed to load program details');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (slug) {
+      fetchProgramData();
+    }
+  }, [setLoading, slug]);
+
+  const pageData = incomingPageData || rest;
+
+  const allSections = (sectionConfig?.sections || [])
+    .filter(section => section.enabled === true);
+
+  const fixedSections = allSections.filter(section => section.isFixedSection === true);
+  const dynamicSections = allSections.filter(section => section.isFixedSection !== true)
     .sort((a, b) => a.order - b.order);
 
-  const renderSpecialComponent = (section) => {
-    const { component, customProps = {} } = section;
+  const bannerSection = dynamicSections.find(s => s.component === 'PageBannerSection');
+  const otherDynamicSections = dynamicSections.filter(s => s.component !== 'PageBannerSection');
 
-    if (component === 'BannerSection' || component === 'PageBannerSection') {
-      return (
-        <BannerSection
-          key={section.id}
-          bannerData={bannerData}
-          publicationData={publicationData}
-          {...customProps}
-        />
-      );
-    }
-
-    if (component === 'PublicationContentSection') {
-      return (
-        <PublicationContentSection
-          key={section.id}
-          publicationData={publicationData}
-          storageUrl={storageUrl}
-          bgColor={customProps.bgColor || 'bg-white'}
-          paddingY={customProps.paddingY || 'py-12 lg:py-16'}
-          paddingX={customProps.paddingX || 'px-4'}
-          sectionClassName={customProps.sectionClassName || ''}
-          sectionId={customProps.sectionId || 'publication-content'}
-        />
-      );
-    }
-
-    if (component === 'RelatedPublicationsSection') {
-      // Use the PublicationsSection component with isRelated={true}
-      return (
-        <PublicationsSection
-          key={section.id}
-          publicationsData={publicationsData}
-          sectionTitle={customProps.title || 'Related Publications'}
-          isRelated={true}
-          bgColor={customProps.bgColor || 'bg-[#F5F5F5]'}
-          sectionClassName={customProps.sectionClassName || ''}
-          sectionId={customProps.sectionId || 'related-publications'}
-        />
-      );
-    }
-
-    return null;
+  // Prepare page data with program data
+  const enrichedPageData = {
+    ...pageData,
+    programContentData: programData || pageData.programContentData,
   };
 
-  const pageTitle = publicationData?.title
-    ? `${publicationData.title} | DUS - Dwip Unnayan Society`
-    : 'Publication Details | DUS - Dwip Unnayan Society';
+  // Show 404 content if not found
+  if (notFound) {
+    return (
+      <PublicLayout
+        topBarData={topBarData}
+        navbarData={navbarData}
+        footerData={footerData}
+        storageUrl={storageUrl}
+      >
+        <Head title="Program Not Found | DUS" />
+        {/* Render banner with not found state - pass null program data */}
+        {bannerSection && (
+          <DynamicSectionRenderer
+            key={bannerSection.id}
+            section={{
+              ...bannerSection,
+              // You can add a custom prop to indicate not found
+              customProps: { ...bannerSection.customProps, notFound: true }
+            }}
+            pageData={{ ...enrichedPageData, programContentData: null }}
+            globalProps={{ storageUrl }}
+          />
+        )}
+        <NotFoundContent type="Program" />
+      </PublicLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <PublicLayout
+        topBarData={topBarData}
+        navbarData={navbarData}
+        footerData={footerData}
+        storageUrl={storageUrl}
+      >
+        <Head title="Error | DUS" />
+        <div className="max-w-275 mx-auto px-4 py-20 text-center">
+          <h2 className="text-3xl font-bold text-[#080C14] mb-4">Something Went Wrong</h2>
+          <p className="text-gray-600">{error}</p>
+          <a href="/projects-programs" className="inline-block mt-6 bg-[#009BE2] text-white px-6 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
+            View All Programs
+          </a>
+        </div>
+      </PublicLayout>
+    );
+  }
 
   return (
     <PublicLayout
@@ -336,27 +196,45 @@ const PublicationDetails = ({
       footerData={footerData}
       storageUrl={storageUrl}
     >
-      <Head title={pageTitle} />
+      <Head title={`${programData?.title || 'Program'} | DUS - Dwip Unnayan Society`} />
 
-      {sectionsToRender.map((section) => {
-        if (section.isSpecialComponent ||
-          section.component === 'BannerSection' ||
-          section.component === 'PublicationContentSection' ||
-          section.component === 'PageBannerSection' ||
-          section.component === 'RelatedPublicationsSection') {
-          return renderSpecialComponent(section);
+      {/* 1. Banner (first dynamic section) */}
+      {bannerSection && (
+        <DynamicSectionRenderer
+          key={bannerSection.id}
+          section={bannerSection}
+          pageData={enrichedPageData}
+          globalProps={{ storageUrl }}
+        />
+      )}
+
+      {/* 2. All Fixed Sections (ProgramContentSection, etc.) */}
+      {fixedSections.map((section) => {
+        if (section.component === 'ProgramContentSection') {
+          return (
+            <ProgramContentSection
+              key={section.id}
+              programData={programData}
+              slug={slug}
+              notFound={notFound}
+              {...section.customProps}
+            />
+          );
         }
-        return (
-          <DynamicSectionRenderer
-            key={section.id}
-            section={section}
-            pageData={actualPageData}
-            globalProps={{ storageUrl }}
-          />
-        );
+        return null;
       })}
+
+      {/* 3. Other Dynamic Sections (FAQ, Events, etc.) */}
+      {otherDynamicSections.map((section) => (
+        <DynamicSectionRenderer
+          key={section.id}
+          section={section}
+          pageData={enrichedPageData}
+          globalProps={{ storageUrl }}
+        />
+      ))}
     </PublicLayout>
   );
 };
 
-export default PublicationDetails;
+export default ProjectsAndProgramsDetails;

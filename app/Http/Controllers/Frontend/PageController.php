@@ -9,8 +9,8 @@ use App\Services\ContentService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
-use Inertia\Response;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class PageController extends Controller
 {
@@ -26,76 +26,192 @@ class PageController extends Controller
   /**
    * Handle all public pages dynamically.
    */
-  public function show(string $pageSlug = 'home', ?string $detailSlug = null): Response
+  public function show(string $pageSlug = 'home', ?string $detailSlug = null): SymfonyResponse
   {
-    $page = $this->getPageBySlug($pageSlug);
+    try {
+      $page = $this->getPageBySlug($pageSlug);
 
-    if (!$page) {
-      abort(404, 'Page not found');
+      if (!$page) {
+        return $this->renderNotFound($pageSlug, $detailSlug);
+      }
+
+      $component = $this->resolveComponent($pageSlug, $detailSlug);
+      $configSlug = $this->resolveConfigSlug($pageSlug, $detailSlug);
+
+      $sectionConfigs = $this->contentService->getPageSections($configSlug);
+
+      if ($sectionConfigs->isEmpty()) {
+        return $this->renderNotFound($pageSlug, $detailSlug, 'Page configuration not found');
+      }
+
+      $dataNeeds = $this->determineDataNeeds($sectionConfigs);
+      $fetchedData = $this->fetchAllData($dataNeeds, $pageSlug, $detailSlug);
+
+      if ($detailSlug && $this->isDetailNotFound($fetchedData, $pageSlug)) {
+        return $this->renderNotFound($pageSlug, $detailSlug, 'Content not found');
+      }
+
+      $pageData = $this->buildPageData($sectionConfigs, $fetchedData, $pageSlug, $detailSlug);
+      $shared = $this->getSharedData();
+
+      $sectionConfig = [
+        'sections' => $sectionConfigs->map(function ($config) {
+          return [
+            'id'                 => $config->id,
+            'component'          => $config->component,
+            'enabled'            => (bool) $config->is_enabled,
+            'propName'           => $config->prop_name,
+            'dataKey'            => $config->data_key,
+            'order'              => $config->display_order,
+            'customProps'        => $config->custom_props ?? [],
+            'isFixedSection'     => (bool) $config->is_fixed_section,
+            'isSpecialComponent' => (bool) $config->is_special_component,
+          ];
+        })->toArray(),
+      ];
+
+      $pageTitle = $page->title ?? $page->name;
+      if ($detailSlug && $page->title) {
+        $pageTitle = $page->title . ' - DUS';
+      }
+
+      $props = array_merge(
+        $shared,
+        [
+          'storageUrl'    => config('app.storage_url', ''),
+          'sectionConfig' => $sectionConfig,
+          'pageData'      => $pageData,
+          'pageName'      => $page->name,
+          'pageTitle'     => $pageTitle,
+          'pageSlug'      => $page->slug,
+          'pageDescription' => $page->description ?? '',
+          'notFound'      => false,
+        ]
+      );
+
+      return Inertia::render($component, $props)->toResponse(request())->setStatusCode(200);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+      return $this->renderNotFound($pageSlug, $detailSlug, 'Content not found');
+    } catch (\Exception $e) {
+      Log::error('PageController error: ' . $e->getMessage(), [
+        'pageSlug' => $pageSlug,
+        'detailSlug' => $detailSlug,
+      ]);
+      return $this->renderNotFound($pageSlug, $detailSlug, 'An error occurred');
     }
+  }
 
-    $component = $this->resolveComponent($pageSlug, $detailSlug);
-    $configSlug = $this->resolveConfigSlug($pageSlug, $detailSlug);
-
-    $sectionConfigs = $this->contentService->getPageSections($configSlug);
-
-    if ($sectionConfigs->isEmpty()) {
-      abort(404, 'Page configuration not found');
-    }
-
-    $dataNeeds = $this->determineDataNeeds($sectionConfigs);
-    $fetchedData = $this->fetchAllData($dataNeeds, $pageSlug, $detailSlug);
-
-    $pageData = $this->buildPageData($sectionConfigs, $fetchedData, $pageSlug, $detailSlug);
+  /**
+   * Render a friendly "Content Not Available" page with a 200 status.
+   */
+  private function renderNotFound(string $pageSlug, ?string $detailSlug = null, string $message = 'Page not found'): SymfonyResponse
+  {
     $shared = $this->getSharedData();
+    $component = $this->resolveNotFoundComponent($pageSlug, $detailSlug);
 
-    $sectionConfig = [
-      'sections' => $sectionConfigs->map(function ($config) {
-        return [
-          'id'                 => $config->id,
-          'component'          => $config->component,
-          'enabled'            => (bool) $config->is_enabled,
-          'propName'           => $config->prop_name,
-          'dataKey'            => $config->data_key,
-          'order'              => $config->display_order,
-          'customProps'        => $config->custom_props ?? [],
-          'isFixedSection'     => (bool) $config->is_fixed_section,
-          'isSpecialComponent' => (bool) $config->is_special_component,
-        ];
-      })->toArray(),
-    ];
-
-    $pageTitle = $page->title ?? $page->name;
-
-    if ($detailSlug && $page->title) {
-      $pageTitle = $page->title . ' - DUS';
-    }
+    $contentType = $this->getContentType($pageSlug, $detailSlug);
+    $title = $detailSlug
+      ? ucfirst($contentType) . ' Not Found | DUS'
+      : 'Page Not Found | DUS';
 
     $props = array_merge(
       $shared,
       [
-        'storageUrl'    => config('app.storage_url', ''),
-        'sectionConfig' => $sectionConfig,
-        'pageData'      => $pageData,
-        'pageName'      => $page->name,
-        'pageTitle'     => $pageTitle,
-        'pageSlug'      => $page->slug,
-        'pageDescription' => $page->description ?? '',
+        'storageUrl'       => config('app.storage_url', ''),
+        'notFound'         => true,
+        'notFoundMessage'  => $message,
+        'contentType'      => $contentType,
+        'pageSlug'         => $pageSlug,
+        'detailSlug'       => $detailSlug,
+        'pageTitle'        => $title,
+        'pageName'         => ucfirst($contentType) . ' Not Found',
+        'isNotFound'       => true,
       ]
     );
 
-    // Remove dd($props); - this was stopping execution
-    // dd($props);
-
-    return Inertia::render($component, $props);
+    // Return the Inertia response with a 200 status
+    return Inertia::render($component, $props)
+      ->toResponse(request())
+      ->setStatusCode(SymfonyResponse::HTTP_OK);
   }
 
   /**
-   * Get page by slug from database
+   * Get the content type for the not found message.
+   */
+  private function getContentType(string $pageSlug, ?string $detailSlug): string
+  {
+    $detailMap = [
+      'about' => 'Page',
+      'blog' => 'Blog Post',
+      'blogs' => 'Blog Post',
+      'projects-programs' => 'Program',
+      'publications' => 'Publication',
+      'jobs' => 'Job',
+    ];
+
+    $listingMap = [
+      'about' => 'About Page',
+      'blog' => 'Blog',
+      'blogs' => 'Blog',
+      'projects-programs' => 'Programs',
+      'publications' => 'Publications',
+      'jobs' => 'Jobs',
+    ];
+
+    if ($detailSlug) {
+      return $detailMap[$pageSlug] ?? 'Content';
+    }
+
+    return $listingMap[$pageSlug] ?? 'Page';
+  }
+
+  /**
+   * Resolve the component for not found pages.
+   */
+  private function resolveNotFoundComponent(string $pageSlug, ?string $detailSlug): string
+  {
+    if ($detailSlug) {
+      $detailPages = [
+        'about' => 'Frontend/AboutDetails/AboutDetails',
+        'blog' => 'Frontend/BlogDetails/BlogDetails',
+        'blogs' => 'Frontend/BlogDetails/BlogDetails',
+        'projects-programs' => 'Frontend/ProjectsAndProgramsDetails/ProjectsAndProgramsDetails',
+        'publications' => 'Frontend/PublicationDetails/PublicationDetails',
+        'jobs' => 'Frontend/JobsDetails/JobsDetails',
+      ];
+      return $detailPages[$pageSlug] ?? 'Frontend/NotFound';
+    }
+
+    return 'Frontend/NotFound';
+  }
+
+  /**
+   * Check if a detail item was not found.
+   */
+  private function isDetailNotFound(array $fetchedData, string $pageSlug): bool
+  {
+    if (!isset($fetchedData['detail']) || empty($fetchedData['detail'])) {
+      return true;
+    }
+
+    $detail = $fetchedData['detail'];
+
+    if ($detail instanceof Model) {
+      return !$detail->exists;
+    }
+
+    if (is_array($detail)) {
+      return empty($detail);
+    }
+
+    return ($detail === null || $detail === false);
+  }
+
+  /**
+   * Get page by slug from database.
    */
   private function getPageBySlug(string $slug): ?\App\Models\pages\Page
   {
-    // Normalize slug for special cases
     if ($slug === 'blogs') {
       $slug = 'blog';
     }
@@ -287,7 +403,7 @@ class PageController extends Controller
       }
     }
 
-    // Detail item
+    // Detail item - fetch even if not found (will be null)
     if ($detailSlug) {
       $baseSlug = $pageSlug;
       if ($pageSlug === 'blogs') {
@@ -412,27 +528,33 @@ class PageController extends Controller
         $baseSlug = 'blog';
       }
 
-      switch ($baseSlug) {
-        case 'about':
-          $pageData['contentSectionData'] = $detail;
-          break;
-        case 'blog':
-          $pageData['blogData'] = $this->normalizeBlogDetail($detail);
-          break;
-        case 'projects-programs':
-          $pageData['programContentData'] = $detail;
-          break;
-        case 'publications':
-          $pageData['publicationData'] = $this->normalizePublicationDetail($detail);
-          break;
-        case 'jobs':
-          if (!isset($pageData['jobData']) && !isset($pageData['job_details'])) {
-            $pageData['jobData'] = $this->normalizeJobDetail($detail);
-          }
-          break;
-        default:
-          $pageData['detailData'] = $detail;
-          break;
+      // Only set detail data if it exists (not null)
+      if ($detail && !empty($detail)) {
+        switch ($baseSlug) {
+          case 'about':
+            $pageData['contentSectionData'] = $detail;
+            break;
+          case 'blog':
+            $pageData['blogData'] = $this->normalizeBlogDetail($detail);
+            break;
+          case 'projects-programs':
+            $pageData['programContentData'] = $detail;
+            break;
+          case 'publications':
+            $pageData['publicationData'] = $this->normalizePublicationDetail($detail);
+            break;
+          case 'jobs':
+            if (!isset($pageData['jobData']) && !isset($pageData['job_details'])) {
+              $pageData['jobData'] = $this->normalizeJobDetail($detail);
+            }
+            break;
+          default:
+            $pageData['detailData'] = $detail;
+            break;
+        }
+      } else {
+        // Detail not found - set a flag so frontend can show not found
+        $pageData['detailNotFound'] = true;
       }
     }
 
