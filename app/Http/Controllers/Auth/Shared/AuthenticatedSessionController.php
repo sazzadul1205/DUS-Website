@@ -25,7 +25,7 @@ class AuthenticatedSessionController extends Controller
     {
         // This controller is now only used for logout and shared auth functions
         // Redirect to job seeker login as default
-        return redirect()->route('job-seeker.login');
+        return redirect()->route('seeker.login');
     }
 
     /**

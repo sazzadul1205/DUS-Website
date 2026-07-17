@@ -69,6 +69,17 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     achievements: [],
   });
 
+  // ✅ DEFINE STEPS HERE - BEFORE any function that references it
+  const steps = [
+    { name: 'Basic Info', component: BasicInfo, icon: FaUser },
+    { name: 'Professional', component: ProfessionalInfo, icon: MdWork },
+    { name: 'CV Upload', component: CVUpload, icon: FaFileAlt },
+    { name: 'Work Experience', component: WorkExperience, icon: FaBriefcase },
+    { name: 'Education', component: Education, icon: FaGraduationCap },
+    { name: 'Achievements', component: Achievements, icon: FaTrophy },
+    { name: 'Review', component: ReviewPage, icon: FaEye },
+  ];
+
   // Load data from localStorage on mount
   useEffect(() => {
     const savedData = localStorage.getItem('profile_form_data');
@@ -479,20 +490,9 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     });
   }, [data, handlePhotoUpload, post]);
 
-  const steps = [
-    { name: 'Basic Info', component: BasicInfo, icon: FaUser },
-    { name: 'Professional', component: ProfessionalInfo, icon: MdWork },
-    { name: 'CV Upload', component: CVUpload, icon: FaFileAlt },
-    { name: 'Work Experience', component: WorkExperience, icon: FaBriefcase },
-    { name: 'Education', component: Education, icon: FaGraduationCap },
-    { name: 'Achievements', component: Achievements, icon: FaTrophy },
-    { name: 'Review', component: ReviewPage, icon: FaEye },
-  ];
-
-  const CurrentStepComponent = steps[currentStep].component;
-
   const isReviewPage = currentStep === steps.length - 1;
   const progressPercentage = ((currentStep + 1) / (steps.length - 1)) * 100;
+  const CurrentStepComponent = steps[currentStep].component;
 
   // Mark step as completed when it's valid (on each render)
   useEffect(() => {

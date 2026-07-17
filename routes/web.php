@@ -81,6 +81,13 @@ use App\Models\pages\Page;
 use App\Models\pages\Program;
 
 // ============================================
+// EXCLUDED PATHS FOR DYNAMIC ROUTES
+// ============================================
+// Define paths that should NOT be handled by the dynamic page controller
+$excludedPaths = ['admin', 'backend', 'login', 'register', 'dashboard', 'api', 'storage', 'playground', '_warmup', 'auth', 'complete-profile'];
+$exclusionPattern = '^(?!' . implode('|', $excludedPaths) . ').*$';
+
+// ============================================
 // SECTION 1: PUBLIC DATA API ROUTES
 // URL: /data/* or /api/*
 // ============================================
@@ -213,12 +220,12 @@ Route::get('/playground', function () {
 
 // Dynamic detail pages (more specific pattern)
 Route::get('/{pageSlug}/{detailSlug}', [PageController::class, 'show'])
-    ->where('pageSlug', '^(?!admin|backend|login|register|dashboard|api|storage|playground|_warmup).*$')
+    ->where('pageSlug', $exclusionPattern)
     ->where('detailSlug', '.*'); // URL: /{pageSlug}/{detailSlug}
 
 // Dynamic listing pages (catch-all)
 Route::get('/{pageSlug}', [PageController::class, 'show'])
-    ->where('pageSlug', '^(?!admin|backend|login|register|dashboard|api|storage|playground|_warmup).*$'); // URL: /{pageSlug}
+    ->where('pageSlug', $exclusionPattern); // URL: /{pageSlug}
 
 // ============================================
 // SECTION 4: AUTHENTICATION ROUTES
@@ -227,16 +234,16 @@ Route::get('/{pageSlug}', [PageController::class, 'show'])
 
 Route::middleware('guest')->group(function () {
     // Admin login
-    Route::get('/login/admin', [AdminLoginController::class, 'create'])->name('admin.login');    // URL: /login/admin
-    Route::post('/login/admin', [AdminLoginController::class, 'store']);                         // URL: /login/admin (POST)
+    Route::get('/login/staff', [AdminLoginController::class, 'create'])->name('staff.login');    // URL: /login/staff
+    Route::post('/login/staff', [AdminLoginController::class, 'store']);                         // URL: /login/staff (POST)
 
     // Job seeker login
-    Route::get('/login/job-seeker', [JobSeekerLoginController::class, 'create'])->name('job-seeker.login'); // URL: /login/job-seeker
-    Route::post('/login/job-seeker', [JobSeekerLoginController::class, 'store']);               // URL: /login/job-seeker (POST)
+    Route::get('/login/seeker', [JobSeekerLoginController::class, 'create'])->name('seeker.login'); // URL: /login/seeker
+    Route::post('/login/seeker', [JobSeekerLoginController::class, 'store']);               // URL: /login/seeker (POST)
 
     // Default login (redirects to job seeker login)
     Route::get('/login', function () {
-        return redirect()->route('job-seeker.login');
+        return redirect()->route('seeker.login');
     })->name('login'); // URL: /login
 
     // Job seeker registration

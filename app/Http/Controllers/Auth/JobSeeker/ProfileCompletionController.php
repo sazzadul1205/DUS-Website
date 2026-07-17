@@ -26,11 +26,10 @@ use App\Models\User;
 
 class ProfileCompletionController extends Controller
 {
-
     // middleware
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware('profile.complete');
     }
 
     /**
@@ -45,11 +44,7 @@ class ProfileCompletionController extends Controller
             abort(401);
         }
 
-        // Check if user has permission to complete profile (job seekers only)
-        if (!$user->hasPermission('profile_completion.show')) {
-            return redirect()->route('backend.dashboard')
-                ->with('error', 'You do not have permission to access profile completion.');
-        }
+        // ✅ REMOVED permission check - anyone with incomplete profile can complete it
 
         $profile = ApplicantProfile::where('user_id', $user->id)->first();
 
@@ -171,11 +166,7 @@ class ProfileCompletionController extends Controller
             abort(401);
         }
 
-        // Check permission to complete profile
-        if (!$user->hasPermission('profile_completion.store')) {
-            return redirect()->route('backend.dashboard')
-                ->with('error', 'You do not have permission to complete profile.');
-        }
+        // ✅ REMOVED permission check - anyone can complete their own profile
 
         $validated = $request->validate([
             // Basic Info
@@ -303,7 +294,6 @@ class ProfileCompletionController extends Controller
      */
     private function handlePhotoUpload(UploadedFile $photo, int $userId): string
     {
-        // Simplified filename: YYYYMMDD_UUID.extension
         $datePrefix = date('Ymd');
         $uuid = Str::uuid();
         $extension = $photo->getClientOriginalExtension();
@@ -322,14 +312,11 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
 
-        if (!$user->hasPermission('profile_completion.upload_photo')) {
-            return response()->json(['error' => 'You do not have permission to upload photo.'], 403);
-        }
+        // ✅ REMOVED permission check
 
         $request->validate([
             'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -344,7 +331,6 @@ class ProfileCompletionController extends Controller
             Storage::disk('public')->delete($profile->photo_path);
         }
 
-        // Simplified filename: YYYYMMDD_UUID.extension
         $datePrefix = date('Ymd');
         $uuid = Str::uuid();
         $extension = $request->file('photo')->getClientOriginalExtension();
@@ -371,14 +357,11 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
 
-        if (!$user->hasPermission('profile_completion.delete_photo')) {
-            return response()->json(['error' => 'You do not have permission to delete photo.'], 403);
-        }
+        // ✅ REMOVED permission check
 
         $profile = ApplicantProfile::where('user_id', $user->id)->first();
 
@@ -402,8 +385,7 @@ class ProfileCompletionController extends Controller
     }
 
     /**
-     * Handle CVs
-     * Save uploaded CVs as pending by default
+     * Handle CVs - Save uploaded CVs as pending by default
      */
     private function handleCVs(int $profileId, array $cvs): void
     {
@@ -454,7 +436,6 @@ class ProfileCompletionController extends Controller
                     ]);
                 }
 
-                // Simplified filename: YYYYMMDD_UUID.extension
                 $datePrefix = date('Ymd');
                 $uuid = Str::uuid();
                 $extension = $cvData['file']->getClientOriginalExtension();
@@ -492,14 +473,11 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
 
-        if (!$user->hasPermission('profile_completion.upload_cv')) {
-            return response()->json(['error' => 'You do not have permission to upload CV.'], 403);
-        }
+        // ✅ REMOVED permission check
 
         $validated = $request->validate([
             'cv' => 'required|file|mimes:pdf,doc,docx|max:5120',
@@ -516,7 +494,6 @@ class ProfileCompletionController extends Controller
             ], 422);
         }
 
-        // Simplified filename: YYYYMMDD_UUID.extension
         $datePrefix = date('Ymd');
         $uuid = Str::uuid();
         $extension = $validated['cv']->getClientOriginalExtension();
@@ -558,17 +535,14 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
 
+        // ✅ REMOVED permission check
+        // Only check ownership
         if ($cv->applicantProfile?->user_id !== $user->id) {
             abort(403);
-        }
-
-        if (!$user->hasPermission('profile_completion.destroy_cv')) {
-            return back()->with('error', 'You do not have permission to delete CV.');
         }
 
         if ($cv->cv_path && Storage::disk('public')->exists($cv->cv_path)) {
@@ -588,17 +562,14 @@ class ProfileCompletionController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
         if (!$user instanceof User) {
             abort(401);
         }
 
+        // ✅ REMOVED permission check
+        // Only check ownership
         if ($cv->applicantProfile?->user_id !== $user->id) {
             abort(403);
-        }
-
-        if (!$user->hasPermission('profile_completion.set_primary_cv')) {
-            return back()->with('error', 'You do not have permission to set primary CV.');
         }
 
         if ($cv->status !== 'active') {
