@@ -81,9 +81,11 @@ export default function PublicJobListingsIndex({
     sort: initialFilters.sort || 'latest',
   });
 
-  // Refs to track if this is the initial render
-  const isInitialRender = useRef(true);
+  // Refs to prevent double rendering
+  const isInitialMount = useRef(true);
   const isApplyingFilters = useRef(false);
+  const debounceTimer = useRef(null);
+  const initialFiltersApplied = useRef(false);
 
   // Get job listings array from paginated response
   const jobListingItems = jobListings?.data || [];
@@ -99,17 +101,22 @@ export default function PublicJobListingsIndex({
   };
 
   // Apply filters - memoized with useCallback
-  const applyFilters = useCallback((filterParams = null) => {
+  const applyFilters = useCallback((filterParams = null, page = 1) => {
     // Prevent multiple simultaneous requests
     if (isApplyingFilters.current) return;
 
     const paramsToUse = filterParams || filters;
 
+    // Don't apply if no filters changed (except on initial load)
+    if (!filterParams && !initialFiltersApplied.current) {
+      initialFiltersApplied.current = true;
+      return;
+    }
+
     isApplyingFilters.current = true;
     setLoading(true);
 
-    // UPDATED: Use the consolidated public job route
-    router.get(route('public.jobs.index'), paramsToUse, {
+    router.get(route('public.jobs.index'), { ...paramsToUse, page }, {
       preserveState: true,
       preserveScroll: true,
       replace: true,
@@ -130,24 +137,46 @@ export default function PublicJobListingsIndex({
 
   // Debounced search - only runs when search changes
   useEffect(() => {
-    // Skip on initial render
-    if (isInitialRender.current) {
-      isInitialRender.current = false;
+    // Skip on initial mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
       return;
     }
 
-    // Only run if search changed
+    // Clear previous timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    // Only run if search changed and not initial load
     if (filters.search !== initialFilters.search) {
-      const timeoutId = setTimeout(() => {
+      debounceTimer.current = setTimeout(() => {
         applyFilters();
       }, 500);
-      return () => clearTimeout(timeoutId);
     }
-  }, [applyFilters, filters.search, initialFilters.search]);
 
-  // Handle filter change
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [filters.search, initialFilters.search, applyFilters]);
+
+  // Handle filter change - immediate for dropdowns, debounced for search
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+
+    // For non-search filters, apply immediately
+    if (key !== 'search') {
+      // Clear any pending search timer
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+      // Apply with a small delay to batch updates
+      setTimeout(() => {
+        applyFilters({ ...filters, [key]: value });
+      }, 100);
+    }
   };
 
   // Apply all filters
@@ -169,6 +198,10 @@ export default function PublicJobListingsIndex({
       sort: 'latest',
     };
     setFilters(resetValues);
+    // Clear any pending timers
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
     applyFilters(resetValues);
   };
 
@@ -177,6 +210,10 @@ export default function PublicJobListingsIndex({
     const updatedFilters = { ...filters, sort: sortValue };
     setFilters(updatedFilters);
     setShowSortMenu(false);
+    // Clear any pending timers
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
     applyFilters(updatedFilters);
   };
 
@@ -186,7 +223,6 @@ export default function PublicJobListingsIndex({
     if (page < 1 || page > pagination?.lastPage) return;
 
     setLoading(true);
-    // UPDATED: Use the consolidated public job route
     router.get(route('public.jobs.index'), { ...filters, page }, {
       preserveState: true,
       preserveScroll: true,
@@ -265,7 +301,6 @@ export default function PublicJobListingsIndex({
 
   // Share job
   const handleShareJob = (job) => {
-    // UPDATED: Use the consolidated public job show route
     const url = window.location.origin + route('public.jobs.show', job.slug);
 
     if (navigator.share) {
@@ -296,6 +331,10 @@ export default function PublicJobListingsIndex({
   const clearFilter = (key) => {
     const updatedFilters = { ...filters, [key]: '' };
     setFilters(updatedFilters);
+    // Clear any pending timers
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
     applyFilters(updatedFilters);
   };
 
@@ -746,7 +785,6 @@ export default function PublicJobListingsIndex({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <h2 className="text-xl font-bold text-gray-900 hover:text-blue-600 transition">
-                                  {/* UPDATED: Use the consolidated public job show route */}
                                   <a href={route('public.jobs.show', job.slug)}>
                                     {job.title}
                                   </a>
@@ -848,7 +886,7 @@ export default function PublicJobListingsIndex({
                                   <FaShareAlt size={16} />
                                 </button>
 
-                                {/* Apply Button - UPDATED: Use consolidated route */}
+                                {/* Apply Button */}
                                 <a
                                   href={route('public.jobs.show', job.slug)}
                                   className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"

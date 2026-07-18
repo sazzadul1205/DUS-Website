@@ -818,7 +818,6 @@ class ApplicantProfileController extends Controller
 
         // If no ID provided, show the authenticated user's profile (owner view)
         if (is_null($id)) {
-
             $profile = ApplicantProfile::withTrashed()
                 ->with([
                     'cvs' => function ($query) {
@@ -877,9 +876,11 @@ class ApplicantProfileController extends Controller
         $canDelete = false;
 
         if ($profile) {
-            $profile->photo_url = $profile->photo_path
-                ? route('profile.photo', ['path' => $profile->photo_path])
-                : null;
+            if ($profile->photo_path) {
+                $profile->photo_url = asset('storage/' . $profile->photo_path);
+            } else {
+                $profile->photo_url = null;
+            }
 
             foreach ($profile->cvs as $cv) {
                 $cv->cv_url = $cv->cv_path ? asset('storage/' . $cv->cv_path) : null;
@@ -908,11 +909,31 @@ class ApplicantProfileController extends Controller
             abort(404);
         }
 
+        // Check if file exists in public disk
         if (!Storage::disk('public')->exists($path)) {
             abort(404);
         }
 
-        return response()->file(Storage::disk('public')->path($path));
+        // Get the file path
+        $filePath = Storage::disk('public')->path($path);
+
+        // Get the mime type using the file extension
+        $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+        $mimeTypes = [
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+        ];
+        $mimeType = $mimeTypes[strtolower($extension)] ?? 'application/octet-stream';
+
+        // Return the file with correct headers
+        return response()->file($filePath, [
+            'Content-Type' => $mimeType,
+            'Cache-Control' => 'public, max-age=31536000',
+        ]);
     }
 
     /**

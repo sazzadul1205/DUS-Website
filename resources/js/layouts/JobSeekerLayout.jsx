@@ -44,7 +44,45 @@ const JobSeekerLayout = ({ children }) => {
   const isRouteActive = (routeName, params = {}) => {
     try {
       if (typeof window !== 'undefined' && window.route) {
-        return window.route().current(routeName, params);
+        // Check if the current route matches exactly
+        if (window.route().current(routeName, params)) {
+          return true;
+        }
+
+        // For "My Applications" - check if route starts with 'backend.apply.'
+        if (routeName === 'backend.apply.index') {
+          const currentRouteName = window.route().current();
+          // Check if current route is any apply route (index, show, edit, create, etc.)
+          if (currentRouteName && currentRouteName.startsWith('backend.apply.')) {
+            return true;
+          }
+        }
+
+        // For "My Profile" - check if route starts with 'backend.applicant.profile.'
+        if (routeName === 'backend.applicant.profile.show') {
+          const currentRouteName = window.route().current();
+          if (currentRouteName && currentRouteName.startsWith('backend.applicant.profile.')) {
+            return true;
+          }
+        }
+
+        // For "Notifications" - check if route starts with 'backend.notifications.'
+        if (routeName === 'backend.notifications.index') {
+          const currentRouteName = window.route().current();
+          if (currentRouteName && currentRouteName.startsWith('backend.notifications.')) {
+            return true;
+          }
+        }
+
+        // For "Dashboard" - check if route is dashboard or similar
+        if (routeName === 'backend.dashboard') {
+          const currentRouteName = window.route().current();
+          if (currentRouteName && (currentRouteName === 'backend.dashboard' || currentRouteName === 'dashboard')) {
+            return true;
+          }
+        }
+
+        return false;
       }
       return false;
     } catch (e) {

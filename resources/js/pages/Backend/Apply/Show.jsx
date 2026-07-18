@@ -48,7 +48,6 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
   // Use centralized auth hook
   const {
     user: currentUser,
-    isAuthenticated,
   } = useAuth();
 
   // Check if user is the owner of this application
@@ -58,56 +57,6 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
   const [restoring, setRestoring] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
-
-  // If user is not authenticated, show access denied
-  if (!isAuthenticated) {
-    return (
-      <AuthenticatedLayout>
-        <Head title="Access Denied" />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaBriefcase className="w-10 h-10 text-red-500" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900">Login Required</h2>
-            <p className="text-gray-500 mt-2">Please login to view application details.</p>
-            <button
-              onClick={() => router.visit(route('login', { redirect: route('backend.apply.show', application?.id) }))}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Login Now
-            </button>
-          </div>
-        </div>
-      </AuthenticatedLayout>
-    );
-  }
-
-  // If user doesn't own this application, show access denied
-  if (!isOwner) {
-    return (
-      <AuthenticatedLayout>
-        <Head title="Access Denied" />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaBriefcase className="w-10 h-10 text-red-500" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
-            <p className="text-gray-500 mt-2">
-              You don't have permission to view this application.
-            </p>
-            <button
-              onClick={() => router.visit(route('backend.apply.index'))}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Back to Applications
-            </button>
-          </div>
-        </div>
-      </AuthenticatedLayout>
-    );
-  }
 
   // Format dates
   const formatDate = (date) => {
@@ -185,7 +134,7 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
   // Format salary
   const formatSalary = (salary) => {
     if (!salary) return 'Not specified';
-    return `${new Intl.NumberFormat('en-US').format(salary)  } BDT`;
+    return `${new Intl.NumberFormat('en-US').format(salary)} BDT`;
   };
 
   // Recalculate ATS handler
@@ -365,8 +314,9 @@ export default function ApplyShow({ application, jobListing, statusTimeline, ats
     <AuthenticatedLayout>
       <Head title={`Application for ${jobListing.title}`} />
 
+      {/* Main Content */}
       <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-8xl">
           {/* Back Button */}
           <button
             onClick={() => router.get(route('backend.apply.index'))}
