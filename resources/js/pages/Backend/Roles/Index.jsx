@@ -631,7 +631,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
     const pages = [];
     const maxVisible = 5;
     let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+    const endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
 
     if (endPage - startPage + 1 < maxVisible) {
       startPage = Math.max(1, endPage - maxVisible + 1);
@@ -760,30 +760,30 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
               </p>
               <div className="flex gap-3 mt-2 flex-wrap">
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
                   Active: {activeCount}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-red-500" />
                   Inactive: {inactiveCount}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                  <span className="w-2 h-2 rounded-full bg-gray-400" />
                   Deleted: {deletedCount}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-purple-500" />
                   Default: {defaultCount}
                 </span>
                 {hasActiveFilters() && (
                   <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
                     Filtered
                   </span>
                 )}
                 {pagination && (
                   <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                    <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                    <span className="w-2 h-2 rounded-full bg-gray-400" />
                     Total: {totalCount}
                   </span>
                 )}
@@ -1071,7 +1071,7 @@ export default function RolesIndex({ roles: initialRoles, filters: initialFilter
                               </div>
                               {role.description && (
                                 <div className={`text-xs mt-1 ${trashed ? 'text-gray-400' : 'text-gray-400'}`}>
-                                  {role.description.length > 60 ? role.description.substring(0, 60) + '...' : role.description}
+                                  {role.description.length > 60 ? `${role.description.substring(0, 60)  }...` : role.description}
                                 </div>
                               )}
                             </div>

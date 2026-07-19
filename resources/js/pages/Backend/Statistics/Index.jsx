@@ -187,7 +187,7 @@ export default function StatisticsIndex({
         <Head title="Statistics" />
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
             <p className="mt-4 text-gray-600">Loading statistics...</p>
           </div>
         </div>
@@ -277,7 +277,7 @@ export default function StatisticsIndex({
                   <div
                     className="bg-green-600 rounded-full h-2 transition-all duration-500"
                     style={{ width: `${Math.min(summary.conversion_rate, 100)}%` }}
-                  ></div>
+                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-2">{summary.hired_applications} hired out of {summary.total_applications}</p>
               </div>
@@ -526,7 +526,7 @@ export default function StatisticsIndex({
                               width: `${(category.value / jobsByCategory[0].value) * 100}%`,
                               backgroundColor: category.color,
                             }}
-                          ></div>
+                           />
                         </div>
                       </div>
                     ))}
@@ -559,7 +559,7 @@ export default function StatisticsIndex({
                               width: `${(location.value / jobsByLocation[0].value) * 100}%`,
                               backgroundColor: location.color,
                             }}
-                          ></div>
+                           />
                         </div>
                       </div>
                     ))}
@@ -595,7 +595,7 @@ export default function StatisticsIndex({
                               width: `${(job.count / applicationsByJob[0].count) * 100}%`,
                               backgroundColor: job.color,
                             }}
-                          ></div>
+                           />
                         </div>
                       </div>
                     ))}

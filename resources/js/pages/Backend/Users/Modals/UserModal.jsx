@@ -82,7 +82,7 @@ export default function UserModal({ isOpen, onClose, editingUser, roles, onSucce
 
     setFormData(prev => ({
       ...prev,
-      password: password,
+      password,
       password_confirmation: password
     }));
     setPasswordCopied(false);

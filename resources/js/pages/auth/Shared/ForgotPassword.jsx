@@ -77,7 +77,7 @@ export default function ForgotPassword({ status }) {
                                     </div>
                                     {errors.email && (
                                         <p className="text-xs text-red-600 flex items-center gap-1">
-                                            <span className="inline-block w-1 h-1 bg-red-600 rounded-full"></span>
+                                            <span className="inline-block w-1 h-1 bg-red-600 rounded-full" />
                                             {errors.email}
                                         </p>
                                     )}
@@ -120,15 +120,15 @@ export default function ForgotPassword({ status }) {
                             <h4 className="text-sm font-medium text-yellow-800 mb-2">💡 Tips:</h4>
                             <ul className="space-y-1 text-xs text-yellow-700">
                                 <li className="flex items-center">
-                                    <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                    <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2" />
                                     Check your spam or junk folder if you don't see the email
                                 </li>
                                 <li className="flex items-center">
-                                    <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                    <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2" />
                                     The reset link expires in 60 minutes
                                 </li>
                                 <li className="flex items-center">
-                                    <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                    <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2" />
                                     Make sure to use the email address you registered with
                                 </li>
                             </ul>
@@ -142,7 +142,7 @@ export default function ForgotPassword({ status }) {
                         </div>
                     </main>
                 </div>
-                <div className="hidden h-14.5 lg:block"></div>
+                <div className="hidden h-14.5 lg:block" />
             </div>
         </>
     );

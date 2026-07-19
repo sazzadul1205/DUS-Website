@@ -74,7 +74,7 @@ export const StepIndicator = ({ currentStep, steps }) => {
 
                     {/* Pulse animation for active step */}
                     {isActive && (
-                      <div className="absolute inset-0 rounded-full animate-ping bg-blue-400 opacity-40"></div>
+                      <div className="absolute inset-0 rounded-full animate-ping bg-blue-400 opacity-40" />
                     )}
                   </div>
 

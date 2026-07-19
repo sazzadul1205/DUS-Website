@@ -166,7 +166,7 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
 
     router.get(route('backend.locations.index'), {
       ...filters,
-      page: page,
+      page,
     }, {
       preserveState: true,
       preserveScroll: true,
@@ -421,7 +421,7 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
             setIsBulkProcessing(false);
           },
           onError: (error) => {
-            let errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete locations.';
+            const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete locations.';
             Swal.fire({
               icon: 'error',
               title: 'Failed',
@@ -876,7 +876,7 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
     const pages = [];
     const maxVisible = 5;
     let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+    const endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
 
     if (endPage - startPage + 1 < maxVisible) {
       startPage = Math.max(1, endPage - maxVisible + 1);
@@ -1005,22 +1005,22 @@ export default function LocationsIndex({ locations: initialLocations, filters: i
               </p>
               <div className="flex gap-3 mt-2 flex-wrap">
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
                   Active: {activeCount}
                 </span>
 
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-red-500" />
                   Inactive: {inactiveCount}
                 </span>
 
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                  <span className="w-2 h-2 rounded-full bg-gray-400" />
                   Deleted: {deletedCount}
                 </span>
 
                 <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
                   Total: {totalCount}
                 </span>
               </div>

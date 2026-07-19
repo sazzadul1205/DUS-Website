@@ -226,7 +226,7 @@ export default function Show({ application, atsAnalysis }) {
   // Format salary
   const formatSalary = (salary) => {
     if (!salary) return 'Not specified';
-    return new Intl.NumberFormat('en-US').format(salary) + ' BDT';
+    return `${new Intl.NumberFormat('en-US').format(salary)  } BDT`;
   };
 
   // Handle status update

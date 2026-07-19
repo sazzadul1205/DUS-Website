@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
 
@@ -235,7 +236,13 @@ class SectionController extends Controller
       $validator = Validator::make($request->all(), [
         'page_id' => 'required|exists:pages,id',
         'component' => 'required|string|max:255',
-        'section_key' => 'required|string|max:255|unique:section_configs,section_key,NULL,id,page_slug,' . $request->page_id,
+        'section_key' => [
+          'required',
+          'string',
+          'max:255',
+          Rule::unique('section_configs', 'section_key')
+            ->where(fn ($query) => $query->where('page_slug', $page->slug)),
+        ],
         'data_table' => 'required|string|max:255',
         'is_enabled' => 'boolean',
         'custom_props' => 'nullable|array',
@@ -294,7 +301,14 @@ class SectionController extends Controller
       $sectionConfig = SectionConfig::withTrashed()->findOrFail($id);
 
       $validator = Validator::make($request->all(), [
-        'section_key' => 'required|string|max:255',
+        'section_key' => [
+          'required',
+          'string',
+          'max:255',
+          Rule::unique('section_configs', 'section_key')
+            ->where(fn ($query) => $query->where('page_slug', $sectionConfig->page_slug))
+            ->ignore($sectionConfig->id),
+        ],
         'component' => 'sometimes|string|max:255',
         'data_table' => 'sometimes|string|max:255',
         'data_key' => 'sometimes|string|max:255',

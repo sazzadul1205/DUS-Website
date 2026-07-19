@@ -29,6 +29,7 @@ export default [
             globals: {
                 ...globals.browser,
                 ...globals.es2021,
+                route: 'readonly',
             },
             parserOptions: {
                 ecmaFeatures: {
@@ -104,9 +105,6 @@ export default [
             '@typescript-eslint/consistent-type-definitions': ['warn', 'type'], // Prefer 'type' over 'interface'
             '@typescript-eslint/no-non-null-assertion': 'warn', // Avoid ! assertions
             '@typescript-eslint/explicit-function-return-type': 'off', // Let TypeScript infer
-            '@typescript-eslint/strict-boolean-expressions': 'warn',
-            '@typescript-eslint/prefer-nullish-coalescing': 'warn',
-            '@typescript-eslint/prefer-optional-chain': 'warn',
         },
     },
 

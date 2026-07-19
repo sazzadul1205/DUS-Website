@@ -149,7 +149,7 @@ export const BasicInfoStep = ({
                 <div className="absolute -top-1 left-0 right-0 flex justify-between px-1">
                   {[0, 25, 50, 75, 100].map(marker => (
                     <div key={marker} className="relative">
-                      <div className="w-0.5 h-3 bg-gray-300"></div>
+                      <div className="w-0.5 h-3 bg-gray-300" />
                       <span className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400">
                         {marker}
                       </span>

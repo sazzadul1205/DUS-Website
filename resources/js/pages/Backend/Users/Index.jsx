@@ -166,7 +166,7 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
 
     router.get(route('backend.users.index'), {
       ...filters,
-      page: page,
+      page,
     }, {
       preserveState: true,
       preserveScroll: true,
@@ -312,7 +312,7 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
             setIsBulkProcessing(false);
           },
           onError: (error) => {
-            let errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete users.';
+            const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete users.';
             Swal.fire({
               icon: 'error',
               title: 'Failed',
@@ -453,7 +453,7 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
             }
           },
           onError: (errors) => {
-            let errorMessage = errors?.response?.data?.message || errors?.message || 'Failed to delete user.';
+            const errorMessage = errors?.response?.data?.message || errors?.message || 'Failed to delete user.';
             Swal.fire({
               icon: 'error',
               title: 'Delete Failed',
@@ -509,7 +509,7 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
             }
           },
           onError: (errors) => {
-            let errorMessage = errors?.response?.data?.message || errors?.message || 'Failed to permanently delete user.';
+            const errorMessage = errors?.response?.data?.message || errors?.message || 'Failed to permanently delete user.';
             Swal.fire({
               icon: 'error',
               title: 'Delete Failed',
@@ -641,7 +641,7 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
     const pages = [];
     const maxVisible = 5;
     let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+    const endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
 
     if (endPage - startPage + 1 < maxVisible) {
       startPage = Math.max(1, endPage - maxVisible + 1);
@@ -766,30 +766,30 @@ export default function UsersIndex({ users: initialUsers, filters: initialFilter
               </p>
               <div className="flex gap-3 mt-2 flex-wrap">
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
                   Active: {activeCount}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                  <span className="w-2 h-2 rounded-full bg-gray-400" />
                   Deleted: {deletedCount}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
                   Verified: {verifiedCount}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-yellow-500" />
                   Unverified: {unverifiedCount}
                 </span>
                 {hasActiveFilters() && (
                   <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
                     Filtered
                   </span>
                 )}
                 {pagination && (
                   <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                    <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                    <span className="w-2 h-2 rounded-full bg-gray-400" />
                     Total: {pagination.total}
                   </span>
                 )}

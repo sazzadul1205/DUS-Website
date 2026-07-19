@@ -18,14 +18,14 @@ export const validateRequired = (value, fieldName) => {
 };
 
 export const validateMinLength = (value, min, fieldName) => {
-  if (value && value.length < min) {
+  if (typeof value === 'string' && value.length < min) {
     return `${fieldName} must be at least ${min} characters`;
   }
   return null;
 };
 
 export const validateMaxLength = (value, max, fieldName) => {
-  if (value && value.length > max) {
+  if (typeof value === 'string' && value.length > max) {
     return `${fieldName} must be at most ${max} characters`;
   }
   return null;
@@ -43,7 +43,7 @@ export const validateUrl = (value, fieldName) => {
 };
 
 export const validateEmail = (value, fieldName) => {
-  if (value) {
+  if (value !== undefined && value !== null && value !== '') {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
       return `${fieldName} must be a valid email address`;

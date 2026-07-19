@@ -179,7 +179,7 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
 
     router.get(route('backend.roles.trashed'), {
       ...filters,
-      page: page,
+      page,
     }, {
       preserveState: true,
       preserveScroll: true,
@@ -214,7 +214,7 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
 
   // Sort roles
   const sortedRoles = useMemo(() => {
-    let sorted = [...roleItems];
+    const sorted = [...roleItems];
 
     if (filters.sortBy === 'name') {
       sorted.sort((a, b) => {
@@ -510,7 +510,7 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
     const pages = [];
     const maxVisible = 5;
     let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+    const endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
 
     if (endPage - startPage + 1 < maxVisible) {
       startPage = Math.max(1, endPage - maxVisible + 1);
@@ -645,12 +645,12 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
               </p>
               <div className="flex gap-3 mt-2 flex-wrap">
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-red-500" />
                   Deleted: {stats?.total_deleted || 0}
                 </span>
                 {hasActiveFilters() && (
                   <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
                     Filtered
                   </span>
                 )}
@@ -886,7 +886,7 @@ export default function RolesTrashed({ roles: initialRoles, filters: initialFilt
                               </div>
                               {role.description && (
                                 <div className="text-xs text-gray-400 mt-1">
-                                  {role.description.length > 60 ? role.description.substring(0, 60) + '...' : role.description}
+                                  {role.description.length > 60 ? `${role.description.substring(0, 60)  }...` : role.description}
                                 </div>
                               )}
                             </div>

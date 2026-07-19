@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 // resources/js/pages/Backend/JobCategories/Index.jsx
 
 // React
@@ -764,7 +763,7 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
             }
           },
           onError: (errors) => {
-            let errorMessage = errors?.response?.data?.message || errors?.message || 'Failed to delete category.';
+            const errorMessage = errors?.response?.data?.message || errors?.message || 'Failed to delete category.';
             Swal.fire({
               icon: 'error',
               title: 'Delete Failed',
@@ -820,7 +819,7 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
             }
           },
           onError: (errors) => {
-            let errorMessage = errors?.response?.data?.message || errors?.message || 'Failed to permanently delete category.';
+            const errorMessage = errors?.response?.data?.message || errors?.message || 'Failed to permanently delete category.';
             Swal.fire({
               icon: 'error',
               title: 'Delete Failed',
@@ -971,24 +970,24 @@ export default function JobCategoriesIndex({ categories: initialCategories, filt
               </p>
               <div className="flex gap-3 mt-2 flex-wrap">
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
                   Active: {activeCount}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-red-500" />
                   Inactive: {inactiveCount}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                  <span className="w-2 h-2 rounded-full bg-gray-400" />
                   Deleted: {deletedCount}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
                   Total: {totalCount}
                 </span>
                 {hasActiveFilters() && (
                   <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
                     Filtered
                   </span>
                 )}

@@ -6,8 +6,8 @@ import { LoaderCircle, Eye, EyeOff, Lock, Mail, Shield, Key, CheckCircle, ArrowR
 
 export default function ResetPassword({ token, email }) {
     const { data, setData, post, processing, errors, reset } = useForm({
-        token: token,
-        email: email,
+        token,
+        email,
         password: '',
         password_confirmation: '',
     });
@@ -67,7 +67,7 @@ export default function ResetPassword({ token, email }) {
                                     </div>
                                     {errors.email && (
                                         <p className="text-xs text-red-600 flex items-center gap-1">
-                                            <span className="inline-block w-1 h-1 bg-red-600 rounded-full"></span>
+                                            <span className="inline-block w-1 h-1 bg-red-600 rounded-full" />
                                             {errors.email}
                                         </p>
                                     )}
@@ -103,12 +103,12 @@ export default function ResetPassword({ token, email }) {
                                     </div>
                                     {errors.password && (
                                         <p className="text-xs text-red-600 flex items-center gap-1">
-                                            <span className="inline-block w-1 h-1 bg-red-600 rounded-full"></span>
+                                            <span className="inline-block w-1 h-1 bg-red-600 rounded-full" />
                                             {errors.password}
                                         </p>
                                     )}
                                     <p className="text-xs text-[#706f6c] flex items-center gap-1">
-                                        <span className="inline-block w-1 h-1 bg-[#706f6c] rounded-full"></span>
+                                        <span className="inline-block w-1 h-1 bg-[#706f6c] rounded-full" />
                                         Password must be at least 8 characters
                                     </p>
                                 </div>
@@ -142,7 +142,7 @@ export default function ResetPassword({ token, email }) {
                                     </div>
                                     {errors.password_confirmation && (
                                         <p className="text-xs text-red-600 flex items-center gap-1">
-                                            <span className="inline-block w-1 h-1 bg-red-600 rounded-full"></span>
+                                            <span className="inline-block w-1 h-1 bg-red-600 rounded-full" />
                                             {errors.password_confirmation}
                                         </p>
                                     )}
@@ -185,15 +185,15 @@ export default function ResetPassword({ token, email }) {
                             <h4 className="text-sm font-medium text-blue-800 mb-2">🔒 Password requirements:</h4>
                             <ul className="space-y-1 text-xs text-blue-700">
                                 <li className="flex items-center">
-                                    <span className="h-1.5 w-1.5 bg-blue-400 rounded-full mr-2"></span>
+                                    <span className="h-1.5 w-1.5 bg-blue-400 rounded-full mr-2" />
                                     At least 8 characters long
                                 </li>
                                 <li className="flex items-center">
-                                    <span className="h-1.5 w-1.5 bg-blue-400 rounded-full mr-2"></span>
+                                    <span className="h-1.5 w-1.5 bg-blue-400 rounded-full mr-2" />
                                     Use a mix of letters, numbers, and symbols
                                 </li>
                                 <li className="flex items-center">
-                                    <span className="h-1.5 w-1.5 bg-blue-400 rounded-full mr-2"></span>
+                                    <span className="h-1.5 w-1.5 bg-blue-400 rounded-full mr-2" />
                                     Don't use common or easily guessed passwords
                                 </li>
                             </ul>
@@ -207,7 +207,7 @@ export default function ResetPassword({ token, email }) {
                         </div>
                     </main>
                 </div>
-                <div className="hidden h-14.5 lg:block"></div>
+                <div className="hidden h-14.5 lg:block" />
             </div>
         </>
     );

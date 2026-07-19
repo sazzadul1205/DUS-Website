@@ -125,7 +125,7 @@ const DynamicSectionRenderer = ({
   // ============================================
   // The data might be nested in pageData.pageData or at the root level
   // Check if pageData has a 'pageData' property that contains the actual data
-  const dataSource = pageData.pageData || pageData;
+  const dataSource = pageData?.pageData || pageData || {};
 
   // ============================================
   // RESOLVE PROPS BASED ON CONFIGURATION

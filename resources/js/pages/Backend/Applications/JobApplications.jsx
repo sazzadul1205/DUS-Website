@@ -1010,7 +1010,7 @@ export default function JobApplications({
   // Format salary
   const formatSalary = (salary) => {
     if (!salary) return null;
-    return new Intl.NumberFormat('en-US').format(salary) + ' BDT';
+    return `${new Intl.NumberFormat('en-US').format(salary)  } BDT`;
   };
 
   // Check if any filter is active
@@ -1079,7 +1079,7 @@ export default function JobApplications({
     const pages = [];
     const maxVisible = 5;
     let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+    const endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
 
     if (endPage - startPage + 1 < maxVisible) {
       startPage = Math.max(1, endPage - maxVisible + 1);
@@ -1203,34 +1203,34 @@ export default function JobApplications({
                 </div>
                 <div className="flex gap-3 mt-2 flex-wrap">
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-yellow-500" />
                     Pending: {pendingCount}
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-green-500" />
                     Shortlisted: {shortlistedCount}
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-red-500" />
                     Rejected: {rejectedCount}
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-purple-500" />
                     Hired: {hiredCount}
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                    <span className="w-2 h-2 rounded-full bg-gray-400" />
                     Total: {totalCount}
                   </span>
                   {hasActiveFilters() && (
                     <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      <span className="w-2 h-2 rounded-full bg-blue-500" />
                       Filtered ({getActiveFilterCount()})
                     </span>
                   )}
                   {pagination && (
                     <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                      <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                      <span className="w-2 h-2 rounded-full bg-gray-400" />
                       Page Total: {pagination.total}
                     </span>
                   )}

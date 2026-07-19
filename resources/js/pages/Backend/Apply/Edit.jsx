@@ -458,7 +458,7 @@ export default function ApplyEdit({ application, jobListing, cvs, currentCvId })
   // Format currency
   const formatCurrency = (amount) => {
     if (!amount) return null;
-    return new Intl.NumberFormat('en-US').format(amount) + ' BDT';
+    return `${new Intl.NumberFormat('en-US').format(amount)  } BDT`;
   };
 
   // Check if job is expired

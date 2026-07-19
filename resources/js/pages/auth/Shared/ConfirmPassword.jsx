@@ -28,9 +28,9 @@ export default function ConfirmPassword() {
 
             <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-yellow-50 via-orange-50 to-red-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
                 {/* Animated background elements */}
-                <div className="absolute -top-20 -right-20 w-64 h-64 bg-linear-to-r from-yellow-400 to-orange-500 rounded-full blur-3xl opacity-20 animate-pulse"></div>
-                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-linear-to-r from-red-400 to-pink-500 rounded-full blur-3xl opacity-20 animate-pulse animation-delay-1000"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl"></div>
+                <div className="absolute -top-20 -right-20 w-64 h-64 bg-linear-to-r from-yellow-400 to-orange-500 rounded-full blur-3xl opacity-20 animate-pulse" />
+                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-linear-to-r from-red-400 to-pink-500 rounded-full blur-3xl opacity-20 animate-pulse animation-delay-1000" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl" />
 
                 <div className="max-w-md w-full space-y-8 relative z-10">
                     {/* Logo and Header */}
@@ -125,15 +125,15 @@ export default function ConfirmPassword() {
                                 <h4 className="text-sm font-medium text-gray-900 mb-2">Security Tips:</h4>
                                 <ul className="space-y-1 text-xs text-gray-600">
                                     <li className="flex items-center">
-                                        <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                        <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2" />
                                         Never share your password with anyone
                                     </li>
                                     <li className="flex items-center">
-                                        <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                        <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2" />
                                         Use a strong, unique password for this account
                                     </li>
                                     <li className="flex items-center">
-                                        <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2"></span>
+                                        <span className="h-1.5 w-1.5 bg-yellow-400 rounded-full mr-2" />
                                         Enable two-factor authentication for extra security
                                     </li>
                                 </ul>

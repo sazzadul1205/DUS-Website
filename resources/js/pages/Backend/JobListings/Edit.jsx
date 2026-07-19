@@ -552,8 +552,8 @@ export default function Edit({ jobListing, categories, locations }) {
           <div className="mt-8 text-center">
             <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/80 backdrop-blur-sm rounded-full shadow-sm border border-gray-100">
               <div className="relative">
-                <div className="w-2 h-2 rounded-full bg-orange-600 animate-ping opacity-75"></div>
-                <div className="w-2 h-2 rounded-full bg-orange-600 absolute top-0"></div>
+                <div className="w-2 h-2 rounded-full bg-orange-600 animate-ping opacity-75" />
+                <div className="w-2 h-2 rounded-full bg-orange-600 absolute top-0" />
               </div>
               <span className="text-sm font-medium text-gray-600">
                 Step {currentStep} of {steps.length}
