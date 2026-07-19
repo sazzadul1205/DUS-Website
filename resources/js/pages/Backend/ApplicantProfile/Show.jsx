@@ -1,10 +1,11 @@
+/* eslint-disable no-undef */
 // pages/Backend/ApplicantProfile/Show.jsx
 
 // React
 import { useState } from 'react';
 
 // Inertia
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 
 // Layout
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
@@ -13,10 +14,8 @@ import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 import { useAuth } from '../../../hooks/useAuth';
 
 // Icons
-import { FaCakeCandles } from "react-icons/fa6";
 import {
   FaUser,
-  FaEnvelope,
   FaPhone,
   FaEdit,
   FaTrash,
@@ -39,7 +38,6 @@ import {
   FaGlobe,
   FaCalendarAlt,
   FaStar,
-  FaPlus,
   FaFacebook,
   FaYoutube,
   FaMedium,
@@ -48,11 +46,7 @@ import {
   FaChartLine,
   FaUserTie,
   FaLink,
-  FaCheckCircle,
-  FaClock,
-  FaGraduationCap,
   FaBuilding,
-  FaCalendarDay,
   FaInfoCircle,
   FaArrowLeft,
   FaShieldAlt,
@@ -61,7 +55,6 @@ import {
   MdOutlineBloodtype,
   MdSchool,
   MdPending,
-  MdVerified,
   MdEmail
 } from 'react-icons/md';
 
@@ -77,11 +70,10 @@ import WorkExperienceModal from './Modals/WorkExperienceModal';
 import ChangePasswordModal from './Modals/ChangePasswordModal';
 import ProfessionalInfoModal from './Modals/ProfessionalInfoModal';
 
-export default function Show({ profile, canEdit = false, canDelete = false }) {
+export default function Show({ profile }) {
   // Use centralized auth hook
   const {
     user: authUser,
-    isAuthenticated,
     hasAnyPermission,
     hasRole,
   } = useAuth();

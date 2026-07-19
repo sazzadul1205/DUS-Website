@@ -4,6 +4,7 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Models\pages\SharedData;
+use Illuminate\Support\Facades\Log;
 
 trait SharedDataTrait
 {
@@ -35,13 +36,19 @@ trait SharedDataTrait
     $sharedData = [];
 
     foreach ($sharedTypes as $type => $key) {
-      $record = SharedData::where('type', $type)
-        ->where('is_active', true)
-        ->first();
+      try {
+        $record = SharedData::where('type', $type)
+          ->where('is_active', true)
+          ->first();
 
-      $sharedData[$key] = $record && !empty($record->data)
-        ? $this->transformAssetUrls($record->data, $asset)
-        : [];
+        $sharedData[$key] = $record && !empty($record->data)
+          ? $this->transformAssetUrls($record->data, $asset)
+          : [];
+      } catch (\Exception $e) {
+        // Log the error but continue with empty data
+        Log::error("Failed to fetch shared data for type: {$type}", ['error' => $e->getMessage()]);
+        $sharedData[$key] = [];
+      }
     }
 
     return $sharedData;
@@ -52,6 +59,11 @@ trait SharedDataTrait
    */
   private function transformAssetUrls($data, callable $asset): array
   {
+    // If data is null or empty, return empty array
+    if (empty($data)) {
+      return [];
+    }
+
     // If data is not an array, try to decode it from JSON
     if (is_string($data)) {
       $decoded = json_decode($data, true);
@@ -63,7 +75,7 @@ trait SharedDataTrait
       }
     }
 
-    // If data is null or not an array, return empty array
+    // If data is not an array, return empty array
     if (!is_array($data)) {
       return [];
     }

@@ -1,10 +1,10 @@
+/* eslint-disable no-undef */
 // resources/js/pages/Backend/ApplicantProfile/Index.jsx
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Head, router, usePage, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '../../../layouts/AuthenticatedLayout';
 import { Can } from '../../../components/Auth/Can';
-import { CanRole } from '../../../components/Auth/CanRole';
 import { useAuth } from '../../../hooks/useAuth';
 
 // Icons
@@ -12,7 +12,6 @@ import {
   FaUser,
   FaBriefcase,
   FaGraduationCap,
-  FaTrophy,
   FaEnvelope,
   FaPhone,
   FaCalendarAlt,
@@ -27,9 +26,7 @@ import {
   FaUndo,
   FaSpinner,
   FaCheckCircle,
-  FaClock,
   FaChartLine,
-  FaUsers,
   FaChevronLeft,
   FaChevronRight,
   FaSort,
@@ -38,16 +35,11 @@ import {
   FaDownload,
   FaFilePdf,
   FaLinkedin,
-  FaFacebook,
-  FaTwitter,
-  FaUserCheck,
-  FaUserTimes,
   FaStar,
   FaRegBuilding,
   FaBirthdayCake,
   FaVenusMars,
   FaTint,
-  FaIdCard,
   FaLock,
 } from 'react-icons/fa';
 
@@ -58,12 +50,9 @@ export default function Index({
   filters: initialFilters = {},
   filterOptions = {},
   statusCounts = {},
-  genderDistribution = {},
-  experienceDistribution = {},
-  totalProfiles = 0,
 }) {
   const { flash } = usePage().props;
-  const { user, hasPermission, hasAnyPermission, hasRole } = useAuth();
+  const { hasPermission, hasAnyPermission, hasRole } = useAuth();
   const safeInitialFilters = (initialFilters && !Array.isArray(initialFilters)) ? initialFilters : {};
 
   // States
@@ -81,8 +70,6 @@ export default function Index({
   const canDeleteProfiles = hasAnyPermission(['applicant-profiles.delete', 'applicant-profiles.bulk-delete']) || hasRole('admin');
   const canRestoreProfiles = hasAnyPermission(['applicant-profiles.restore', 'applicant-profiles.bulk-restore']) || hasRole('admin');
   const canViewFilters = hasPermission('applicant-profiles.filter') || hasRole('admin');
-  const canExportProfiles = hasPermission('applicant-profiles.export') || hasRole('admin');
-  const canViewStats = hasPermission('applicant-profiles.stats') || hasRole('admin');
 
   // Keep local state in sync with Inertia props (e.g. back/forward navigation,
   // visiting this page from elsewhere, or any navigation that doesn't go through
@@ -579,7 +566,7 @@ export default function Index({
     const pages = [];
     const maxVisible = 5;
     let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
+    const endPage = Math.min(pagination.lastPage, startPage + maxVisible - 1);
 
     if (endPage - startPage + 1 < maxVisible) {
       startPage = Math.max(1, endPage - maxVisible + 1);
@@ -703,36 +690,36 @@ export default function Index({
               </p>
               <div className="flex gap-3 mt-2 flex-wrap">
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
                   Total: {statusCounts.total || 0}
                 </span>
                 <Can permission="applicant-profiles.stats">
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
                     Complete: {statusCounts.complete || 0}
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-purple-500" />
                     Has CV: {statusCounts.has_cv || 0}
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-indigo-500" />
                     Has Applied: {statusCounts.has_applied || 0}
                   </span>
                 </Can>
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                  <span className="w-2 h-2 rounded-full bg-gray-400" />
                   Deleted: {statusCounts.deleted || 0}
                 </span>
                 {hasActiveFilters() && (
                   <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
                     Filtered ({getActiveFilterCount()})
                   </span>
                 )}
                 {pagination && (
                   <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                    <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                    <span className="w-2 h-2 rounded-full bg-gray-400" />
                     Results: {pagination.total}
                   </span>
                 )}

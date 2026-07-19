@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // resources/js/pages/Backend/JobListings/Index.jsx
 
 // React
@@ -34,7 +35,6 @@ import {
   FaCheckDouble,
   FaChevronLeft,
   FaChevronRight,
-  FaChartLine,
   FaShieldAlt,
 } from 'react-icons/fa';
 
@@ -47,7 +47,6 @@ import Swal from 'sweetalert2';
 export default function JobListingsIndex({
   jobListings: initialJobListings,
   filters: initialFilters = {},
-  filterOptions = {},
   activeJobs,
   inactiveJobs,
   deletedJobs,
@@ -61,17 +60,13 @@ export default function JobListingsIndex({
     user: currentUser,
     hasAnyPermission,
     hasRole,
-    isAuthenticated,
   } = useAuth();
 
   // Check permissions for job management
-  const isSuperAdmin = hasRole('super-admin');
   const canViewJobs = hasAnyPermission(['jobs.view', 'jobs.manage']);
   const isEmployer = hasRole('employer') || hasRole('employer-admin');
-  const isHRManager = hasRole('hr-manager');
   const canEditJobs = hasAnyPermission(['jobs.update', 'jobs.manage']);
   const canToggleJobs = hasAnyPermission(['jobs.update', 'jobs.manage']);
-  const canCreateJobs = hasAnyPermission(['jobs.create', 'jobs.manage']);
   const canDeleteJobs = hasAnyPermission(['jobs.destroy', 'jobs.manage']);
   const canRestoreJobs = hasAnyPermission(['jobs.restore', 'jobs.manage']);
   const canBulkDeleteJobs = hasAnyPermission(['jobs.bulk_delete', 'jobs.manage']);

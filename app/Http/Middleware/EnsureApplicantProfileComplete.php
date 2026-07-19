@@ -1,17 +1,11 @@
 <?php
-// middleware/EnsureApplicantProfileComplete.php
+
 namespace App\Http\Middleware;
 
-// Models
-use App\Models\ApplicantProfile;
-
-// Closure
 use Closure;
-
-// Requests
 use Illuminate\Http\Request;
-
-// Response
+use Illuminate\Support\Facades\Route;
+use App\Models\ApplicantProfile;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureApplicantProfileComplete
@@ -23,8 +17,13 @@ class EnsureApplicantProfileComplete
     {
         $user = $request->user();
 
+        // If user is not authenticated, proceed
+        if (!$user) {
+            return $next($request);
+        }
+
         // Check if user has job-seeker role using RBAC
-        if (! $user || !$user->hasRole('job-seeker')) {
+        if (!$user->hasRole('job-seeker')) {
             return $next($request);
         }
 
@@ -44,6 +43,7 @@ class EnsureApplicantProfileComplete
             return $next($request);
         }
 
+        // Check if user has a profile
         $profile = ApplicantProfile::withTrashed()
             ->where('user_id', $user->id)
             ->first();
@@ -54,8 +54,19 @@ class EnsureApplicantProfileComplete
         }
 
         // Check if profile is complete
-        if (! $profile || ! $profile->isComplete()) {
-            return redirect()->route('profile.complete');
+        if (!$profile || !$profile->isComplete()) {
+            // Check if the current route is the dashboard or any protected route
+            $currentRoute = Route::currentRouteName();
+
+            // If it's the dashboard or any backend route, redirect to profile completion
+            if ($currentRoute === 'backend.dashboard' || str_starts_with($currentRoute, 'backend.')) {
+                return redirect()->route('profile.complete')
+                    ->with('warning', 'Please complete your profile to access this page.');
+            }
+
+            // For other routes, still redirect to profile completion
+            return redirect()->route('profile.complete')
+                ->with('warning', 'Please complete your profile to access this page.');
         }
 
         return $next($request);

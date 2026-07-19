@@ -37,11 +37,6 @@ class ApplyController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
         // Get all applications (active and soft-deleted) with pagination
         $applications = Application::withTrashed()
             ->where('user_id', $user->id)
@@ -107,11 +102,6 @@ class ApplyController extends Controller
     public function create(string $slug)
     {
         $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
 
         $jobListing = JobListing::where('slug', $slug)
             ->where('is_active', true)
@@ -197,11 +187,6 @@ class ApplyController extends Controller
     public function store(Request $request, string $slug)
     {
         $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
 
         $jobListing = JobListing::where('slug', $slug)
             ->where('is_active', true)
@@ -418,11 +403,6 @@ class ApplyController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
         $application = Application::withTrashed()
             ->with(['jobListing', 'jobListing.employer', 'applicantProfile'])
             ->where('user_id', Auth::id())
@@ -569,11 +549,6 @@ class ApplyController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
@@ -628,11 +603,6 @@ class ApplyController extends Controller
     public function edit(int $id)
     {
         $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
 
         $application = Application::with(['jobListing', 'applicantProfile'])
             ->where('user_id', Auth::id())
@@ -728,11 +698,6 @@ class ApplyController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
@@ -824,11 +789,6 @@ class ApplyController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
 
@@ -846,11 +806,6 @@ class ApplyController extends Controller
     public function destroy(int $id)
     {
         $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
 
         $application = Application::where('user_id', Auth::id())
             ->findOrFail($id);
@@ -884,11 +839,6 @@ class ApplyController extends Controller
     {
         $user = Auth::user();
 
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
-
         $application = Application::withTrashed()
             ->where('user_id', Auth::id())
             ->findOrFail($id);
@@ -917,11 +867,6 @@ class ApplyController extends Controller
     public function forceDelete(int $id)
     {
         $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
 
         $application = Application::withTrashed()
             ->where('user_id', Auth::id())
@@ -966,11 +911,6 @@ class ApplyController extends Controller
     public function trashed(Request $request)
     {
         $user = Auth::user();
-
-        // Check if user is logged in
-        if (!$user instanceof User) {
-            abort(401);
-        }
 
         $query = Application::onlyTrashed()
             ->where('user_id', $user->id)

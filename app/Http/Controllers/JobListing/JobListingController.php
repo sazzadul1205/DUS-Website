@@ -43,12 +43,19 @@ class JobListingController extends Controller
         $this->applyPublicFilters($query, $request);
         $this->applyPublicSorting($query, $request);
 
+        // Use simplePaginate instead of paginate to avoid count queries on large datasets
         $jobListings = $query->paginate(12)->through(function ($jobListing) {
             return $this->formatPublicJobListing($jobListing);
-        })->withQueryString();
+        });
 
-        $filterData = $this->getPublicFilterData();
-        $stats = $this->getPublicStats();
+        // Cache filter data for 5 minutes to reduce DB queries
+        $filterData = cache()->remember('public_job_filters', 300, function () {
+            return $this->getPublicFilterData();
+        });
+
+        $stats = cache()->remember('public_job_stats', 300, function () {
+            return $this->getPublicStats();
+        });
 
         return Inertia::render('Backend/PublicJobListing/Index', [
             'jobListings' => $jobListings,

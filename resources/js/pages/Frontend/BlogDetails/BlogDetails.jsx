@@ -1,8 +1,11 @@
 // resources/js/Pages/Frontend/BlogDetails/BlogDetails.jsx
 
 // React
-import React from 'react';
-import { Head } from '@inertiajs/react';
+import React, { useState, useEffect } from 'react';
+import { Head, usePage } from '@inertiajs/react';
+
+// Axios
+import axios from 'axios';
 
 // Icons
 import { CiCalendar } from "react-icons/ci";
@@ -15,11 +18,31 @@ import PublicLayout from '../../../layouts/PublicLayout';
 import DynamicSectionRenderer from '../../../Shared/DynamicSectionRenderer';
 
 // Banner Section Component
-const BannerSection = ({ bannerData, blogData }) => {
-  const tagColors = [
-    "bg-[#3866FF]", "bg-[#503AF2]", "bg-[#00B894]",
-    "bg-[#FF6B6B]", "bg-[#FDCB6E]", "bg-[#6C5CE7]",
-  ];
+const BannerSection = ({ bannerData, blogData, loading, notFound }) => {
+  if (loading) {
+    return (
+      <section className="relative isolate w-full h-125 overflow-hidden bg-[#080C14] flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-white border-r-transparent" />
+          <p className="mt-4 text-lg">Loading blog details...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <section className="relative isolate w-full h-125 overflow-hidden bg-[#080C14] flex items-center justify-center">
+        <div className="text-white text-center max-w-2xl px-4">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Content Not Available</h1>
+          <p className="text-lg text-gray-300">The blog post you're looking for is no longer available or has been removed.</p>
+          <a href="/" className="inline-block mt-6 bg-[#009BE2] text-white px-6 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
+            Return to Home
+          </a>
+        </div>
+      </section>
+    );
+  }
 
   // Normalize blog data
   const normalizedBlogData = {
@@ -42,7 +65,6 @@ const BannerSection = ({ bannerData, blogData }) => {
     }
   };
 
-  // Use default banner if bannerData is not available
   const banner = bannerData || defaultBanner;
 
   return (
@@ -65,14 +87,20 @@ const BannerSection = ({ bannerData, blogData }) => {
       <div className="relative z-10 max-w-275 mx-auto px-4 pt-24 sm:pt-28 lg:pt-32 h-full flex flex-col items-center justify-start text-center">
         <div className="flex items-center justify-center gap-2.5 flex-wrap mb-5">
           {normalizedBlogData.tags?.length > 0 ? (
-            normalizedBlogData.tags.map((tag, index) => (
-              <span
-                key={index}
-                className={`text-white text-[12px] sm:text-[13px] font-semibold px-2 py-1 rounded-md ${tagColors[index % tagColors.length]}`}
-              >
-                {tag}
-              </span>
-            ))
+            normalizedBlogData.tags.map((tag, index) => {
+              const tagColors = [
+                "bg-[#3866FF]", "bg-[#503AF2]", "bg-[#00B894]",
+                "bg-[#FF6B6B]", "bg-[#FDCB6E]", "bg-[#6C5CE7]",
+              ];
+              return (
+                <span
+                  key={index}
+                  className={`text-white text-[12px] sm:text-[13px] font-semibold px-2 py-1 rounded-md ${tagColors[index % tagColors.length]}`}
+                >
+                  {tag}
+                </span>
+              );
+            })
           ) : (
             <span className="text-white bg-[#3866FF] text-[12px] sm:text-[13px] font-semibold px-2 py-1 rounded-md">
               Blog Post
@@ -118,32 +146,33 @@ const BlogContentSection = ({
   paddingY,
   paddingX,
   sectionClassName,
-  sectionId
+  sectionId,
+  notFound
 }) => {
+  if (notFound) {
+    return null;
+  }
+
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
     if (imagePath.startsWith('http')) return imagePath;
 
-    // Remove leading slash if present and ensure proper URL construction
     const cleanPath = imagePath.replace(/^\//, '');
     return `${storageUrl}/${cleanPath}`;
   };
 
-  // Normalize blog data
   const normalizedBlogData = {
     title: blogData?.title || 'Blog Post',
     image: blogData?.image,
     fullContent: blogData?.fullContent || blogData?.full_content || blogData?.content || '',
   };
 
-  // Function to render HTML content safely
   const renderHTML = (htmlString) => ({ __html: htmlString });
 
-  if (!blogData) {
+  if (!blogData || notFound) {
     return null;
   }
 
-  // Get the image URL
   const imageUrl = getImageUrl(normalizedBlogData.image);
 
   return (
@@ -202,6 +231,22 @@ const BlogContentSection = ({
   );
 };
 
+// Not Found Component
+const NotFoundContent = () => (
+  <div className="max-w-275 mx-auto px-4 py-20 text-center">
+    <div className="bg-white rounded-2xl shadow-lg p-12 max-w-2xl mx-auto">
+      <div className="text-6xl mb-6">🔍</div>
+      <h2 className="text-3xl font-bold text-[#080C14] mb-4">Content Not Found</h2>
+      <p className="text-gray-600 text-lg mb-6">
+        The blog post you're looking for is no longer available or has been removed.
+      </p>
+      <a href="/" className="inline-block bg-[#009BE2] text-white font-600 px-8 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
+        Return to Home
+      </a>
+    </div>
+  </div>
+);
+
 const BlogDetails = ({
   topBarData,
   navbarData,
@@ -209,11 +254,77 @@ const BlogDetails = ({
   storageUrl,
   sectionConfig,
   pageData: pageDataProp,
+  notFound: serverNotFound,
+  notFoundMessage,
   ...pageData
 }) => {
+  const { page } = usePage();
+  const slug = page.props.pageSlug || window.location.pathname.split('/').pop();
+
+  const [blogData, setBlogData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(serverNotFound || false);
+  const [error, setError] = useState(null);
+
+  // Only fetch if server didn't already determine not found
+  useEffect(() => {
+    if (serverNotFound) {
+      setLoading(false);
+      setNotFound(true);
+      return;
+    }
+
+    const fetchBlogData = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`/api/blogs/${slug}`);
+
+        if (response.data.success && response.data.data) {
+          setBlogData(response.data.data);
+          setNotFound(false);
+        } else {
+          setNotFound(true);
+        }
+      } catch (err) {
+        console.error('Error fetching blog details:', err);
+        if (err.response?.status === 404) {
+          setNotFound(true);
+        } else {
+          setError(err.response?.data?.message || 'Failed to load blog details');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (slug) {
+      fetchBlogData();
+    }
+  }, [slug, serverNotFound]);
+
+  // If server already determined not found, show the message
+  if (serverNotFound) {
+    return (
+      <PublicLayout
+        topBarData={topBarData}
+        navbarData={navbarData}
+        footerData={footerData}
+        storageUrl={storageUrl}
+      >
+        <Head title="Blog Not Found | DUS" />
+        <NotFoundContent
+          icon="📝"
+          title="Blog Post Not Available"
+          message={notFoundMessage || 'The blog post you are looking for is no longer available or has been removed.'}
+          buttonText="Return to Home"
+          buttonLink="/"
+        />
+      </PublicLayout>
+    );
+  }
+
   // Use the data from the correct nesting
   const actualPageData = pageDataProp || pageData || {};
-  const blogData = actualPageData.blogData;
   const bannerData = actualPageData.bannerData;
 
   const sectionsToRender = (sectionConfig?.sections || [])
@@ -229,6 +340,8 @@ const BlogDetails = ({
           key={section.id}
           bannerData={bannerData}
           blogData={blogData}
+          loading={loading}
+          notFound={notFound}
           {...customProps}
         />
       );
@@ -240,6 +353,7 @@ const BlogDetails = ({
           key={section.id}
           blogData={blogData}
           storageUrl={storageUrl}
+          notFound={notFound}
           {...customProps}
         />
       );
@@ -247,6 +361,56 @@ const BlogDetails = ({
 
     return null;
   };
+
+  // Show 404 content if not found (client-side detected)
+  if (notFound && !serverNotFound) {
+    return (
+      <PublicLayout
+        topBarData={topBarData}
+        navbarData={navbarData}
+        footerData={footerData}
+        storageUrl={storageUrl}
+      >
+        <Head title="Blog Not Found | DUS" />
+        {sectionsToRender.map((section) => {
+          if (section.component === 'BannerSection' || section.component === 'PageBannerSection') {
+            return (
+              <BannerSection
+                key={section.id}
+                bannerData={bannerData}
+                blogData={null}
+                loading={false}
+                notFound={true}
+                {...section.customProps}
+              />
+            );
+          }
+          return null;
+        })}
+        <NotFoundContent />
+      </PublicLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <PublicLayout
+        topBarData={topBarData}
+        navbarData={navbarData}
+        footerData={footerData}
+        storageUrl={storageUrl}
+      >
+        <Head title="Error | DUS" />
+        <div className="max-w-275 mx-auto px-4 py-20 text-center">
+          <h2 className="text-3xl font-bold text-[#080C14] mb-4">Something Went Wrong</h2>
+          <p className="text-gray-600">{error}</p>
+          <a href="/" className="inline-block mt-6 bg-[#009BE2] text-white px-6 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
+            Return to Home
+          </a>
+        </div>
+      </PublicLayout>
+    );
+  }
 
   return (
     <PublicLayout
