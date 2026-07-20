@@ -218,7 +218,7 @@ const Dashboard = () => {
 
     if (role === 'job_seeker') {
       actions.push(
-        { icon: FiFileText, label: 'Browse Jobs', color: 'from-blue-500 to-blue-600', onClick: () => window.location.href = '/seeker/jobs' },
+        { icon: FiFileText, label: 'Browse Jobs', color: 'from-blue-500 to-blue-600', onClick: () => window.location.href = '/backend/seeker/jobs' },
         { icon: FiTarget, label: 'Complete Profile', color: 'from-green-500 to-emerald-600', onClick: () => window.location.href = '/complete-profile' },
         { icon: FiActivity, label: 'My Applications', color: 'from-purple-500 to-purple-600', onClick: () => window.location.href = '/backend/apply' },
         { icon: FiBell, label: 'Notifications', color: 'from-orange-500 to-red-600', onClick: () => window.location.href = '/backend/notifications' }
@@ -353,7 +353,7 @@ const Dashboard = () => {
         <div className="mb-8 animate-fade-in-up animation-delay-500">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recommended Jobs</h2>
-            <a href="/seeker/jobs" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <a href="/backend/seeker/jobs" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
               View all →
             </a>
           </div>

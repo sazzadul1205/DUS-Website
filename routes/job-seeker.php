@@ -34,8 +34,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
   })->name('api.verification.status');
 });
 
-// Job listing public routes (auth optional)
-Route::prefix('seeker')->name('public.jobs.')->group(function () {
+// Job listing routes for job seekers (auth optional)
+Route::prefix('backend/seeker')->name('public.jobs.')->group(function () {
   Route::get('/jobs', [PublicJobListingController::class, 'index'])->name('index');
   Route::get('/jobs/{slug}', [PublicJobListingController::class, 'show'])->name('show');
 });

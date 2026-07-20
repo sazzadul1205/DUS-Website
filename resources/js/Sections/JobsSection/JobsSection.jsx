@@ -30,7 +30,7 @@ const JobsSection = ({
   sectionClassName = '',
   apiEndpoint = '/api/jobs',
   apiParams = {},
-  publicJobsRoute = '/seeker/jobs',
+  publicJobsRoute = '/backend/seeker/jobs',
 }) => {
   // ============================================
   // STATE

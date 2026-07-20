@@ -101,7 +101,7 @@ const JobSeekerLayout = ({ children }) => {
     },
     {
       name: 'Browse Jobs',
-      routeName: 'public.jobs.index',           // URL: /seeker/jobs
+      routeName: 'public.jobs.index',           // URL: /backend/seeker/jobs
       icon: FiSearch,
       description: 'Find your next role',
     },

@@ -15,5 +15,6 @@ Route::prefix('categories')->name('categories.')->group(function () {
   Route::post('/bulk-restore', [JobCategoryController::class, 'bulkRestore'])->name('bulk-restore');
   Route::post('/bulk-activate', [JobCategoryController::class, 'bulkActivate'])->name('bulk-activate');
   Route::post('/bulk-deactivate', [JobCategoryController::class, 'bulkDeactivate'])->name('bulk-deactivate');
+  Route::post('/bulk-force-delete', [JobCategoryController::class, 'bulkForceDelete'])->name('bulk-force-delete'); // ADDED
   Route::get('/active', [JobCategoryController::class, 'getActiveCategories'])->name('active');
 });

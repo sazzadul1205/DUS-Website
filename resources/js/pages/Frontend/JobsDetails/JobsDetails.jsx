@@ -37,7 +37,7 @@ const BannerSection = ({ bannerData, jobData, loading, notFound }) => {
         <div className="text-white text-center max-w-2xl px-4">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">Job Not Available</h1>
           <p className="text-lg text-gray-300">The job posting you're looking for is no longer available or has been removed.</p>
-          <a href="/seeker/jobs" className="inline-block mt-6 bg-[#009BE2] text-white px-6 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
+          <a href="/backend/seeker/jobs" className="inline-block mt-6 bg-[#009BE2] text-white px-6 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
             Browse All Jobs
           </a>
         </div>
@@ -439,7 +439,7 @@ const JobsDetails = ({
           title="Job Not Available"
           message={notFoundMessage || 'The job posting you are looking for is no longer available or has been removed.'}
           buttonText="Browse All Jobs"
-          buttonLink="/seeker/jobs"
+          buttonLink="/backend/seeker/jobs"
         />
       </PublicLayout>
     );
@@ -538,7 +538,7 @@ const JobsDetails = ({
         <div className="max-w-275 mx-auto px-4 py-20 text-center">
           <h2 className="text-3xl font-bold text-[#080C14] mb-4">Something Went Wrong</h2>
           <p className="text-gray-600">{error}</p>
-          <a href="/seeker/jobs" className="inline-block mt-6 bg-[#009BE2] text-white px-6 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
+          <a href="/backend/seeker/jobs" className="inline-block mt-6 bg-[#009BE2] text-white px-6 py-3 rounded-lg hover:bg-[#009BE2]/80 transition-colors">
             Browse All Jobs
           </a>
         </div>

@@ -396,7 +396,7 @@ const AdminLayout = ({ children }) => {
     if (hasPermission('admin_profile.edit') || hasPermission('admin_profile.update')) {
       items.push({
         name: 'Admin Settings',
-        routeName: 'admin-profile.edit',
+        routeName: 'backend.admin-profile.edit',
         icon: FiSettings
       });
     }

@@ -177,7 +177,7 @@ export default function Edit({ user: adminUser, currentIcon, availableIcons }) {
       return;
     }
 
-    patch(route('admin-profile.update', adminUser.id), {
+    patch(route('backend.admin-profile.update', adminUser.id), {
       onSuccess: () => {
         Swal.fire({
           icon: 'success',
@@ -212,7 +212,7 @@ export default function Edit({ user: adminUser, currentIcon, availableIcons }) {
       return;
     }
 
-    put(route('admin-profile.password.update', adminUser.id), {
+    put(route('backend.admin-profile.password.update', adminUser.id), {
       onSuccess: () => {
         resetPassword();
         Swal.fire({
@@ -235,7 +235,7 @@ export default function Edit({ user: adminUser, currentIcon, availableIcons }) {
 
   // Handle cancel
   const handleCancel = () => {
-    router.visit(route('admin-profile.show', adminUser.id));
+    router.visit(route('backend.admin-profile.show', adminUser.id));
   };
 
   // Handle delete
@@ -281,7 +281,7 @@ export default function Edit({ user: adminUser, currentIcon, availableIcons }) {
       cancelButtonText: 'Cancel',
     }).then((result) => {
       if (result.isConfirmed) {
-        router.delete(route('admin-profile.destroy', adminUser.id), {
+        router.delete(route('backend.admin-profile.destroy', adminUser.id), {
           onSuccess: () => {
             Swal.fire({
               icon: 'success',
@@ -352,7 +352,7 @@ export default function Edit({ user: adminUser, currentIcon, availableIcons }) {
 
     try {
       // UPDATED: Using the correct route for admin profile icon update
-      const response = await fetch(route('admin-profile.icon.update'), {
+      const response = await fetch(route('backend.admin-profile.icon.update'), {
         method: 'POST',
         body: formData,
         headers: {
@@ -406,7 +406,7 @@ export default function Edit({ user: adminUser, currentIcon, availableIcons }) {
     if (result.isConfirmed) {
       try {
         // UPDATED: Using the correct route for admin profile icon reset
-        const response = await fetch(route('admin-profile.icon.reset'), {
+        const response = await fetch(route('backend.admin-profile.icon.reset'), {
           method: 'DELETE',
           headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,

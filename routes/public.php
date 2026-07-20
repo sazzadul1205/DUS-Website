@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
 // Excluded paths for dynamic routes
-$excludedPaths = ['admin', 'backend', 'login', 'register', 'dashboard', 'api', 'storage', 'playground', '_warmup', 'auth', 'complete-profile', 'test-write'];
+$excludedPaths = ['admin', 'backend', 'login', 'register', 'dashboard', 'api', 'storage', 'playground', '_warmup', 'auth', 'complete-profile', 'seeker', 'test-write'];
 $exclusionPattern = '^(?!' . implode('|', $excludedPaths) . ').*$';
 
 // Storage file serving

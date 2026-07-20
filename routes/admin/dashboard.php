@@ -24,7 +24,7 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
   // URL: /backend/*
   // ============================================
   Route::prefix('backend')->name('backend.')->group(function () {
-    // CMS Routes – now in the same directory
+    // CMS Routes
     require __DIR__ . '/cms.php';
 
     // Job Listing Management
@@ -45,11 +45,21 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     // Backup Routes
     require __DIR__ . '/backup.php';
 
-    // ===== NEW ROUTES (in parent directory) =====
+    // ===== LOCATION & CATEGORY ROUTES =====
     require __DIR__ . '/../locations.php';
     require __DIR__ . '/../categories.php';
+
+    // ===== NOTIFICATION ROUTES =====
     require __DIR__ . '/../notifications.php';
+
+    // ===== APPLICANT PROFILE ROUTES =====
+    // Admin routes for managing applicant profiles
     require __DIR__ . '/../applicant-profiles.php';
+
+    // Owner routes for applicant profiles
+    require __DIR__ . '/applicant.php';
+
+    // ===== JOB SEEKER APPLICATION ROUTES =====
     require __DIR__ . '/../apply.php';
 
     // Cache Management (Admin only)
