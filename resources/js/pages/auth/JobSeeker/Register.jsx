@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 // pages/auth/register.jsx
 
 import { useState, useEffect } from 'react';

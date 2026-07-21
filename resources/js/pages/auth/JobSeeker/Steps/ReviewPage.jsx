@@ -15,7 +15,6 @@ import {
   FaCalendarDay,
   FaLink,
   FaStar,
-  FaRegStar,
   FaLinkedin,
   FaGithub,
   FaTwitter,
@@ -35,7 +34,7 @@ import {
   FaClipboardCheck
 } from 'react-icons/fa';
 import { GiSuitcase, GiAchievement } from 'react-icons/gi';
-import { MdWork, MdSchool, MdVerified, MdEmail } from 'react-icons/md';
+import { MdWork, MdSchool, MdVerified } from 'react-icons/md';
 import { useState, useEffect } from 'react';
 
 const ReviewPage = ({ data, onEditStep }) => {
@@ -305,7 +304,7 @@ const ReviewPage = ({ data, onEditStep }) => {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3">
-              {data.cvs.map((cv, index) => (
+              {data.cvs.map((cv) => (
                 <div key={cv.id} className="flex items-center justify-between p-4 bg-linear-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-md transition-all">
                   <div className="flex items-center space-x-4">
                     {cv.type === 'application/pdf' ? (

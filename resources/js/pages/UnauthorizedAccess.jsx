@@ -1,10 +1,13 @@
-/* eslint-disable no-undef */
 // resources/js/pages/UnauthorizedAccess.jsx
 
 import { Head, Link } from '@inertiajs/react';
+
+// Icons
 import { FaExclamationTriangle, FaArrowLeft, FaHome, FaShieldAlt } from 'react-icons/fa';
 
 export default function UnauthorizedAccess({ status = 403, message = null }) {
+
+  // Error Messages
   const errorMessages = {
     403: {
       title: 'Unauthorized Access',
@@ -23,7 +26,10 @@ export default function UnauthorizedAccess({ status = 403, message = null }) {
     }
   };
 
+  // Get error message
   const error = errorMessages[status] || errorMessages[403];
+
+  // Display message
   const displayMessage = message || error.defaultMessage;
 
   return (

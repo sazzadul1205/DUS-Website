@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   FaPlus,
-  FaTimes,
   FaTrophy,
   FaAward,
   FaStar,

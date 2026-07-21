@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 // pages/auth/verify-email.jsx
 
 import { useState, useEffect } from 'react';

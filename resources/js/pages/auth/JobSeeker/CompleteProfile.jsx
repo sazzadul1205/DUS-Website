@@ -69,7 +69,7 @@ const CompleteProfile = ({ applicantProfile = null }) => {
     achievements: [],
   });
 
-  // ✅ DEFINE STEPS HERE - BEFORE any function that references it
+  // DEFINE STEPS HERE - BEFORE any function that references it
   const steps = [
     { name: 'Basic Info', component: BasicInfo, icon: FaUser },
     { name: 'Professional', component: ProfessionalInfo, icon: MdWork },

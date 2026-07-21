@@ -18,7 +18,6 @@ import {
   FaTrash,
   FaPlus
 } from 'react-icons/fa';
-import { BiHappy } from 'react-icons/bi';
 import { useState } from 'react';
 
 const ProfessionalInfo = ({ data, setData }) => {
@@ -200,7 +199,6 @@ const ProfessionalInfo = ({ data, setData }) => {
                 >
                   <option value="">Choose a platform</option>
                   {platforms.map(platform => {
-                    const Icon = platform.icon;
                     return (
                       <option key={platform.id} value={platform.id}>
                         {platform.name}

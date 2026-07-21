@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 // resources/js/Pages/Dashboard.jsx
 
 // React
@@ -29,12 +30,6 @@ import AuthenticatedLayout from '../layouts/AuthenticatedLayout';
 const Dashboard = () => {
   const { auth, dashboardData } = usePage().props;
   const user = auth?.user;
-
-  console.log('Dashboard Props:', usePage().props);
-  console.log('dashboardData:', dashboardData);
-  console.log('role from dashboardData:', dashboardData?.role);
-  console.log('job_seeker:', dashboardData?.job_seeker);
-  console.log('admin_staff:', dashboardData?.admin_staff);
 
   // Extract dashboard data from props
   const { role, job_seeker, admin_staff } = dashboardData || {};
@@ -186,7 +181,7 @@ const Dashboard = () => {
 
       return [
         { icon: FiCheckCircle, title: 'Start exploring jobs to find your perfect match', time: 'Get started', color: 'from-blue-500 to-cyan-600', status: 'new' },
-        { icon: FiTarget, title: 'Complete your profile to attract recruiters', time: 'Profile: ' + (job_seeker.summary?.profile_completion || 0) + '%', color: 'from-purple-500 to-purple-600', status: 'warning' }
+        { icon: FiTarget, title: 'Complete your profile to attract recruiters', time: `Profile: ${job_seeker.summary?.profile_completion || 0}%`, color: 'from-purple-500 to-purple-600', status: 'warning' }
       ];
     }
 

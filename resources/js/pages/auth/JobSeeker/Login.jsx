@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 // pages/auth/job-seeker-login.jsx
 
 import { useState } from 'react';

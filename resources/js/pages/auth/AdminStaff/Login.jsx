@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 // pages/auth/admin-login.jsx
 
 import { useState } from 'react';
@@ -105,6 +104,7 @@ export default function AdminLogin({ status, canResetPassword }) {
     setCurrentDemoIndex((prev) => (prev === 0 ? demoAccounts.length - 1 : prev - 1));
   };
 
+  // Carousel navigation functions
   const goToNext = () => {
     setCurrentDemoIndex((prev) => (prev === demoAccounts.length - 1 ? 0 : prev + 1));
   };

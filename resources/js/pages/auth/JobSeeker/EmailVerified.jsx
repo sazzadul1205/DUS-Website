@@ -1,14 +1,18 @@
 // pages/auth/email-verified.jsx
 
+// Inertia
 import { Head, router } from '@inertiajs/react';
-import { CheckCircle, ArrowRight, LoaderCircle, RotateCw } from 'lucide-react';
+
+// Icons
+import { CheckCircle, ArrowRight } from 'lucide-react';
+
+// React
 import { useState, useEffect } from 'react';
 
-export default function EmailVerified({ status }) {
-  const [resending, setResending] = useState(false);
-  const [resendStatus, setResendStatus] = useState(null);
+export default function EmailVerified() {
   const [countdown, setCountdown] = useState(5);
 
+  // Redirect to complete profile
   const handleContinue = () => {
     router.get(route('profile.complete'));
   };
