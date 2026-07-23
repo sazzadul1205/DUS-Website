@@ -4,21 +4,21 @@ import React from 'react';
 import { sanitizeHTML } from '../../utils/sectionHelpers';
 
 /**
+ * Utility to check if a value exists
+ */
+const hasValue = (value) => {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value).length > 0;
+  return true;
+};
+
+/**
  * TextContentSection Component
  * 
  * Renders arbitrary HTML content (like legal terms, privacy policy, etc.)
  * using the application's global typography and spacing styles.
- * 
- * @param {Object} props
- * @param {Object} props.data - Data from API (from DynamicSectionRenderer)
- * @param {Object} props.textData - Direct prop (legacy support)
- * @param {Object} props.textContentSection - Data from DynamicSectionRenderer (propName)
- * @param {string} props.bgColor - Background color (default: 'bg-white')
- * @param {string} props.paddingY - Vertical padding (default: 'py-10 sm:py-15 md:py-25 lg:py-37.5')
- * @param {string} props.paddingX - Horizontal padding (default: 'px-5 sm:px-10 md:px-20 lg:px-50')
- * @param {string} props.maxWidth - Max width of content container (default: 'max-w-4xl lg:max-w-6xl')
- * @param {string} props.sectionClassName - Additional CSS classes
- * @param {string} props.sectionId - Section ID (default: 'text-content')
  */
 const TextContentSection = ({
   data,
@@ -54,6 +54,12 @@ const TextContentSection = ({
   // ============================================
   const htmlContent = content.html || content.content || content.text || '';
 
+  // ============================================
+  // EARLY RETURN - No content
+  // ============================================
+  if (!hasValue(htmlContent)) {
+    return null;
+  }
 
   // ============================================
   // SANITIZE HTML
@@ -70,24 +76,24 @@ const TextContentSection = ({
     >
       <div className={`mx-auto ${maxWidth}`}>
         <div
-          className="prose prose-lg lg:prose-xl max-w-none
-                     prose-headings:font-700 prose-headings:text-[#080C14]
-                     prose-h1:text-3xl sm:prose-h1:text-4xl lg:prose-h1:text-5xl prose-h1:mt-8 prose-h1:mb-4
-                     prose-h2:text-2xl sm:prose-h2:text-3xl lg:prose-h2:text-4xl prose-h2:mt-8 prose-h2:mb-4
-                     prose-h3:text-xl sm:prose-h3:text-2xl lg:prose-h3:text-3xl prose-h3:mt-6 prose-h3:mb-3
-                     prose-h4:text-lg sm:prose-h4:text-xl lg:prose-h4:text-2xl prose-h4:mt-6 prose-h4:mb-3
-                     prose-h5:text-base sm:prose-h5:text-lg lg:prose-h5:text-xl prose-h5:mt-4 prose-h5:mb-2
-                     prose-h6:text-sm sm:prose-h6:text-base lg:prose-h6:text-lg prose-h6:mt-4 prose-h6:mb-2
-                     prose-p:text-base sm:prose-p:text-lg lg:prose-p:text-xl prose-p:text-[#333333] prose-p:leading-relaxed prose-p:mb-4
-                     prose-strong:text-[#009BE2] prose-strong:font-700
-                     prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-3 prose-ul:mb-6
-                     prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-3 prose-ol:mb-6
-                     prose-li:text-base sm:prose-li:text-lg lg:prose-li:text-xl prose-li:text-[#333333] prose-li:leading-relaxed
-                     prose-a:text-[#009BE2] prose-a:underline hover:prose-a:no-underline
-                     prose-blockquote:border-l-4 prose-blockquote:border-[#009BE2] prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-[#333333]
-                     prose-code:bg-gray-100 prose-code:rounded prose-code:px-2 prose-code:py-1 prose-code:text-sm prose-code:font-mono
-                     prose-hr:border-t prose-hr:border-gray-300 prose-hr:my-8
-                     prose-img:rounded-lg prose-img:max-w-full prose-img:h-auto
+          className="max-w-none
+                     [&_h1]:text-3xl sm:[&_h1]:text-4xl lg:[&_h1]:text-5xl [&_h1]:font-700 [&_h1]:text-[#080C14] [&_h1]:mt-8 [&_h1]:mb-4
+                     [&_h2]:text-2xl sm:[&_h2]:text-3xl lg:[&_h2]:text-4xl [&_h2]:font-700 [&_h2]:text-[#080C14] [&_h2]:mt-8 [&_h2]:mb-4
+                     [&_h3]:text-xl sm:[&_h3]:text-2xl lg:[&_h3]:text-3xl [&_h3]:font-700 [&_h3]:text-[#080C14] [&_h3]:mt-6 [&_h3]:mb-3
+                     [&_h4]:text-lg sm:[&_h4]:text-xl lg:[&_h4]:text-2xl [&_h4]:font-700 [&_h4]:text-[#080C14] [&_h4]:mt-6 [&_h4]:mb-3
+                     [&_h5]:text-base sm:[&_h5]:text-lg lg:[&_h5]:text-xl [&_h5]:font-700 [&_h5]:text-[#080C14] [&_h5]:mt-4 [&_h5]:mb-2
+                     [&_h6]:text-sm sm:[&_h6]:text-base lg:[&_h6]:text-lg [&_h6]:font-700 [&_h6]:text-[#080C14] [&_h6]:mt-4 [&_h6]:mb-2
+                     [&_p]:text-base sm:[&_p]:text-lg lg:[&_p]:text-xl [&_p]:leading-relaxed [&_p]:mb-4
+                     [&_strong]:font-700
+                     [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-3 [&_ul]:mb-6
+                     [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-3 [&_ol]:mb-6
+                     [&_li]:text-base sm:[&_li]:text-lg lg:[&_li]:text-xl [&_li]:leading-relaxed
+                     [&_a]:underline hover:[&_a]:no-underline
+                     [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_blockquote]:italic
+                     [&_code]:bg-gray-100 [&_code]:rounded [&_code]:px-2 [&_code]:py-1 [&_code]:text-sm [&_code]:font-mono
+                     [&_hr]:border-t [&_hr]:border-gray-300 [&_hr]:my-8
+                     [&_img]:rounded-lg [&_img]:max-w-full [&_img]:h-auto
+                     [&_pre]:overflow-auto [&_pre]:whitespace-pre-wrap [&_pre]:break-all [&_pre]:p-4 [&_pre]:bg-gray-50 [&_pre]:rounded-lg
           "
           dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
         />
